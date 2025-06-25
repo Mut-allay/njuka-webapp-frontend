@@ -56,7 +56,7 @@ export default function App() {
   const [error, setError] = useState<string | null>(null);
   const [playerCount, setPlayerCount] = useState(2);
   const [gameCode, setGameCode] = useState("");
-  // const [playerId, setPlayerId] = useState<string>(() => localStorage.getItem("njuka_player_id") || "");
+  // Removed unused playerId state
   const [name, setName] = useState("");
   const [showGameCode, setShowGameCode] = useState<string | null>(null);
 
@@ -357,4 +357,5 @@ export default function App() {
 
   return <div className="App">Loading...</div>;
 }
+// Removed unused setPlayerId function
 
