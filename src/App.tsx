@@ -104,13 +104,12 @@ export default function App() {
       setPlayerId(data.player_id);
       localStorage.setItem("njuka_player_id", data.player_id);
 
-      // Fetch game state after creating
       const stateRes = await fetch(`${API}/game/${data.game_code}`);
       const stateData = await stateRes.json();
       setState(stateData);
 
       setMenu("game");
-      setShowGameCode(data.game_code); // <-- Show code after creation
+      setShowGameCode(data.game_code);
     } catch (e) {
       setError("Failed to create online game.");
     }
@@ -130,13 +129,12 @@ export default function App() {
       setPlayerId(data.player_id);
       localStorage.setItem("njuka_player_id", data.player_id);
 
-      // Fetch game state after joining
       const stateRes = await fetch(`${API}/game/${gameCode}`);
       const stateData = await stateRes.json();
       setState(stateData);
 
       setMenu("game");
-      setShowGameCode(gameCode); // <-- Show code after joining
+      setShowGameCode(gameCode);
     } catch (e) {
       setError("Failed to join online game.");
     }
@@ -244,7 +242,7 @@ export default function App() {
 
   if (menu === "game" && state) {
     const currentPlayer = state.players[state.current_player];
-    const isYourTurn = !state.game_over; // For local/CPU, always true for now
+    const isYourTurn = !state.game_over;
 
     return (
       <div className="App">
@@ -264,6 +262,21 @@ export default function App() {
             Share this code to invite: <span style={{ fontSize: "1.5em" }}>{showGameCode}</span>
           </div>
         )}
+        {playerId && (
+          <div style={{
+            background: "#111",
+            color: "#aaa",
+            border: "1px dashed #444",
+            borderRadius: 6,
+            padding: 12,
+            marginBottom: 24,
+            fontSize: "1em",
+            fontStyle: "italic"
+          }}>
+            Your Player ID: <span style={{ color: "#FFD700", fontWeight: "bold" }}>{playerId}</span>
+          </div>
+        )}
+
         <div className="game-info" style={{ marginBottom: 24 }}>
           <div style={{ display: "flex", justifyContent: "center", gap: "40px", marginBottom: 12 }}>
             <div className="deck-area">
@@ -357,4 +370,3 @@ export default function App() {
 
   return <div className="App">Loading...</div>;
 }
-
