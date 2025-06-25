@@ -56,7 +56,7 @@ export default function App() {
   const [error, setError] = useState<string | null>(null);
   const [playerCount, setPlayerCount] = useState(2);
   const [gameCode, setGameCode] = useState("");
-  const [playerId, setPlayerId] = useState<string>(() => localStorage.getItem("njuka_player_id") || "");
+  // const [playerId, setPlayerId] = useState<string>(() => localStorage.getItem("njuka_player_id") || "");
   const [name, setName] = useState("");
   const [showGameCode, setShowGameCode] = useState<string | null>(null);
 
@@ -101,7 +101,7 @@ export default function App() {
       });
       const data = await res.json();
       setGameCode(data.game_code);
-      setPlayerId(data.player_id);
+      // setPlayerId(data.player_id);
       localStorage.setItem("njuka_player_id", data.player_id);
 
       // Fetch game state after creating
