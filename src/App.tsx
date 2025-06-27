@@ -1,10 +1,20 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import "./App.css";
 
-const API = "http://localhost:8000";
+// Configure API endpoint - update with your Render backend URL
+const API = "https://your-render-backend.onrender.com";
 
-type CardType = { value: string; suit: string; };
-type Player = { name: string; hand: CardType[]; is_cpu: boolean; };
+type CardType = {
+  value: string;
+  suit: string;
+};
+
+type Player = {
+  name: string;
+  hand: CardType[];
+  is_cpu: boolean;
+};
+
 type GameState = {
   players: Player[];
   pot: CardType[];
@@ -13,360 +23,361 @@ type GameState = {
   has_drawn: boolean;
   mode: string;
   id: string;
-  winner?: string;
-  game_over?: boolean;
+  max_players: number;
 };
 
-function Card({ value, suit }: CardType) {
-  const isRed = suit === "♥" || suit === "♦";
+// API Service Functions
+const apiService = {
+  createNewGame: async (
+    mode: "cpu" | "multiplayer",
+    playerName: string,
+    cpuCount: number = 1
+  ): Promise<GameState> => {
+    const response = await fetch(`${API}/new_game`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        mode,
+        player_name: playerName,
+        cpu_count: mode === "cpu" ? cpuCount : 0,
+        max_players: mode === "cpu" ? cpuCount + 1 : 4,
+      }),
+    });
+
+    if (!response.ok) {
+      const errorData = await response.json();
+      throw new Error(errorData.detail || "Failed to create game");
+    }
+    return response.json();
+  },
+
+  joinGame: async (
+    gameId: string,
+    playerName: string
+  ): Promise<GameState> => {
+    const response = await fetch(`${API}/join_game`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        game_id: gameId,
+        player_name: playerName,
+      }),
+    });
+
+    if (!response.ok) {
+      const errorData = await response.json();
+      throw new Error(errorData.detail || "Failed to join game");
+    }
+    return response.json();
+  },
+
+  drawCard: async (gameId: string): Promise<GameState> => {
+    const response = await fetch(`${API}/game/${gameId}/draw`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+    });
+
+    if (!response.ok) throw new Error("Failed to draw card");
+    return response.json();
+  },
+
+  discardCard: async (
+    gameId: string,
+    cardIndex: number
+  ): Promise<GameState> => {
+    const response = await fetch(`${API}/game/${gameId}/discard`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ card_index: cardIndex }),
+    });
+
+    if (!response.ok) throw new Error("Failed to discard card");
+    return response.json();
+  },
+
+  fetchGameState: async (gameId: string): Promise<GameState> => {
+    const response = await fetch(`${API}/game/${gameId}`);
+    if (!response.ok) throw new Error("Failed to fetch game state");
+    return response.json();
+  },
+};
+
+function Card({ value, suit, onClick, disabled }: {
+  value: string;
+  suit: string;
+  onClick?: () => void;
+  disabled?: boolean;
+}) {
+  const suitColor = suit === '♥' || suit === '♦' ? 'red' : 'black';
   return (
-    <span className={`card ${isRed ? "red" : "black"}`}>
+    <div 
+      className={`card ${suitColor}`}
+      onClick={!disabled ? onClick : undefined}
+      style={disabled ? { opacity: 0.7, cursor: 'not-allowed' } : {}}
+    >
       <span className="card-value">{value}</span>
       <span className="card-suit">{suit}</span>
-    </span>
-  );
-}
-
-function FaceDownCard() {
-  return (
-    <span className="card facedown">
-      <span className="card-back" />
-    </span>
-  );
-}
-
-function DiscardPile({ pile }: { pile: CardType[] }) {
-  if (!pile.length) return <span className="card discard-empty" />;
-  const top = pile[pile.length - 1];
-  const isRed = top.suit === "♥" || top.suit === "♦";
-  return (
-    <span className={`card discard-top ${isRed ? "red" : "black"}`}>
-      <span className="card-inner">
-        <span className="card-value">{top.value}</span>
-        <span className="card-suit">{top.suit}</span>
-      </span>
-    </span>
+    </div>
   );
 }
 
 export default function App() {
-  const [menu, setMenu] = useState<"start" | "cpu" | "multi" | "game" | "online" | "join">("start");
   const [state, setState] = useState<GameState | null>(null);
+  const [gameId, setGameId] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [playerCount, setPlayerCount] = useState(2);
-  const [gameCode, setGameCode] = useState("");
-  const [playerId, setPlayerId] = useState<string>(() => localStorage.getItem("njuka_player_id") || "");
-  const [name, setName] = useState("");
-  const [showGameCode, setShowGameCode] = useState<string | null>(null);
+  const [playerName, setPlayerName] = useState("Player");
+  const [gameMode, setGameMode] = useState<"cpu" | "multiplayer">("cpu");
+  const [cpuCount, setCpuCount] = useState(1);
+  const [showJoin, setShowJoin] = useState(false);
+  const [joinGameId, setJoinGameId] = useState("");
+  const [inviteLink, setInviteLink] = useState<string | null>(null);
 
-  async function startCpuGame(cpuCount = 1) {
+  // Game actions
+  const newGame = async () => {
     setLoading(true);
     setError(null);
     try {
-      const res = await fetch(`${API}/new_game?mode=cpu&player_count=1&cpu_count=${cpuCount}`, { method: "POST" });
-      const data = await res.json();
-      setState(data);
-      setMenu("game");
-      setShowGameCode(null);
-    } catch (e) {
-      setError("Failed to start CPU game.");
+      const gameState = await apiService.createNewGame(gameMode, playerName, cpuCount);
+      setGameId(gameState.id);
+      setState(gameState);
+      if (gameMode === "multiplayer") {
+        setInviteLink(`${window.location.origin}?game=${gameState.id}`);
+      }
+    } catch (err) {
+      setError(handleApiError(err));
+    } finally {
+      setLoading(false);
     }
-    setLoading(false);
-  }
+  };
 
-  async function startMultiGame() {
+  const joinGame = async () => {
+    if (!joinGameId || !playerName) return;
     setLoading(true);
     setError(null);
     try {
-      const res = await fetch(`${API}/new_game?mode=multi&player_count=${playerCount}&cpu_count=0`, { method: "POST" });
-      const data = await res.json();
-      setState(data);
-      setMenu("game");
-      setShowGameCode(null);
-    } catch (e) {
-      setError("Failed to start multiplayer game.");
+      const gameState = await apiService.joinGame(joinGameId, playerName);
+      setGameId(gameState.id);
+      setState(gameState);
+    } catch (err) {
+      setError(handleApiError(err));
+    } finally {
+      setLoading(false);
     }
-    setLoading(false);
-  }
+  };
 
-  async function createOnlineGame() {
+  const draw = async () => {
+    if (!gameId || loading) return;
     setLoading(true);
-    setError(null);
     try {
-      const res = await fetch(`${API}/create_game`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ name }),
-      });
-      const data = await res.json();
-      setGameCode(data.game_code);
-      setPlayerId(data.player_id);
-      localStorage.setItem("njuka_player_id", data.player_id);
-
-      const stateRes = await fetch(`${API}/game/${data.game_code}`);
-      const stateData = await stateRes.json();
-      setState(stateData);
-
-      setMenu("game");
-      setShowGameCode(data.game_code);
-    } catch (e) {
-      setError("Failed to create online game.");
+      const gameState = await apiService.drawCard(gameId);
+      setState(gameState);
+    } catch (err) {
+      setError(handleApiError(err));
+    } finally {
+      setLoading(false);
     }
-    setLoading(false);
-  }
+  };
 
-  async function joinOnlineGame() {
+  const discard = async (cardIndex: number) => {
+    if (!gameId || loading) return;
     setLoading(true);
-    setError(null);
     try {
-      const res = await fetch(`${API}/join_game`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ game_code: gameCode }),
-      });
-      const data = await res.json();
-      setPlayerId(data.player_id);
-      localStorage.setItem("njuka_player_id", data.player_id);
-
-      const stateRes = await fetch(`${API}/game/${gameCode}`);
-      const stateData = await stateRes.json();
-      setState(stateData);
-
-      setMenu("game");
-      setShowGameCode(gameCode);
-    } catch (e) {
-      setError("Failed to join online game.");
+      const gameState = await apiService.discardCard(gameId, cardIndex);
+      setState(gameState);
+    } catch (err) {
+      setError(handleApiError(err));
+    } finally {
+      setLoading(false);
     }
-    setLoading(false);
-  }
+  };
 
-  async function draw() {
-    if (!state) return;
+  const fetchState = async (gid = gameId) => {
+    if (!gid) return;
     setLoading(true);
-    setError(null);
     try {
-      const res = await fetch(`${API}/game/${state.id}/draw`, { method: "POST" });
-      const data = await res.json();
-      setState(data.state ? data.state : data);
-    } catch (e) {
-      setError("Draw error.");
+      const gameState = await apiService.fetchGameState(gid);
+      setState(gameState);
+    } catch (err) {
+      setError(handleApiError(err));
+    } finally {
+      setLoading(false);
     }
-    setLoading(false);
-  }
+  };
 
-  async function discard(cardIndex: number) {
-    if (!state) return;
-    setLoading(true);
-    setError(null);
-    try {
-      const res = await fetch(`${API}/game/${state.id}/discard`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ card_index: cardIndex }),
-      });
-      const data = await res.json();
-      setState(data.state ? data.state : data);
-    } catch (e) {
-      setError("Discard error.");
+  const handleApiError = (err: unknown): string => {
+    if (err instanceof Error) {
+      if (err.message.includes("Failed to fetch")) {
+        return `Connection failed. Please check:
+          1. Backend is running at ${API}
+          2. No CORS errors in console
+          3. Try refreshing after backend starts`;
+      }
+      return err.message;
     }
-    setLoading(false);
-  }
+    return "An unknown error occurred";
+  };
 
-  function newGameMenu() {
-    setState(null);
-    setError(null);
-    setMenu("start");
-    setShowGameCode(null);
-  }
+  // Effects
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    const urlGameId = params.get("game");
+    if (urlGameId && !gameId) {
+      setShowJoin(true);
+      setJoinGameId(urlGameId);
+    }
+  }, [gameId]);
 
+  useEffect(() => {
+    if (gameId) fetchState();
+    if (gameMode === "multiplayer" && gameId) {
+      const interval = setInterval(fetchState, 2000);
+      return () => clearInterval(interval);
+    }
+  }, [gameId, gameMode]);
+
+  // Render
   if (error) {
     return (
       <div className="App">
         <div className="error">{error}</div>
-        <button onClick={newGameMenu}>Back</button>
+        <button onClick={() => setError(null)}>Back</button>
       </div>
     );
   }
 
-  if (menu === "start") {
+  if (!state) {
     return (
       <div className="App">
-        <h1>Njuka</h1>
-        <button onClick={() => setMenu("cpu")}>Vs CPU</button>
-        <button onClick={() => setMenu("multi")}>Multiplayer (Local)</button>
-        <button onClick={() => setMenu("online")}>Online (Invite/Join)</button>
-      </div>
-    );
-  }
-
-  if (menu === "cpu") {
-    return (
-      <div className="App">
-        <h1>Vs CPU</h1>
-        <button onClick={() => startCpuGame(1)}>Start Game</button>
-        <button onClick={newGameMenu}>Back</button>
-      </div>
-    );
-  }
-
-  if (menu === "multi") {
-    return (
-      <div className="App">
-        <h1>Multiplayer (Local)</h1>
-        <label>
-          Number of Players:
-          <select value={playerCount} onChange={e => setPlayerCount(Number(e.target.value))}>
-            {[2, 3, 4].map(n => <option key={n} value={n}>{n}</option>)}
+        <div className="game-setup">
+          <h1>Card Game</h1>
+          <input
+            type="text"
+            placeholder="Your Name"
+            value={playerName}
+            onChange={(e) => setPlayerName(e.target.value)}
+          />
+          <select
+            value={gameMode}
+            onChange={(e) => setGameMode(e.target.value as any)}
+          >
+            <option value="cpu">VS CPU</option>
+            <option value="multiplayer">Multiplayer</option>
           </select>
-        </label>
-        <button onClick={startMultiGame} disabled={loading}>Start Multiplayer Game</button>
-        <button onClick={newGameMenu}>Back</button>
-      </div>
-    );
-  }
 
-  if (menu === "online") {
-    return (
-      <div className="App">
-        <h1>Online Play</h1>
-        <input placeholder="Your Name" value={name} onChange={e => setName(e.target.value)} />
-        <button onClick={createOnlineGame} disabled={loading || !name}>Create Game</button>
-        <div style={{ margin: "16px 0" }}>or</div>
-        <input placeholder="Game Code" value={gameCode} onChange={e => setGameCode(e.target.value.toUpperCase())} />
-        <button onClick={joinOnlineGame} disabled={loading || !gameCode}>Join Game</button>
-        <button onClick={newGameMenu}>Back</button>
-      </div>
-    );
-  }
+          {gameMode === "cpu" && (
+            <select
+              value={cpuCount}
+              onChange={(e) => setCpuCount(Number(e.target.value))}
+            >
+              <option value={1}>1 CPU</option>
+              <option value={2}>2 CPUs</option>
+              <option value={3}>3 CPUs</option>
+            </select>
+          )}
 
-  if (menu === "game" && state) {
-    const currentPlayer = state.players[state.current_player];
-    const isYourTurn = !state.game_over;
+          <button onClick={newGame} disabled={loading || !playerName}>
+            {loading ? "Creating..." : "Start Game"}
+          </button>
+          <button onClick={() => setShowJoin((v) => !v)}>
+            {showJoin ? "Cancel" : "Join Game"}
+          </button>
 
-    return (
-      <div className="App">
-        <h1>Njuka Game</h1>
-        {showGameCode && (
-          <div style={{
-            background: "#222",
-            color: "#FFD700",
-            border: "2px solid #FFD700",
-            borderRadius: 8,
-            padding: 16,
-            marginBottom: 24,
-            fontSize: "1.3em",
-            fontWeight: "bold",
-            letterSpacing: "2px"
-          }}>
-            Share this code to invite: <span style={{ fontSize: "1.5em" }}>{showGameCode}</span>
-          </div>
-        )}
-        {playerId && (
-          <div style={{
-            background: "#111",
-            color: "#aaa",
-            border: "1px dashed #444",
-            borderRadius: 6,
-            padding: 12,
-            marginBottom: 24,
-            fontSize: "1em",
-            fontStyle: "italic"
-          }}>
-            Your Player ID: <span style={{ color: "#FFD700", fontWeight: "bold" }}>{playerId}</span>
-          </div>
-        )}
-
-        <div className="game-info" style={{ marginBottom: 24 }}>
-          <div style={{ display: "flex", justifyContent: "center", gap: "40px", marginBottom: 12 }}>
-            <div className="deck-area">
-              <div style={{ textAlign: "center", marginBottom: 4 }}>Deck</div>
-              <div style={{ position: "relative", width: 70, height: 100 }}>
-                {state.deck.length > 0 ? (
-                  <div
-                    onClick={isYourTurn && !state.has_drawn && state.players[0].hand.length < 4 && !loading ? draw : undefined}
-                    style={{ cursor: isYourTurn && !state.has_drawn && state.players[0].hand.length < 4 && !loading ? "pointer" : "not-allowed" }}
-                  >
-                    <FaceDownCard />
-                    <div className="deck-count">{state.deck.length}</div>
-                  </div>
-                ) : (
-                  <span className="card facedown" />
-                )}
-              </div>
+          {showJoin && (
+            <div className="join-game">
+              <input
+                type="text"
+                placeholder="Game ID"
+                value={joinGameId}
+                onChange={(e) => setJoinGameId(e.target.value)}
+              />
+              <button onClick={joinGame} disabled={loading || !playerName || !joinGameId}>
+                {loading ? "Joining..." : "Join"}
+              </button>
             </div>
-            <div className="discard-area">
-              <div style={{ textAlign: "center", marginBottom: 4 }}>Discard</div>
-              <div style={{ position: "relative", width: 70, height: 100 }}>
-                <DiscardPile pile={state.pot} />
-                <div className="discard-count">{state.pot.length}</div>
-              </div>
+          )}
+
+          {inviteLink && (
+            <div className="invite-link">
+              <p>Invite others:</p>
+              <input type="text" value={inviteLink} readOnly />
+              <button onClick={() => navigator.clipboard.writeText(inviteLink)}>
+                Copy Link
+              </button>
             </div>
-          </div>
-          <div>
-            <strong>Current Turn:</strong> {currentPlayer.name}
-          </div>
+          )}
         </div>
+      </div>
+    );
+  }
 
-        <div className="your-hand your-turn" style={{ border: "2px solid #FFD700", padding: 16, borderRadius: 8 }}>
-          <h2>Your Hand</h2>
-          <div className="hand">
-            {state.players[0].hand.map((card, i) => (
-              <div key={i} style={{ position: "relative", display: "inline-block" }}>
-                <Card value={card.value} suit={card.suit} />
-                {isYourTurn && state.has_drawn && !state.game_over && (
-                  <button
-                    className="discard-btn"
-                    onClick={() => discard(i)}
-                    style={{
-                      position: "absolute",
-                      bottom: -30,
-                      left: "50%",
-                      transform: "translateX(-50%)",
-                      fontSize: "0.8em",
-                      padding: "2px 8px",
-                    }}
-                    disabled={loading}
-                  >
-                    Discard
-                  </button>
-                )}
-              </div>
-            ))}
-          </div>
-          {isYourTurn && !state.has_drawn && state.players[0].hand.length < 4 && !state.game_over && (
-            <button className="draw-btn" onClick={draw} style={{ marginTop: 16 }} disabled={loading}>
-              Draw Card
-            </button>
+  // Game board rendering
+  const currentPlayer = state.players[state.current_player];
+  const yourPlayerIndex = state.players.findIndex(p => p.name === playerName);
+  const isYourTurn = yourPlayerIndex === state.current_player && !loading;
+  const yourPlayer = state.players[yourPlayerIndex];
+
+  return (
+    <div className="app">
+      <div className="game-container">
+        <div className="game-info">
+          <div>Deck: {state.deck.length} cards</div>
+          <div>Current Turn: {currentPlayer.name}</div>
+          {state.pot.length > 0 && (
+            <div className="pot">
+              Pot: <Card {...state.pot[state.pot.length - 1]} />
+            </div>
           )}
         </div>
 
-        <div className="opponents" style={{ marginTop: 32 }}>
-          {state.players.slice(1).map((cpu, idx) => (
-            <div className="opponent" key={idx}>
-              <div>{cpu.name}</div>
-              <div className="hand">
-                {cpu.hand.map((_, i) => (
-                  <FaceDownCard key={i} />
-                ))}
-              </div>
+        <div className="player-area">
+          <div className={`your-hand ${isYourTurn ? "your-turn" : ""}`}>
+            <h2>Your Hand ({yourPlayer?.name})</h2>
+            <div className="hand">
+              {yourPlayer?.hand.map((card, i) => (
+                <Card
+                  key={i}
+                  {...card}
+                  onClick={() => isYourTurn && state.has_drawn && discard(i)}
+                  disabled={!isYourTurn || !state.has_drawn}
+                />
+              ))}
             </div>
-          ))}
+            {isYourTurn && !state.has_drawn && (
+              <button onClick={draw} disabled={loading}>
+                Draw Card
+              </button>
+            )}
+          </div>
+
+          <div className="opponents">
+            {state.players.filter(p => p.name !== playerName).map((player, i) => (
+              <div key={i} className={`opponent ${player.is_cpu ? "cpu" : ""}`}>
+                <h3>{player.name}</h3>
+                <div className="hand">
+                  {Array(player.hand.length).fill(0).map((_, j) => (
+                    <div key={j} className="card-back">🂠</div>
+                  ))}
+                </div>
+              </div>
+            ))}
+          </div>
         </div>
 
-        {state.game_over && (
-          <div className="winner" style={{ marginTop: 32, fontSize: "1.5em", color: "#FFD700" }}>
-            Winner: {state.winner}
-          </div>
-        )}
-
-        <button onClick={newGameMenu} style={{ marginTop: 32 }} disabled={loading}>
-          New Game
-        </button>
-        {loading && <div className="loading-spinner">Loading...</div>}
+        <div className="game-controls">
+          <button onClick={() => {
+            setState(null);
+            setGameId(null);
+          }} disabled={loading}>
+            New Game
+          </button>
+          {inviteLink && (
+            <button onClick={() => navigator.clipboard.writeText(inviteLink)}>
+              Copy Invite Link
+            </button>
+          )}
+        </div>
       </div>
-    );
-  }
-
-  return <div className="App">Loading...</div>;
+    </div>
+  );
 }
