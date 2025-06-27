@@ -32,7 +32,7 @@ const apiService = {
     cpuCount: number = 1
   ): Promise<GameState> => {
     const response = await fetch(`${API}/new_game?mode=${mode}&player_count=1&cpu_count=${cpuCount}`, {
-      method: "POST",
+      method: "POST"
     });
     if (!response.ok) {
       const errorData = await response.json();
