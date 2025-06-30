@@ -22,8 +22,9 @@ type GameState = {
   has_drawn: boolean;
   mode: string;
   id: string;
+  max_players: number;
   winner?: string;
-  game_over: boolean;
+  game_over?: boolean;
 };
 
 const apiService = {
@@ -31,9 +32,12 @@ const apiService = {
     mode: "cpu" | "multiplayer",
     cpuCount: number = 1
   ): Promise<GameState> => {
-    const response = await fetch(`${API}/new_game?mode=${mode}&player_count=1&cpu_count=${cpuCount}`, {
-      method: "POST"
-    });
+    const response = await fetch(
+      `${API}/new_game?mode=${mode}&player_name=Player&cpu_count=${cpuCount}`,
+      {
+        method: "POST",
+      }
+    );
     if (!response.ok) {
       const errorData = await response.json();
       throw new Error(errorData.detail || "Failed to create game");
@@ -41,12 +45,13 @@ const apiService = {
     return response.json();
   },
 
-  joinGame: async (gameId: string): Promise<GameState> => {
-    const response = await fetch(`${API}/join_game`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ game_code: gameId }),
-    });
+  joinGame: async (gameId: string, playerName: string = "Player"): Promise<GameState> => {
+    const response = await fetch(
+      `${API}/join_game?game_id=${gameId}&player_name=${playerName}`,
+      {
+        method: "POST",
+      }
+    );
     if (!response.ok) {
       const errorData = await response.json();
       throw new Error(errorData.detail || "Failed to join game");
@@ -54,7 +59,7 @@ const apiService = {
     return response.json();
   },
 
-  drawCard: async (gameId: string): Promise<any> => {
+  drawCard: async (gameId: string): Promise<GameState> => {
     const response = await fetch(`${API}/game/${gameId}/draw`, {
       method: "POST",
     });
@@ -62,18 +67,24 @@ const apiService = {
     return response.json();
   },
 
-  discardCard: async (gameId: string, cardIndex: number): Promise<any> => {
-    const response = await fetch(`${API}/game/${gameId}/discard`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ card_index: cardIndex }),
-    });
+  discardCard: async (gameId: string, cardIndex: number): Promise<GameState> => {
+    const response = await fetch(
+      `${API}/game/${gameId}/discard?card_index=${cardIndex}`,
+      {
+        method: "POST",
+      }
+    );
     if (!response.ok) throw new Error("Failed to discard card");
     return response.json();
   },
 };
 
-function Card({ value, suit, onClick, disabled }: {
+function Card({
+  value,
+  suit,
+  onClick,
+  disabled,
+}: {
   value: string;
   suit: string;
   onClick?: () => void;
@@ -100,6 +111,7 @@ export default function App() {
   const [gameMode, setGameMode] = useState<"cpu" | "multiplayer">("cpu");
   const [cpuCount, setCpuCount] = useState(1);
   const [joinGameId, setJoinGameId] = useState("");
+  const [playerName, setPlayerName] = useState("Player");
 
   const newGame = async () => {
     setLoading(true);
@@ -120,7 +132,7 @@ export default function App() {
     setLoading(true);
     setError(null);
     try {
-      const gameState = await apiService.joinGame(joinGameId);
+      const gameState = await apiService.joinGame(joinGameId, playerName);
       setGameId(joinGameId);
       setState(gameState);
     } catch (err) {
@@ -135,12 +147,7 @@ export default function App() {
     setLoading(true);
     try {
       const gameState = await apiService.drawCard(gameId);
-      if (gameState?.state) {
-        setState(gameState.state);
-        alert(`${gameState.winner} has won!`);
-      } else {
-        setState(gameState);
-      }
+      setState(gameState);
     } catch (err) {
       setError(handleApiError(err));
     } finally {
@@ -153,12 +160,7 @@ export default function App() {
     setLoading(true);
     try {
       const gameState = await apiService.discardCard(gameId, cardIndex);
-      if (gameState?.state) {
-        setState(gameState.state);
-        alert(`${gameState.winner} has won!`);
-      } else {
-        setState(gameState);
-      }
+      setState(gameState);
     } catch (err) {
       setError(handleApiError(err));
     } finally {
@@ -176,8 +178,8 @@ export default function App() {
     return "An unknown error occurred";
   };
 
-  const currentPlayer = state?.players[state?.current_player];
-  const yourPlayer = state?.players.find(p => !p.is_cpu);
+  const currentPlayer = state?.players[state?.current_player || 0];
+  const yourPlayer = state?.players.find((p) => !p.is_cpu);
 
   return (
     <div className="App">
@@ -185,13 +187,27 @@ export default function App() {
 
       {!state ? (
         <>
-          <select value={gameMode} onChange={(e) => setGameMode(e.target.value as any)}>
+          <div>
+            <label>Your Name:</label>
+            <input
+              value={playerName}
+              onChange={(e) => setPlayerName(e.target.value)}
+            />
+          </div>
+
+          <select
+            value={gameMode}
+            onChange={(e) => setGameMode(e.target.value as any)}
+          >
             <option value="cpu">VS CPU</option>
             <option value="multiplayer">Multiplayer</option>
           </select>
 
           {gameMode === "cpu" && (
-            <select value={cpuCount} onChange={(e) => setCpuCount(Number(e.target.value))}>
+            <select
+              value={cpuCount}
+              onChange={(e) => setCpuCount(Number(e.target.value))}
+            >
               <option value={1}>1 CPU</option>
               <option value={2}>2 CPUs</option>
               <option value={3}>3 CPUs</option>
@@ -230,20 +246,26 @@ export default function App() {
                 key={i}
                 {...card}
                 onClick={() => discard(i)}
-                disabled={!state.has_drawn}
+                disabled={!state.has_drawn || currentPlayer?.is_cpu}
               />
             ))}
           </div>
-          {!state.has_drawn && !state.game_over && (
-            <button onClick={draw}>Draw</button>
+          {!state.has_drawn && currentPlayer && !currentPlayer.is_cpu && (
+            <button onClick={draw} disabled={loading}>
+              Draw
+            </button>
           )}
 
           <br />
-          <button onClick={() => {
-            setGameId(null);
-            setState(null);
-            setJoinGameId("");
-          }}>Reset</button>
+          <button
+            onClick={() => {
+              setGameId(null);
+              setState(null);
+              setJoinGameId("");
+            }}
+          >
+            Reset
+          </button>
         </>
       )}
 
