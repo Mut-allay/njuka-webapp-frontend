@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import "./App.css";
 
 const API = "https://njuka-webapp-backend.onrender.com";
@@ -133,6 +133,22 @@ export default function App() {
   const [cpuCount, setCpuCount] = useState(1);
   const [joinGameId, setJoinGameId] = useState("");
   const [playerName, setPlayerName] = useState("Player");
+
+  useEffect(() => {
+    if (!gameId) return;
+
+    const interval = setInterval(async () => {
+      try {
+        const res = await fetch(`${API}/game/${gameId}`);
+        const latestState = await res.json();
+        setState(latestState);
+      } catch (err) {
+        console.error(err);
+      }
+    }, 2000); // Every 2 seconds
+
+    return () => clearInterval(interval);
+  }, [gameId]);
 
   const newGame = async () => {
     setLoading(true);
@@ -308,6 +324,21 @@ export default function App() {
               </button>
             )}
           </div>
+
+          {state.mode === "multiplayer" && state.players.length < state.max_players && (
+            <div className="lobby">
+              <h2>Lobby</h2>
+              <p>Waiting for players to join...</p>
+              <ul>
+                {state.players.map((p) => (
+                  <li key={p.name}>{p.name}</li>
+                ))}
+              </ul>
+              <p>
+                {state.players.length} / {state.max_players} joined
+              </p>
+            </div>
+          )}
 
           <button 
             onClick={() => {
