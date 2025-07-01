@@ -218,6 +218,10 @@ export default function App() {
   const currentPlayer = state?.players[state?.current_player || 0];
   const yourPlayer = state?.players.find((p) => p.name === playerName);
 
+  // Winner modal
+  const winner = state?.winner;
+  const winnerHand = (state as any)?.winner_hand as CardType[] | undefined;
+
   return (
     <div className="App">
       <h1>Njuka Card Game</h1>
@@ -351,6 +355,31 @@ export default function App() {
             Leave Game
           </button>
         </>
+      )}
+
+      {/* Winner Modal */}
+      {state?.game_over && winner && (
+        <div className="winner-modal">
+          <div className="winner-content">
+            <h2>🎉 Winner: {winner} 🎉</h2>
+            <p>Winning Hand:</p>
+            <div className="hand">
+              {winnerHand && winnerHand.map((card, i) => (
+                <Card key={i} {...card} />
+              ))}
+            </div>
+            <button
+              onClick={() => {
+                setGameId(null);
+                setState(null);
+                setJoinGameId("");
+              }}
+              className="btn-reset"
+            >
+              New Game
+            </button>
+          </div>
+        </div>
       )}
 
       {error && (
