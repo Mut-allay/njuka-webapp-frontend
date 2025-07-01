@@ -368,16 +368,37 @@ export default function App() {
                 <Card key={i} {...card} />
               ))}
             </div>
-            <button
-              onClick={() => {
-                setGameId(null);
-                setState(null);
-                setJoinGameId("");
-              }}
-              className="btn-reset"
-            >
-              New Game
-            </button>
+            <div style={{ marginTop: 20 }}>
+              <button
+                className="btn-primary"
+                onClick={async () => {
+                  setLoading(true);
+                  setError(null);
+                  try {
+                    const gameState = await apiService.createNewGame(gameMode, playerName, cpuCount);
+                    setGameId(gameState.id);
+                    setState(gameState);
+                  } catch (err) {
+                    setError(handleApiError(err));
+                  } finally {
+                    setLoading(false);
+                  }
+                }}
+              >
+                Start New Game
+              </button>
+              <button
+                className="btn-reset"
+                style={{ marginLeft: 12 }}
+                onClick={() => {
+                  setGameId(null);
+                  setState(null);
+                  setJoinGameId("");
+                }}
+              >
+                Quit to Menu
+              </button>
+            </div>
           </div>
         </div>
       )}
