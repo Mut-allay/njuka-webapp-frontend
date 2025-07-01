@@ -34,14 +34,16 @@ const apiService = {
     cpuCount: number = 1
   ): Promise<GameState> => {
     const response = await fetch(
-      `${API}/new_game?mode=${mode}&player_name=${encodeURIComponent(playerName)}&cpu_count=${cpuCount}`,
+      `${API}/new_game?mode=${mode}&player_name=${encodeURIComponent(
+        playerName
+      )}&cpu_count=${cpuCount}`,
       {
         method: "POST",
         credentials: "include",
         headers: {
-          "Accept": "application/json",
-          "Content-Type": "application/json"
-        }
+          Accept: "application/json",
+          "Content-Type": "application/json",
+        },
       }
     );
     if (!response.ok) {
@@ -53,14 +55,16 @@ const apiService = {
 
   joinGame: async (gameId: string, playerName: string): Promise<GameState> => {
     const response = await fetch(
-      `${API}/join_game?game_id=${gameId}&player_name=${encodeURIComponent(playerName)}`,
+      `${API}/join_game?game_id=${gameId}&player_name=${encodeURIComponent(
+        playerName
+      )}`,
       {
         method: "POST",
         credentials: "include",
         headers: {
-          "Accept": "application/json",
-          "Content-Type": "application/json"
-        }
+          Accept: "application/json",
+          "Content-Type": "application/json",
+        },
       }
     );
     if (!response.ok) {
@@ -75,9 +79,9 @@ const apiService = {
       method: "POST",
       credentials: "include",
       headers: {
-        "Accept": "application/json",
-        "Content-Type": "application/json"
-      }
+        Accept: "application/json",
+        "Content-Type": "application/json",
+      },
     });
     if (!response.ok) throw new Error("Failed to draw card");
     return response.json();
@@ -90,9 +94,9 @@ const apiService = {
         method: "POST",
         credentials: "include",
         headers: {
-          "Accept": "application/json",
-          "Content-Type": "application/json"
-        }
+          Accept: "application/json",
+          "Content-Type": "application/json",
+        },
       }
     );
     if (!response.ok) throw new Error("Failed to discard card");
@@ -105,21 +109,29 @@ function Card({
   suit,
   onClick,
   disabled,
+  className,
 }: {
-  value: string;
-  suit: string;
+  value?: string;
+  suit?: string;
   onClick?: () => void;
   disabled?: boolean;
+  className?: string;
 }) {
   const suitColor = suit === "♥" || suit === "♦" ? "red" : "black";
   return (
     <div
-      className={`card ${suitColor}`}
+      className={`card ${suitColor} ${className || ""}`}
       onClick={!disabled ? onClick : undefined}
       style={disabled ? { opacity: 0.7, cursor: "not-allowed" } : {}}
     >
-      <span className="card-value">{value}</span>
-      <span className="card-suit">{suit}</span>
+      {value && suit ? (
+        <>
+          <span className="card-value">{value}</span>
+          <span className="card-suit">{suit}</span>
+        </>
+      ) : (
+        <span>Empty</span>
+      )}
     </div>
   );
 }
@@ -154,7 +166,11 @@ export default function App() {
     setLoading(true);
     setError(null);
     try {
-      const gameState = await apiService.createNewGame(gameMode, playerName, cpuCount);
+      const gameState = await apiService.createNewGame(
+        gameMode,
+        playerName,
+        cpuCount
+      );
       setGameId(gameState.id);
       setState(gameState);
     } catch (err) {
@@ -217,17 +233,14 @@ export default function App() {
 
   const currentPlayer = state?.players[state?.current_player || 0];
   const yourPlayer = state?.players.find((p) => p.name === playerName);
-
-  // Winner modal
   const winner = state?.winner;
   const winnerHand = (state as any)?.winner_hand as CardType[] | undefined;
 
   return (
     <div className="App">
-      <h1>Njuka Card Game</h1>
-
       {!state ? (
         <>
+          <h1>Njuka Card Game</h1>
           <div className="form-group">
             <label>Your Name:</label>
             <input
@@ -262,8 +275,8 @@ export default function App() {
             </div>
           )}
 
-          <button 
-            onClick={newGame} 
+          <button
+            onClick={newGame}
             disabled={loading}
             className="btn-primary"
           >
@@ -280,8 +293,8 @@ export default function App() {
               placeholder="Enter Game ID"
             />
           </div>
-          <button 
-            onClick={joinGame} 
+          <button
+            onClick={joinGame}
             disabled={loading || !joinGameId}
             className="btn-secondary"
           >
@@ -289,7 +302,8 @@ export default function App() {
           </button>
         </>
       ) : (
-        <>
+        <div className="game-container">
+          <h1>Njuka Card Game</h1>
           <div className="game-info">
             <p>Game ID: {state.id}</p>
             <p>Deck: {state.deck.length} cards remaining</p>
@@ -299,52 +313,116 @@ export default function App() {
             </p>
           </div>
 
-          {state.pot.length > 0 && (
-            <div className="pot">
-              <h3>Discard Pile</h3>
-              <Card {...state.pot[state.pot.length - 1]} />
+          <div className="poker-table">
+            {/* Table Center */}
+            <div className="table-center">
+              <div className="deck-area">
+                <div className="card facedown">
+                  <div className="card-back"></div>
+                  <span className="deck-count">{state.deck.length}</span>
+                </div>
+                <span>Draw Pile</span>
+              </div>
+              <div className="discard-area">
+                {state.pot.length > 0 ? (
+                  <Card
+                    {...state.pot[state.pot.length - 1]}
+                    className="discard-top"
+                  />
+                ) : (
+                  <div className="card discard-empty">
+                    <span>Empty</span>
+                  </div>
+                )}
+                <span>Discard Pile</span>
+              </div>
             </div>
-          )}
 
-          <div className="player-area">
-            <h2>Your Hand ({yourPlayer?.name})</h2>
-            <div className="hand">
-              {yourPlayer?.hand.map((card, i) => (
-                <Card
-                  key={i}
-                  {...card}
-                  onClick={() => discard(i)}
-                  disabled={!state.has_drawn || currentPlayer?.is_cpu || currentPlayer?.name !== yourPlayer?.name}
-                />
-              ))}
-            </div>
-            {!state.has_drawn && currentPlayer?.name === yourPlayer?.name && (
-              <button 
-                onClick={draw} 
-                disabled={loading}
-                className="btn-action"
+            {/* Player Areas */}
+            <div className="player-areas">
+              {/* Bottom Player (You) */}
+              <div
+                className={`player-area player-bottom ${
+                  currentPlayer?.name === yourPlayer?.name ? "your-turn" : ""
+                }`}
               >
-                {loading ? "Drawing..." : "Draw Card"}
-              </button>
-            )}
+                <h3>{yourPlayer?.name}</h3>
+                <div className="hand">
+                  {yourPlayer?.hand.map((card, i) => (
+                    <Card
+                      key={i}
+                      {...card}
+                      onClick={() => discard(i)}
+                      disabled={
+                        !state.has_drawn ||
+                        currentPlayer?.is_cpu ||
+                        currentPlayer?.name !== yourPlayer?.name
+                      }
+                    />
+                  ))}
+                </div>
+                {!state.has_drawn &&
+                  currentPlayer?.name === yourPlayer?.name && (
+                    <button
+                      onClick={draw}
+                      disabled={loading}
+                      className="btn-action draw-btn"
+                    >
+                      {loading ? "Drawing..." : "Draw Card"}
+                    </button>
+                  )}
+              </div>
+
+              {/* Other Players */}
+              {state.players
+                .filter((p) => p.name !== yourPlayer?.name)
+                .map((player, index) => {
+                  const positionClass =
+                    index === 0
+                      ? "player-top"
+                      : index === 1
+                      ? "player-left"
+                      : "player-right";
+                  return (
+                    <div
+                      key={player.name}
+                      className={`player-area ${positionClass} ${
+                        currentPlayer?.name === player.name ? "your-turn" : ""
+                      }`}
+                    >
+                      <h3>
+                        {player.name} {player.is_cpu && "(CPU)"}
+                      </h3>
+                      <div className="hand">
+                        {player.hand.map((_, i) => (
+                          <div key={i} className="card facedown">
+                            <div className="card-back"></div>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  );
+                })}
+            </div>
           </div>
 
-          {state.mode === "multiplayer" && state.players.length < state.max_players && (
-            <div className="lobby">
-              <h2>Lobby</h2>
-              <p>Waiting for players to join...</p>
-              <ul>
-                {state.players.map((p) => (
-                  <li key={p.name}>{p.name}</li>
-                ))}
-              </ul>
-              <p>
-                {state.players.length} / {state.max_players} joined
-              </p>
-            </div>
-          )}
+          {state.mode === "multiplayer" &&
+            state.players.length < state.max_players && (
+              <div className="lobby">
+                <h2>Lobby</h2>
+                <p>Waiting for players to join...</p>
+                <ul>
+                  {state.players.map((p) => (
+                    <li key={p.name}>{p.name}</li>
+                  ))}
+                </ul>
+                <p>
+                  {state.players.length} / {state.max_players} joined
+                </p>
+              </div>
+            )}
 
-          <button 
+          <button
             onClick={() => {
               setGameId(null);
               setState(null);
@@ -354,7 +432,7 @@ export default function App() {
           >
             Leave Game
           </button>
-        </>
+        </div>
       )}
 
       {/* Winner Modal */}
@@ -364,9 +442,8 @@ export default function App() {
             <h2>🎉 Winner: {winner} 🎉</h2>
             <p>Winning Hand:</p>
             <div className="hand">
-              {winnerHand && winnerHand.map((card, i) => (
-                <Card key={i} {...card} />
-              ))}
+              {winnerHand &&
+                winnerHand.map((card, i) => <Card key={i} {...card} />)}
             </div>
             <div style={{ marginTop: 20 }}>
               <button
@@ -375,7 +452,11 @@ export default function App() {
                   setLoading(true);
                   setError(null);
                   try {
-                    const gameState = await apiService.createNewGame(gameMode, playerName, cpuCount);
+                    const gameState = await apiService.createNewGame(
+                      gameMode,
+                      playerName,
+                      cpuCount
+                    );
                     setGameId(gameState.id);
                     setState(gameState);
                   } catch (err) {
