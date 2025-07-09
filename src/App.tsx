@@ -55,6 +55,29 @@ const apiService = {
     }
   },
 
+  joinGame: async (gameId: string, playerName: string): Promise<GameState> => {
+    try {
+      const response = await fetch(
+        `${API}/join_game?game_id=${gameId}&player_name=${encodeURIComponent(playerName)}`,
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+        }
+      );
+      
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({}));
+        throw new Error(errorData.message || "Failed to join game");
+      }
+      return response.json();
+    } catch (err) {
+      console.error("API Error:", err);
+      throw new Error("Network error. Please check your connection.");
+    }
+  },
+
   drawCard: async (gameId: string): Promise<GameState> => {
     try {
       const response = await fetch(`${API}/game/${gameId}/draw`, {
@@ -255,6 +278,7 @@ function App() {
   const [cpuCount, setCpuCount] = useState(1);
   const [playerName, setPlayerName] = useState("Player");
   const [backendAvailable, setBackendAvailable] = useState(true);
+  const [joinGameId, setJoinGameId] = useState("");
 
   useEffect(() => {
     const checkConnection = async () => {
@@ -371,6 +395,15 @@ function App() {
               Current Turn: <strong>{state.players[state.current_player]?.name}</strong>
               {state.players[state.current_player]?.is_cpu && " (CPU)"}
             </p>
+            <button 
+              onClick={() => { 
+                setState(null); 
+                setGameId(null); 
+              }}
+              className="quit-btn"
+            >
+              Quit to Menu
+            </button>
           </div>
           <Table 
             state={state}
@@ -393,9 +426,9 @@ function App() {
         </div>
       ) : (
         <div className="new-game-form">
-          <h2>Start a New Game</h2>
+          <h2>Start or Join a Game</h2>
           <label>
-            Name:
+            Your Name:
             <input
               type="text"
               value={playerName}
@@ -403,19 +436,55 @@ function App() {
               placeholder="Enter your name"
             />
           </label>
+          
+          <div className="join-section">
+            <h3>Join Existing Game</h3>
+            <label>
+              Game ID:
+              <input
+                type="text"
+                value={joinGameId}
+                onChange={e => setJoinGameId(e.target.value)}
+                placeholder="Enter game ID"
+              />
+            </label>
+            <button
+              disabled={loading || !joinGameId}
+              onClick={async () => {
+                setLoading(true);
+                setError(null);
+                try {
+                  const game = await apiService.joinGame(joinGameId, playerName);
+                  setGameId(game.id);
+                  setState(game);
+                } catch (err: any) {
+                  setError(err.message || "Failed to join game");
+                } finally {
+                  setLoading(false);
+                }
+              }}
+              className="join-btn"
+            >
+              Join Game
+            </button>
+          </div>
+
+          <div className="divider">OR</div>
+
+          <h3>Start New Game</h3>
           <label>
-            Mode:
+            Game Mode:
             <select
               value={gameMode}
               onChange={e => setGameMode(e.target.value as "cpu" | "multiplayer")}
             >
-              <option value="cpu">CPU</option>
+              <option value="cpu">Play vs CPU</option>
               <option value="multiplayer">Multiplayer</option>
             </select>
           </label>
           {gameMode === "cpu" && (
             <label>
-              CPU Count:
+              Number of CPU Players:
               <input
                 type="number"
                 min={1}
@@ -440,8 +509,9 @@ function App() {
                 setLoading(false);
               }
             }}
+            className="new-game-btn"
           >
-            Start Game
+            Start New Game
           </button>
         </div>
       )}
