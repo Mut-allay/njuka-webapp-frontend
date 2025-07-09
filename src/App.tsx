@@ -28,20 +28,7 @@ type GameState = {
   game_over?: boolean;
 };
 
-/**
- * Njuka Card Game Rules:
- * 
- * Objective: Be the first player to get make a combination of two pairs and two consecutive cards.
- * 
- * Gameplay:
- * 1. Players take turns drawing one card from the deck.
- * 2. After drawing, player must discard one card to the discard pile
- * 
- * Card Values:
- * - Number cards (2-10): Face value
- * - Jack, Queen, King: 10 points each
- * - Ace: 11 points
- */
+const tutorialPromptsShown = new Map<string, number>();
 
 const apiService = {
   createNewGame: async (
@@ -152,7 +139,8 @@ function Card({
   className = "",
   highlight = false,
   small = false,
-  style = {}
+  style = {},
+  isDeck = false
 }: {
   value: string;
   suit: string;
@@ -163,12 +151,17 @@ function Card({
   highlight?: boolean;
   small?: boolean;
   style?: React.CSSProperties;
+  isDeck?: boolean;
 }) {
+  const [isHovered, setIsHovered] = useState(false);
+
   if (facedown) {
     return (
       <div 
-        className={`card facedown ${className} ${small ? 'small-card' : ''}`}
+        className={`card facedown ${className} ${small ? 'small-card' : ''} ${isDeck && isHovered ? 'deck-hover' : ''}`}
         style={style}
+        onMouseEnter={() => setIsHovered(true)}
+        onMouseLeave={() => setIsHovered(false)}
       >
         <div className="card-back"></div>
       </div>
@@ -178,9 +171,11 @@ function Card({
   const suitColor = suit === "♥" || suit === "♦" ? "red" : "black";
   return (
     <div
-      className={`card ${suitColor} ${className} ${highlight ? 'highlight-card' : ''} ${small ? 'small-card' : ''}`}
+      className={`card ${suitColor} ${className} ${highlight ? 'highlight-card' : ''} ${small ? 'small-card' : ''} ${isHovered ? 'card-hover' : ''}`}
       onClick={!disabled ? onClick : undefined}
       style={disabled ? { opacity: 0.7, cursor: "not-allowed", ...style } : style}
+      onMouseEnter={() => setIsHovered(true)}
+      onMouseLeave={() => setIsHovered(false)}
     >
       <div className="card-inner">
         <span className="card-value">{value}</span>
@@ -223,6 +218,39 @@ function Table({ state, playerName, onDiscard, onDraw, loadingStates }: {
   };
 
   const isWinner = (player: Player) => isGameOver && state.winner === player.name;
+
+  const shouldShowPrompt = () => {
+    const playerId = state.players[state.current_player]?.name;
+    if (!playerId || playerId !== playerName) return false;
+    
+    const count = tutorialPromptsShown.get(playerId) || 0;
+    if (count < 2) {
+      tutorialPromptsShown.set(playerId, count + 1);
+      return true;
+    }
+    return false;
+  };
+
+  useEffect(() => {
+    if (!state || state.game_over) return;
+    
+    const currentPlayer = state.players[state.current_player];
+    if (currentPlayer?.is_cpu && currentPlayer.name !== playerName) {
+      const timer = setTimeout(async () => {
+        try {
+          const newState = await apiService.drawCard(state.id);
+          if (newState.has_drawn && newState.players[state.current_player].hand.length > 0) {
+            const randomIndex = Math.floor(Math.random() * newState.players[state.current_player].hand.length);
+            await apiService.discardCard(state.id, randomIndex);
+          }
+        } catch (err) {
+          console.error("CPU move failed:", err);
+        }
+      }, 1500);
+
+      return () => clearTimeout(timer);
+    }
+  }, [state?.current_player]);
 
   return (
     <div className="poker-table">
@@ -268,6 +296,9 @@ function Table({ state, playerName, onDiscard, onDraw, loadingStates }: {
           onClick={!loadingStates.drawing && currentPlayer.name === yourPlayer.name && !isGameOver && !state.has_drawn ? onDraw : undefined}
         >
           <div className="deck-count">{state.deck?.length ?? 0}</div>
+          {shouldShowPrompt() && (
+            <div className="tutorial-prompt">Pick a card from the deck</div>
+          )}
           <Card 
             facedown 
             value="" 
@@ -276,6 +307,7 @@ function Table({ state, playerName, onDiscard, onDraw, loadingStates }: {
             style={{
               cursor: !loadingStates.drawing && currentPlayer.name === yourPlayer.name && !isGameOver && !state.has_drawn ? 'pointer' : 'default'
             }}
+            isDeck={true}
           />
         </div>
         
