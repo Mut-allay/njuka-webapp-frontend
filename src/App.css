@@ -35,13 +35,11 @@ button {
   margin: 5px;
   cursor: pointer;
   transition: all 0.3s ease;
-  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.3);
 }
 
 button:hover {
   background: linear-gradient(to bottom, #ffeb99, #f8d56b);
   transform: translateY(-2px);
-  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.4);
 }
 
 button:disabled {
@@ -49,7 +47,6 @@ button:disabled {
   color: #999;
   cursor: not-allowed;
   transform: none;
-  box-shadow: none;
 }
 
 /* Card styles */
@@ -59,13 +56,12 @@ button:disabled {
   height: 90px;
   background: linear-gradient(135deg, #ffffff, #f5f5f5);
   border-radius: 6px;
-  border: 1px solid #333;
+  border: 1px solid rgba(0, 0, 0, 0.1);
   margin-left: -20px;
   position: relative;
   font-size: 1em;
   cursor: pointer;
   transition: all 0.2s ease;
-  animation: cardDeal 0.3s ease-out forwards;
   z-index: 1;
 }
 
@@ -85,9 +81,15 @@ button:disabled {
   z-index: 10;
 }
 
-.card:hover:not(.facedown) {
-  transform: translateY(-5px);
-  z-index: 2;
+.card-hover {
+  transform: translateY(-8px) scale(1.05);
+  transition: transform 0.2s ease;
+}
+
+.deck-hover {
+  transform: translateY(-5px) scale(1.1);
+  box-shadow: 0 0 15px rgba(248, 213, 107, 0.7);
+  transition: all 0.2s ease;
 }
 
 .card-inner {
@@ -152,6 +154,27 @@ button:disabled {
   .card-drawing, .card-discarding {
     animation: none !important;
   }
+}
+
+/* Tutorial prompt */
+.tutorial-prompt {
+  position: absolute;
+  top: -40px;
+  left: 50%;
+  transform: translateX(-50%);
+  background: rgba(248, 213, 107, 0.9);
+  color: #2a3439;
+  padding: 5px 10px;
+  border-radius: 15px;
+  font-size: 0.8em;
+  white-space: nowrap;
+  animation: pulse 2s infinite;
+}
+
+@keyframes pulse {
+  0% { opacity: 0.7; }
+  50% { opacity: 1; }
+  100% { opacity: 0.7; }
 }
 
 /* Hand styles */
@@ -376,7 +399,6 @@ button:disabled {
   padding: 30px;
   width: 90%;
   max-width: 400px;
-  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
 }
 
 .new-game-form label {
@@ -401,7 +423,6 @@ button:disabled {
 .new-game-form select:focus {
   outline: none;
   border-color: #ffeb99;
-  box-shadow: 0 0 10px rgba(248, 213, 107, 0.3);
 }
 
 .join-section {
@@ -449,30 +470,6 @@ button:disabled {
 .new-game-btn {
   width: 100%;
   margin-top: 10px;
-}
-
-/* Game Rules */
-.game-rules {
-  background: rgba(10, 30, 40, 0.9);
-  border: 2px solid #f8d56b;
-  border-radius: 15px;
-  padding: 20px;
-  margin: 20px 0;
-  width: 90%;
-  max-width: 500px;
-}
-
-.game-rules h3 {
-  margin-top: 0;
-}
-
-.game-rules ul {
-  text-align: left;
-  padding-left: 20px;
-}
-
-.game-rules li {
-  margin-bottom: 8px;
 }
 
 /* Connection Error Styling */
@@ -618,7 +615,7 @@ button:disabled {
   .hand.horizontal {
     display: flex;
     flex-direction: row-reverse;
-    justify-content: flex-end;
+    justify-content: center;
   }
   
   .hand.horizontal .card {
