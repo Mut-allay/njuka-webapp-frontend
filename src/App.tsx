@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import { useState, useEffect } from "react";
 import "./App.css";
 
 const API = "https://njuka-webapp-backend.onrender.com";
@@ -27,25 +27,6 @@ type GameState = {
   game_over?: boolean;
 };
 
-class ErrorBoundary extends React.Component<{children: React.ReactNode}, {hasError: boolean}> {
-  state = { hasError: false };
-
-  static getDerivedStateFromError() {
-    return { hasError: true };
-  }
-
-  componentDidCatch(error: Error, info: React.ErrorInfo) {
-    console.error('Error caught by boundary:', error, info);
-  }
-
-  render() {
-    if (this.state.hasError) {
-      return <div className="error-fallback">Game encountered an error. Please refresh.</div>;
-    }
-    return this.props.children;
-  }
-}
-
 const apiService = {
   createNewGame: async (
     mode: "cpu" | "multiplayer",
@@ -57,43 +38,20 @@ const apiService = {
         `${API}/new_game?mode=${mode}&player_name=${encodeURIComponent(playerName)}&cpu_count=${cpuCount}`,
         {
           method: "POST",
-          credentials: "include",
           headers: {
-            "Accept": "application/json",
-            "Content-Type": "application/json"
-          }
+            "Content-Type": "application/json",
+          },
         }
       );
+      
       if (!response.ok) {
         const errorData = await response.json().catch(() => ({}));
-        throw new Error(errorData.detail || "Failed to create game. Please check your connection.");
+        throw new Error(errorData.message || "Failed to create game");
       }
       return response.json();
     } catch (err) {
-      throw new Error("Failed to connect to server. Please try again later.");
-    }
-  },
-
-  joinGame: async (gameId: string, playerName: string): Promise<GameState> => {
-    try {
-      const response = await fetch(
-        `${API}/join_game?game_id=${gameId}&player_name=${encodeURIComponent(playerName)}`,
-        {
-          method: "POST",
-          credentials: "include",
-          headers: {
-            "Accept": "application/json",
-            "Content-Type": "application/json"
-          }
-        }
-      );
-      if (!response.ok) {
-        const errorData = await response.json().catch(() => ({}));
-        throw new Error(errorData.detail || "Failed to join game. Please check the game ID.");
-      }
-      return response.json();
-    } catch (err) {
-      throw new Error("Failed to connect to server. Please try again later.");
+      console.error("API Error:", err);
+      throw new Error("Network error. Please check your connection.");
     }
   },
 
@@ -101,19 +59,17 @@ const apiService = {
     try {
       const response = await fetch(`${API}/game/${gameId}/draw`, {
         method: "POST",
-        credentials: "include",
         headers: {
-          "Accept": "application/json",
-          "Content-Type": "application/json"
-        }
+          "Content-Type": "application/json",
+        },
       });
       if (!response.ok) {
         const errorData = await response.json().catch(() => ({}));
-        throw new Error(errorData.detail || "Failed to draw card. Please try again.");
+        throw new Error(errorData.message || "Failed to draw card");
       }
       return response.json();
     } catch (err) {
-      throw new Error("Failed to connect to server. Please try again later.");
+      throw new Error("Failed to connect to server. Please try again.");
     }
   },
 
@@ -123,22 +79,29 @@ const apiService = {
         `${API}/game/${gameId}/discard?card_index=${cardIndex}`,
         {
           method: "POST",
-          credentials: "include",
           headers: {
-            "Accept": "application/json",
-            "Content-Type": "application/json"
-          }
+            "Content-Type": "application/json",
+          },
         }
       );
       if (!response.ok) {
         const errorData = await response.json().catch(() => ({}));
-        throw new Error(errorData.detail || "Failed to discard card. Please try again.");
+        throw new Error(errorData.message || "Failed to discard card");
       }
       return response.json();
     } catch (err) {
-      throw new Error("Failed to connect to server. Please try again later.");
+      throw new Error("Failed to connect to server. Please try again.");
     }
   },
+
+  checkHealth: async (): Promise<boolean> => {
+    try {
+      const response = await fetch(`${API}/health`);
+      return response.ok;
+    } catch (err) {
+      return false;
+    }
+  }
 };
 
 function Card({
@@ -187,7 +150,12 @@ function Table({ state, playerName, onDiscard, onDraw, loading }: {
   loading: boolean;
 }) {
   if (!state || !state.players || state.players.length === 0) {
-    return <div className="loading">Loading game data...</div>;
+    return (
+      <div className="loading">
+        <div className="loading-spinner"></div>
+        <p>Loading game data...</p>
+      </div>
+    );
   }
 
   const yourPlayer = state.players.find((p) => p?.name === playerName);
@@ -204,7 +172,7 @@ function Table({ state, playerName, onDiscard, onDraw, loading }: {
 
   return (
     <div className="poker-table">
-      {state.players.length > 2 && getPlayerSafe(1) && (
+      {state.players.length > 2 && (
         <div className={`player-seat top ${currentPlayerIndex === 1 ? 'active' : ''}`}>
           <h3>{getPlayerSafe(1).name}{getPlayerSafe(1).is_cpu && " (CPU)"}</h3>
           <div className="hand">
@@ -241,7 +209,7 @@ function Table({ state, playerName, onDiscard, onDraw, loading }: {
         </div>
       </div>
 
-      {state.players.length > 3 && getPlayerSafe(3) && (
+      {state.players.length > 3 && (
         <div className={`player-seat right ${currentPlayerIndex === 3 ? 'active' : ''}`}>
           <h3>{getPlayerSafe(3).name}{getPlayerSafe(3).is_cpu && " (CPU)"}</h3>
           <div className="hand vertical">
@@ -285,21 +253,40 @@ function App() {
   const [error, setError] = useState<string | null>(null);
   const [gameMode, setGameMode] = useState<"cpu" | "multiplayer">("cpu");
   const [cpuCount, setCpuCount] = useState(1);
-  const [joinGameId, setJoinGameId] = useState("");
   const [playerName, setPlayerName] = useState("Player");
+  const [backendAvailable, setBackendAvailable] = useState(true);
 
   useEffect(() => {
-    if (!gameId) return;
+    const checkConnection = async () => {
+      setLoading(true);
+      try {
+        const isHealthy = await apiService.checkHealth();
+        setBackendAvailable(isHealthy);
+        if (!isHealthy) {
+          setError("Backend service unavailable. Please try again later.");
+        }
+      } catch (err) {
+        setBackendAvailable(false);
+        setError("Cannot connect to game server. Please try again later.");
+      } finally {
+        setLoading(false);
+      }
+    };
+    checkConnection();
+  }, []);
+
+  useEffect(() => {
+    if (!gameId || !backendAvailable) return;
 
     const fetchGameState = async () => {
       try {
         const res = await fetch(`${API}/game/${gameId}`);
         if (!res.ok) throw new Error('Network response was not ok');
         const latestState = await res.json();
-        if (!latestState) throw new Error('Empty game state received');
         setState(latestState);
       } catch (err) {
         console.error('Failed to fetch game state:', err);
+        setError('Failed to load game. Please try again.');
       }
     };
 
@@ -307,7 +294,7 @@ function App() {
     fetchGameState();
     
     return () => clearInterval(interval);
-  }, [gameId]);
+  }, [gameId, backendAvailable]);
 
   const discard = async (cardIdx: number) => {
     setLoading(true);
@@ -337,137 +324,128 @@ function App() {
     }
   };
 
-  return (
-    <ErrorBoundary>
+  if (!backendAvailable) {
+    return (
       <div className="App">
         <h1>Njuka Card Game</h1>
+        <div className="error-notice">
+          <h3>Service Unavailable</h3>
+          <p>We're having trouble connecting to the game server.</p>
+          <button 
+            onClick={() => window.location.reload()}
+            className="retry-btn"
+          >
+            Retry Connection
+          </button>
+        </div>
+      </div>
+    );
+  }
 
-        {error && (
-          <div className="error-modal">
-            <div className="error-content">
-              <h3>Error</h3>
-              <p>{error}</p>
-              <button onClick={() => setError(null)}>OK</button>
-            </div>
+  return (
+    <div className="App">
+      <h1>Njuka Card Game</h1>
+
+      {error && (
+        <div className="error-modal">
+          <div className="error-content">
+            <h3>Error</h3>
+            <p>{error}</p>
+            <button onClick={() => setError(null)}>OK</button>
           </div>
-        )}
+        </div>
+      )}
 
-        {state ? (
-          <div className="game-container">
-            <div className="game-info">
-              <p>Game ID: {state.id}</p>
-              <p className="turn-indicator">
-                Current Turn: <strong>{state.players[state.current_player]?.name}</strong>
-                {state.players[state.current_player]?.is_cpu && " (CPU)"}
-              </p>
-            </div>
-            <Table 
-              state={state}
-              playerName={playerName}
-              onDiscard={discard}
-              onDraw={draw}
-              loading={loading}
-            />
-            {state.game_over && (
-              <div className="game-over">
+      {loading && (
+        <div className="loading-overlay">
+          <div className="loading-spinner"></div>
+          <p>Connecting to game server...</p>
+        </div>
+      )}
+
+      {state ? (
+        <div className="game-container">
+          <div className="game-info">
+            <p>Game ID: {state.id}</p>
+            <p className="turn-indicator">
+              Current Turn: <strong>{state.players[state.current_player]?.name}</strong>
+              {state.players[state.current_player]?.is_cpu && " (CPU)"}
+            </p>
+          </div>
+          <Table 
+            state={state}
+            playerName={playerName}
+            onDiscard={discard}
+            onDraw={draw}
+            loading={loading}
+          />
+          {state.game_over && (
+            <div className="game-over">
+              <div>
                 <h2>Game Over!</h2>
-                <p>
-                  Winner: <strong>{state.winner}</strong>
-                </p>
-                <button
-                  onClick={() => {
-                    setState(null);
-                    setGameId(null);
-                  }}
-                >
+                <p>Winner: <strong>{state.winner}</strong></p>
+                <button onClick={() => { setState(null); setGameId(null); }}>
                   New Game
                 </button>
               </div>
-            )}
-          </div>
-        ) : (
-          <div className="new-game-form">
-            <h2>Start a New Game</h2>
-            <label>
-              Name:
-              <input
-                type="text"
-                value={playerName}
-                onChange={e => setPlayerName(e.target.value)}
-              />
-            </label>
-            <label>
-              Mode:
-              <select
-                value={gameMode}
-                onChange={e => setGameMode(e.target.value as "cpu" | "multiplayer")}
-              >
-                <option value="cpu">CPU</option>
-                <option value="multiplayer">Multiplayer</option>
-              </select>
-            </label>
-            {gameMode === "cpu" && (
-              <label>
-                CPU Count:
-                <input
-                  type="number"
-                  min={1}
-                  max={5}
-                  value={cpuCount}
-                  onChange={e => setCpuCount(Number(e.target.value))}
-                />
-              </label>
-            )}
-            <button
-              disabled={loading}
-              onClick={async () => {
-                setLoading(true);
-                setError(null);
-                try {
-                  const game = await apiService.createNewGame(gameMode, playerName, cpuCount);
-                  setGameId(game.id);
-                  setState(game);
-                } catch (err: any) {
-                  setError(err.message || "Failed to create game");
-                } finally {
-                  setLoading(false);
-                }
-              }}
-            >
-              Start Game
-            </button>
-            <div className="join-game-section">
-              <h3>Or Join Existing Game</h3>
-              <input
-                type="text"
-                placeholder="Game ID"
-                value={joinGameId}
-                onChange={e => setJoinGameId(e.target.value)}
-              />
-              <button
-                disabled={loading || !joinGameId}
-                onClick={async () => {
-                  setLoading(true);
-                  setError(null);
-                  try {
-                    const game = await apiService.joinGame(joinGameId, playerName);
-                    setGameId(game.id);
-                    setState(game);
-                  } catch (err: any) {
-                    setError(err.message || "Failed to join game");
-                  } finally {
-                    setLoading(false);
-                  }
-                }}
-              >
-                Join Game
-              </button>
             </div>
-            {loading && <div className="loading-spinner">Loading...</div>}
-          </div>
-        )}
-      </div>
-    </ErrorBoundary>
+          )}
+        </div>
+      ) : (
+        <div className="new-game-form">
+          <h2>Start a New Game</h2>
+          <label>
+            Name:
+            <input
+              type="text"
+              value={playerName}
+              onChange={e => setPlayerName(e.target.value)}
+              placeholder="Enter your name"
+            />
+          </label>
+          <label>
+            Mode:
+            <select
+              value={gameMode}
+              onChange={e => setGameMode(e.target.value as "cpu" | "multiplayer")}
+            >
+              <option value="cpu">CPU</option>
+              <option value="multiplayer">Multiplayer</option>
+            </select>
+          </label>
+          {gameMode === "cpu" && (
+            <label>
+              CPU Count:
+              <input
+                type="number"
+                min={1}
+                max={3}
+                value={cpuCount}
+                onChange={e => setCpuCount(Number(e.target.value))}
+              />
+            </label>
+          )}
+          <button
+            disabled={loading}
+            onClick={async () => {
+              setLoading(true);
+              setError(null);
+              try {
+                const game = await apiService.createNewGame(gameMode, playerName, cpuCount);
+                setGameId(game.id);
+                setState(game);
+              } catch (err: any) {
+                setError(err.message || "Failed to create game");
+              } finally {
+                setLoading(false);
+              }
+            }}
+          >
+            Start Game
+          </button>
+        </div>
+      )}
+    </div>
   );
 }
 
