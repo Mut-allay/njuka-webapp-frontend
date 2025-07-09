@@ -61,7 +61,6 @@ button:disabled {
   border-radius: 6px;
   border: 1px solid #333;
   margin-left: -20px;
-  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.3);
   position: relative;
   font-size: 1em;
   cursor: pointer;
@@ -82,14 +81,12 @@ button:disabled {
 }
 
 .card.highlight-card {
-  box-shadow: 0 0 15px 5px rgba(255, 215, 0, 0.7);
   transform: translateY(-5px);
   z-index: 10;
 }
 
 .card:hover:not(.facedown) {
   transform: translateY(-5px);
-  box-shadow: 0 0 10px rgba(255, 255, 255, 0.5);
   z-index: 2;
 }
 
@@ -130,6 +127,31 @@ button:disabled {
   position: absolute;
   top: 0;
   left: 0;
+}
+
+/* Animation styles */
+.card-drawing {
+  animation: cardDraw 0.5s ease-out;
+}
+
+.card-discarding {
+  animation: cardDiscard 0.5s ease-out forwards;
+}
+
+@keyframes cardDraw {
+  0% { transform: translateX(-100px) rotate(-15deg); opacity: 0; }
+  100% { transform: translateX(0) rotate(0); opacity: 1; }
+}
+
+@keyframes cardDiscard {
+  0% { transform: translateY(0) scale(1); opacity: 1; }
+  100% { transform: translateY(100px) scale(0.5); opacity: 0; }
+}
+
+@media (prefers-reduced-motion) {
+  .card-drawing, .card-discarding {
+    animation: none !important;
+  }
 }
 
 /* Hand styles */
@@ -272,7 +294,7 @@ button:disabled {
 }
 
 .discard-top {
-  box-shadow: 0 0 15px rgba(248, 213, 107, 0.8);
+  z-index: 5;
 }
 
 .discard-empty {
@@ -299,40 +321,6 @@ button:disabled {
   font-size: 1.1em;
   color: #f8d56b;
   text-shadow: 0 0 10px rgba(248, 213, 107, 0.5);
-}
-
-/* Draw Button */
-.draw-btn {
-  background: linear-gradient(45deg, #f8d56b, #e5b733);
-  margin-top: 10px;
-  padding: 8px 16px;
-  font-size: 0.9em;
-  border-radius: 20px;
-  box-shadow: 0 4px 15px rgba(248, 213, 107, 0.3);
-  position: relative;
-  overflow: hidden;
-}
-
-.draw-btn:hover {
-  background: linear-gradient(45deg, #ffeb99, #f8d56b);
-}
-
-.draw-btn:after {
-  content: "";
-  position: absolute;
-  top: -50%;
-  left: -50%;
-  width: 200%;
-  height: 200%;
-  background: rgba(255, 255, 255, 0.1);
-  transform: rotate(45deg);
-  animation: shine 3s infinite;
-}
-
-@keyframes shine {
-  0% { left: -50%; }
-  20% { left: 150%; }
-  100% { left: 150%; }
 }
 
 /* Game Over Styles */
@@ -463,6 +451,30 @@ button:disabled {
   margin-top: 10px;
 }
 
+/* Game Rules */
+.game-rules {
+  background: rgba(10, 30, 40, 0.9);
+  border: 2px solid #f8d56b;
+  border-radius: 15px;
+  padding: 20px;
+  margin: 20px 0;
+  width: 90%;
+  max-width: 500px;
+}
+
+.game-rules h3 {
+  margin-top: 0;
+}
+
+.game-rules ul {
+  text-align: left;
+  padding-left: 20px;
+}
+
+.game-rules li {
+  margin-bottom: 8px;
+}
+
 /* Connection Error Styling */
 .error-notice {
   background: rgba(0, 0, 0, 0.7);
@@ -549,7 +561,6 @@ button:disabled {
   padding: 25px;
   max-width: 80%;
   text-align: center;
-  box-shadow: 0 0 20px rgba(255, 68, 68, 0.3);
 }
 
 .error-content h3 {
@@ -601,5 +612,21 @@ button:disabled {
     height: 45px;
     font-size: 0.7em;
     margin-left: -10px;
+  }
+
+  /* Mobile card stacking */
+  .hand.horizontal {
+    display: flex;
+    flex-direction: row-reverse;
+    justify-content: flex-end;
+  }
+  
+  .hand.horizontal .card {
+    margin-left: -15px;
+    margin-right: 0;
+  }
+  
+  .hand.horizontal .card:first-child {
+    margin-left: 0;
   }
 }
