@@ -24,6 +24,7 @@ type GameState = {
   id: string;
   max_players: number;
   winner?: string;
+  winner_hand?: CardType[];
   game_over?: boolean;
 };
 
@@ -133,7 +134,9 @@ function Card({
   onClick,
   disabled,
   facedown = false,
-  className = ""
+  className = "",
+  highlight = false,
+  small = false
 }: {
   value: string;
   suit: string;
@@ -141,10 +144,12 @@ function Card({
   disabled?: boolean;
   facedown?: boolean;
   className?: string;
+  highlight?: boolean;
+  small?: boolean;
 }) {
   if (facedown) {
     return (
-      <div className={`card facedown ${className}`}>
+      <div className={`card facedown ${className} ${small ? 'small-card' : ''}`}>
         <div className="card-back"></div>
       </div>
     );
@@ -153,7 +158,7 @@ function Card({
   const suitColor = suit === "♥" || suit === "♦" ? "red" : "black";
   return (
     <div
-      className={`card ${suitColor} ${className}`}
+      className={`card ${suitColor} ${className} ${highlight ? 'highlight-card' : ''} ${small ? 'small-card' : ''}`}
       onClick={!disabled ? onClick : undefined}
       style={disabled ? { opacity: 0.7, cursor: "not-allowed" } : {}}
     >
@@ -184,6 +189,7 @@ function Table({ state, playerName, onDiscard, onDraw, loading }: {
   const yourPlayer = state.players.find((p) => p?.name === playerName);
   const currentPlayerIndex = state.current_player ?? 0;
   const currentPlayer = state.players[currentPlayerIndex];
+  const isGameOver = state.game_over;
 
   if (!yourPlayer || !currentPlayer) {
     return <div className="error">Player data not available</div>;
@@ -193,14 +199,23 @@ function Table({ state, playerName, onDiscard, onDraw, loading }: {
     return state.players[index] ?? { name: 'Player', hand: [], is_cpu: false };
   };
 
+  const isWinner = (player: Player) => isGameOver && state.winner === player.name;
+
   return (
     <div className="poker-table">
       {state.players.length > 2 && (
         <div className={`player-seat top ${currentPlayerIndex === 1 ? 'active' : ''}`}>
           <h3>{getPlayerSafe(1).name}{getPlayerSafe(1).is_cpu && " (CPU)"}</h3>
-          <div className="hand">
-            {getPlayerSafe(1).hand.map((_, i) => (
-              <Card key={`top-${i}`} facedown value="" suit="" />
+          <div className="hand horizontal">
+            {getPlayerSafe(1).hand.map((card, i) => (
+              <Card
+                key={`top-${i}`}
+                facedown={!isGameOver}
+                value={card.value}
+                suit={card.suit}
+                small={true}
+                highlight={isWinner(getPlayerSafe(1))}
+              />
             ))}
           </div>
         </div>
@@ -210,9 +225,16 @@ function Table({ state, playerName, onDiscard, onDraw, loading }: {
         <h3>{getPlayerSafe(state.players.length > 2 ? 2 : 1).name}
           {getPlayerSafe(state.players.length > 2 ? 2 : 1).is_cpu && " (CPU)"}
         </h3>
-        <div className="hand vertical">
-          {getPlayerSafe(state.players.length > 2 ? 2 : 1).hand.map((_, i) => (
-            <Card key={`left-${i}`} facedown value="" suit="" />
+        <div className="hand horizontal">
+          {getPlayerSafe(state.players.length > 2 ? 2 : 1).hand.map((card, i) => (
+            <Card
+              key={`left-${i}`}
+              facedown={!isGameOver}
+              value={card.value}
+              suit={card.suit}
+              small={true}
+              highlight={isWinner(getPlayerSafe(state.players.length > 2 ? 2 : 1))}
+            />
           ))}
         </div>
       </div>
@@ -235,9 +257,16 @@ function Table({ state, playerName, onDiscard, onDraw, loading }: {
       {state.players.length > 3 && (
         <div className={`player-seat right ${currentPlayerIndex === 3 ? 'active' : ''}`}>
           <h3>{getPlayerSafe(3).name}{getPlayerSafe(3).is_cpu && " (CPU)"}</h3>
-          <div className="hand vertical">
-            {getPlayerSafe(3).hand.map((_, i) => (
-              <Card key={`right-${i}`} facedown value="" suit="" />
+          <div className="hand horizontal">
+            {getPlayerSafe(3).hand.map((card, i) => (
+              <Card
+                key={`right-${i}`}
+                facedown={!isGameOver}
+                value={card.value}
+                suit={card.suit}
+                small={true}
+                highlight={isWinner(getPlayerSafe(3))}
+              />
             ))}
           </div>
         </div>
@@ -252,10 +281,11 @@ function Table({ state, playerName, onDiscard, onDraw, loading }: {
               {...card}
               onClick={() => onDiscard(i)}
               disabled={!state.has_drawn || currentPlayer.is_cpu || currentPlayer.name !== yourPlayer.name}
+              highlight={isWinner(yourPlayer)}
             />
           ))}
         </div>
-        {!state.has_drawn && currentPlayer.name === yourPlayer.name && (
+        {!state.has_drawn && currentPlayer.name === yourPlayer.name && !isGameOver && (
           <button 
             onClick={onDraw} 
             disabled={loading}
@@ -417,6 +447,21 @@ function App() {
               <div>
                 <h2>Game Over!</h2>
                 <p>Winner: <strong>{state.winner}</strong></p>
+                {state.winner_hand && (
+                  <div className="winning-hand">
+                    <p>Winning Hand:</p>
+                    <div className="hand">
+                      {state.winner_hand.map((card, i) => (
+                        <Card
+                          key={`winner-${i}`}
+                          value={card.value}
+                          suit={card.suit}
+                          highlight={true}
+                        />
+                      ))}
+                    </div>
+                  </div>
+                )}
                 <button onClick={() => { setState(null); setGameId(null); }}>
                   New Game
                 </button>
