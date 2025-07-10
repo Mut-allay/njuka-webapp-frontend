@@ -265,7 +265,8 @@ function Table({ state, playerName, onDiscard, onDraw, loadingStates }: {
 
   return (
     <div className="poker-table">
-      {state.players.length > 2 && (
+      {/* Top Player (opponent across the table) */}
+      {state.players.length > 1 && (
         <div className={`player-seat top ${currentPlayerIndex === 1 ? 'active' : ''}`}>
           <h3>{getPlayerSafe(1).name}{getPlayerSafe(1).is_cpu && " (CPU)"}</h3>
           <div className="hand horizontal">
@@ -283,23 +284,43 @@ function Table({ state, playerName, onDiscard, onDraw, loadingStates }: {
         </div>
       )}
 
-      <div className={`player-seat left ${currentPlayerIndex === (state.players.length > 2 ? 2 : 1) ? 'active' : ''}`}>
-        <h3>{getPlayerSafe(state.players.length > 2 ? 2 : 1).name}
-          {getPlayerSafe(state.players.length > 2 ? 2 : 1).is_cpu && " (CPU)"}
-        </h3>
-        <div className="hand horizontal">
-          {getPlayerSafe(state.players.length > 2 ? 2 : 1).hand.map((card, i) => (
-            <Card
-              key={`left-${i}`}
-              facedown={!isGameOver}
-              value={card.value}
-              suit={card.suit}
-              small={true}
-              highlight={isWinner(getPlayerSafe(state.players.length > 2 ? 2 : 1))}
-            />
-          ))}
+      {/* Left Player (to the left in portrait) */}
+      {state.players.length > 2 && (
+        <div className={`player-seat left ${currentPlayerIndex === 2 ? 'active' : ''}`}>
+          <h3>{getPlayerSafe(2).name}{getPlayerSafe(2).is_cpu && " (CPU)"}</h3>
+          <div className="hand horizontal">
+            {getPlayerSafe(2).hand.map((card, i) => (
+              <Card
+                key={`left-${i}`}
+                facedown={!isGameOver}
+                value={card.value}
+                suit={card.suit}
+                small={true}
+                highlight={isWinner(getPlayerSafe(2))}
+              />
+            ))}
+          </div>
         </div>
-      </div>
+      )}
+
+      {/* Right Player (to the right in portrait) */}
+      {state.players.length > 3 && (
+        <div className={`player-seat right ${currentPlayerIndex === 3 ? 'active' : ''}`}>
+          <h3>{getPlayerSafe(3).name}{getPlayerSafe(3).is_cpu && " (CPU)"}</h3>
+          <div className="hand horizontal">
+            {getPlayerSafe(3).hand.map((card, i) => (
+              <Card
+                key={`right-${i}`}
+                facedown={!isGameOver}
+                value={card.value}
+                suit={card.suit}
+                small={true}
+                highlight={isWinner(getPlayerSafe(3))}
+              />
+            ))}
+          </div>
+        </div>
+      )}
 
       <div className="table-center">
         <div 
@@ -330,24 +351,7 @@ function Table({ state, playerName, onDiscard, onDraw, loadingStates }: {
         </div>
       </div>
 
-      {state.players.length > 3 && (
-        <div className={`player-seat right ${currentPlayerIndex === 3 ? 'active' : ''}`}>
-          <h3>{getPlayerSafe(3).name}{getPlayerSafe(3).is_cpu && " (CPU)"}</h3>
-          <div className="hand horizontal">
-            {getPlayerSafe(3).hand.map((card, i) => (
-              <Card
-                key={`right-${i}`}
-                facedown={!isGameOver}
-                value={card.value}
-                suit={card.suit}
-                small={true}
-                highlight={isWinner(getPlayerSafe(3))}
-              />
-            ))}
-          </div>
-        </div>
-      )}
-
+      {/* Bottom Player (current player) */}
       <div className={`player-seat bottom ${currentPlayerIndex === state.players.findIndex(p => p?.name === playerName) ? 'active' : ''}`}>
         <h2>Your Hand ({yourPlayer.name})</h2>
         <div className="hand">
