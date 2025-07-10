@@ -82,14 +82,13 @@ button:disabled {
 }
 
 .card-hover {
-  transform: translateY(-8px) scale(1.05);
+  transform: translateY(-8px);
   transition: transform 0.2s ease;
 }
 
-.deck-hover {
-  transform: translateY(-5px) scale(1.1);
-  box-shadow: 0 0 15px rgba(248, 213, 107, 0.7);
-  transition: all 0.2s ease;
+.card-selected {
+  transform: translateY(-15px) !important;
+  z-index: 100 !important;
 }
 
 .card-inner {
@@ -129,6 +128,17 @@ button:disabled {
   position: absolute;
   top: 0;
   left: 0;
+}
+
+/* Deck highlight styles */
+.deck-highlight .card {
+  box-shadow: 0 0 20px 5px rgba(248, 213, 107, 0.8);
+  animation: pulse-glow 1.5s infinite alternate;
+}
+
+@keyframes pulse-glow {
+  0% { box-shadow: 0 0 10px 2px rgba(248, 213, 107, 0.6); }
+  100% { box-shadow: 0 0 25px 8px rgba(248, 213, 107, 0.9); }
 }
 
 /* Animation styles */
