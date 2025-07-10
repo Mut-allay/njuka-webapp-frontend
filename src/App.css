@@ -16,12 +16,14 @@ h1 {
   color: #f8d56b;
   margin-bottom: 20px;
   text-shadow: 0 2px 4px rgba(0, 0, 0, 0.5);
+  font-size: 1.5em; /* Reduced for mobile */
 }
 
 h2, h3 {
   color: #f8d56b;
   margin-bottom: 10px;
   text-shadow: 0 1px 3px rgba(0, 0, 0, 0.3);
+  font-size: 1em;
 }
 
 button {
@@ -54,15 +56,18 @@ button:disabled {
   display: inline-block;
   width: 60px;
   height: 90px;
+  min-width: 48px;
+  min-height: 72px;
   background: linear-gradient(135deg, #ffffff, #f5f5f5);
   border-radius: 6px;
   border: 1px solid rgba(0, 0, 0, 0.1);
-  margin-left: -20px;
+  margin: 0 -15px;
   position: relative;
   font-size: 1em;
   cursor: pointer;
   transition: all 0.2s ease;
   z-index: 1;
+  touch-action: manipulation;
 }
 
 .card:first-child {
@@ -72,8 +77,10 @@ button:disabled {
 .card.small-card {
   width: 40px;
   height: 60px;
+  min-width: 40px;
+  min-height: 60px;
   font-size: 0.8em;
-  margin-left: -15px;
+  margin: 0 -10px;
 }
 
 .card.highlight-card {
@@ -128,6 +135,28 @@ button:disabled {
   position: absolute;
   top: 0;
   left: 0;
+}
+
+.card-value, .card-suit {
+  font-size: 0.9em; /* Ensure readability */
+  text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.5); /* Enhanced contrast */
+}
+
+.card:active {
+  transform: scale(0.98); 
+  transition: transform 0.1s;
+}
+
+/* Ensure proper touch targets on mobile */
+@media (pointer: coarse) {
+  .card {
+    min-width: 48px;
+    min-height: 72px;
+  }
+  .card.small-card {
+    min-width: 40px;
+    min-height: 60px;
+  }
 }
 
 /* Deck highlight styles */
@@ -577,7 +606,17 @@ button:disabled {
 }
 
 /* Mobile Portrait Layout */
-@media (max-width: 768px) and (orientation: portrait) {
+@media (max-width: 768px) {
+  h1 { 
+    font-size: 1.2em; 
+  }
+  h2, h3 { 
+    font-size: 0.9em; 
+  }
+  .card-value, .card-suit { 
+    font-size: 0.8em; 
+  }
+
   .poker-table {
     width: 95vw;
     height: 70vh;
@@ -631,15 +670,23 @@ button:disabled {
     height: 60px;
     min-width: 48px;
     min-height: 72px;
+    margin: 0 -8px;
+  }
+
+  .card + .card {
     margin-left: -12px;
-    font-size: 0.8em;
   }
 
   .card.small-card {
     width: 30px;
     height: 45px;
-    font-size: 0.7em;
-    margin-left: -8px;
+    min-width: 40px;
+    min-height: 60px;
+    margin: 0 -6px;
+  }
+
+  .card.small-card + .card.small-card {
+    margin-left: -10px;
   }
 
   /* Stack cards horizontally for all players */
@@ -647,10 +694,9 @@ button:disabled {
     flex-direction: row;
     justify-content: center;
     margin: 5px 0;
-  }
-
-  .hand.horizontal {
-    flex-direction: row;
+    padding: 0 12px;
+    max-width: 100%;
+    overflow-x: visible;
   }
 
   /* Adjust deck and discard areas */
@@ -667,6 +713,29 @@ button:disabled {
   .tutorial-prompt {
     font-size: 0.7em;
     top: -30px;
+  }
+}
+
+/* Mobile Landscape Layout */
+@media (max-width: 768px) and (orientation: landscape) {
+  .card {
+    width: 40px;
+    height: 60px;
+    margin: 0 -6px;
+  }
+
+  .card + .card {
+    margin-left: -10px;
+  }
+
+  .card.small-card {
+    width: 35px;
+    height: 52px;
+    margin: 0 -5px;
+  }
+
+  .card.small-card + .card.small-card {
+    margin-left: -8px;
   }
 }
 
@@ -694,20 +763,4 @@ button:disabled {
     width: 60px;
     height: 90px;
   }
-
-  .card {
-    width: 60px;
-    height: 90px;
-    margin-left: -20px;
-  }
-  
-  .card.small-card {
-    width: 40px;
-    height: 60px;
-    margin-left: -15px;
-  }
-}
-.card:active {
-  transform: scale(0.98); 
-  transition: transform 0.1s;
 }

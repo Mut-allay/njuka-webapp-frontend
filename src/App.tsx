@@ -465,7 +465,7 @@ function App() {
       setBackendAvailable(isHealthy);
       if (isHealthy) {
         setError(null);
-        intervalId = setInterval(fetchGameState, 2000);
+        intervalId = setInterval(fetchGameState, 5000);
         fetchGameState();
       }
     };
