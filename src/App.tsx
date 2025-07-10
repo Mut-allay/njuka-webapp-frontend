@@ -140,7 +140,6 @@ function Card({
   highlight = false,
   small = false,
   style = {},
-  isDeck = false,
   selected = false
 }: {
   value: string;
@@ -152,7 +151,6 @@ function Card({
   highlight?: boolean;
   small?: boolean;
   style?: React.CSSProperties;
-  isDeck?: boolean;
   selected?: boolean;
 }) {
   const [isHovered, setIsHovered] = useState(false);
@@ -320,7 +318,6 @@ function Table({ state, playerName, onDiscard, onDraw, loadingStates }: {
             style={{
               cursor: !loadingStates.drawing && currentPlayer.name === yourPlayer.name && !isGameOver && !state.has_drawn ? 'pointer' : 'default'
             }}
-            isDeck={true}
           />
         </div>
         
