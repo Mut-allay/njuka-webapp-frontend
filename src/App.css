@@ -182,7 +182,7 @@ button:disabled {
     background: rgba(248, 213, 107, 0.05);
   }
   100% {
-    box-shadow: 0 0 25px 8px rgba(248, 213, 107, 0.8);
+    box-shadow: 0 0 15px 8px rgba(248, 213, 107, 0.8);
     background: rgba(248, 213, 107, 0.1);
   }
 }
