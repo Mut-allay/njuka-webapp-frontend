@@ -140,7 +140,8 @@ function Card({
   highlight = false,
   small = false,
   style = {},
-  isDeck = false
+  isDeck = false,
+  selected = false
 }: {
   value: string;
   suit: string;
@@ -152,13 +153,14 @@ function Card({
   small?: boolean;
   style?: React.CSSProperties;
   isDeck?: boolean;
+  selected?: boolean;
 }) {
   const [isHovered, setIsHovered] = useState(false);
 
   if (facedown) {
     return (
       <div 
-        className={`card facedown ${className} ${small ? 'small-card' : ''} ${isDeck && isHovered ? 'deck-hover' : ''}`}
+        className={`card facedown ${className} ${small ? 'small-card' : ''}`}
         style={style}
         onMouseEnter={() => setIsHovered(true)}
         onMouseLeave={() => setIsHovered(false)}
@@ -171,7 +173,7 @@ function Card({
   const suitColor = suit === "♥" || suit === "♦" ? "red" : "black";
   return (
     <div
-      className={`card ${suitColor} ${className} ${highlight ? 'highlight-card' : ''} ${small ? 'small-card' : ''} ${isHovered ? 'card-hover' : ''}`}
+      className={`card ${suitColor} ${className} ${highlight ? 'highlight-card' : ''} ${small ? 'small-card' : ''} ${isHovered ? 'card-hover' : ''} ${selected ? 'card-selected' : ''}`}
       onClick={!disabled ? onClick : undefined}
       style={disabled ? { opacity: 0.7, cursor: "not-allowed", ...style } : style}
       onMouseEnter={() => setIsHovered(true)}
@@ -196,6 +198,10 @@ function Table({ state, playerName, onDiscard, onDraw, loadingStates }: {
     cpuMoving: boolean;
   };
 }) {
+  const [selectedCardIndex, setSelectedCardIndex] = useState<number | null>(null);
+  const [showDeckHighlight, setShowDeckHighlight] = useState(false);
+  const [hasShownPrompt, setHasShownPrompt] = useState(false);
+
   if (!state || !state.players || state.players.length === 0) {
     return (
       <div className="loading">
@@ -222,7 +228,7 @@ function Table({ state, playerName, onDiscard, onDraw, loadingStates }: {
 
   const shouldShowPrompt = () => {
     const playerId = state.players[state.current_player]?.name;
-    if (!playerId || playerId !== playerName) return false;
+    if (!playerId || playerId !== playerName || hasShownPrompt) return false;
     
     const count = tutorialPromptsShown.get(playerId) || 0;
     if (count < 2) {
@@ -230,6 +236,33 @@ function Table({ state, playerName, onDiscard, onDraw, loadingStates }: {
       return true;
     }
     return false;
+  };
+
+  useEffect(() => {
+    if (!shouldShowPrompt() && !hasShownPrompt) {
+      const timer = setTimeout(() => {
+        setShowDeckHighlight(true);
+        setHasShownPrompt(true);
+      }, 3000);
+      return () => clearTimeout(timer);
+    }
+  }, [state?.current_player]);
+
+  useEffect(() => {
+    if (state?.current_player !== state?.players.findIndex(p => p?.name === playerName)) {
+      setShowDeckHighlight(false);
+      setHasShownPrompt(false);
+      setSelectedCardIndex(null);
+    }
+  }, [state?.current_player]);
+
+  const handleCardClick = (index: number) => {
+    if (selectedCardIndex === index) {
+      onDiscard(index);
+      setSelectedCardIndex(null);
+    } else {
+      setSelectedCardIndex(index);
+    }
   };
 
   return (
@@ -272,7 +305,7 @@ function Table({ state, playerName, onDiscard, onDraw, loadingStates }: {
 
       <div className="table-center">
         <div 
-          className="deck-area" 
+          className={`deck-area ${showDeckHighlight ? 'deck-highlight' : ''}`}
           onClick={!loadingStates.drawing && currentPlayer.name === yourPlayer.name && !isGameOver && !state.has_drawn ? onDraw : undefined}
         >
           <div className="deck-count">{state.deck?.length ?? 0}</div>
@@ -325,10 +358,11 @@ function Table({ state, playerName, onDiscard, onDraw, loadingStates }: {
             <Card
               key={`you-${i}`}
               {...card}
-              onClick={() => onDiscard(i)}
+              onClick={() => handleCardClick(i)}
               disabled={!state.has_drawn || currentPlayer.is_cpu || currentPlayer.name !== yourPlayer.name || loadingStates.discarding}
               className={loadingStates.discarding ? 'card-discarding' : ''}
               highlight={isWinner(yourPlayer)}
+              selected={selectedCardIndex === i}
             />
           ))}
         </div>
@@ -441,7 +475,6 @@ function App() {
     return () => clearInterval(intervalId);
   }, [gameId, backendAvailable]);
 
-  // Improved CPU move logic
   useEffect(() => {
     if (!state || state.game_over || !backendAvailable) return;
     
@@ -451,10 +484,8 @@ function App() {
       
       const makeCpuMove = async () => {
         try {
-          // First, draw a card
           const afterDrawState = await apiService.drawCard(state.id);
           
-          // Then discard a random card if they have any
           if (afterDrawState.has_drawn && afterDrawState.players[state.current_player].hand.length > 0) {
             const randomIndex = Math.floor(
               Math.random() * afterDrawState.players[state.current_player].hand.length
@@ -462,14 +493,12 @@ function App() {
             await apiService.discardCard(state.id, randomIndex);
           }
           
-          // Update state after CPU move is complete
           const updatedState = await apiService.checkHealth()
             .then(() => fetch(`${API}/game/${state.id}`))
             .then(res => res.json());
           setState(updatedState);
         } catch (err) {
           console.error("CPU move failed:", err);
-          // If there's an error, try to get the latest state
           try {
             const latestState = await fetch(`${API}/game/${state.id}`).then(res => res.json());
             setState(latestState);
