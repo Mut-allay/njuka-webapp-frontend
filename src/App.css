@@ -629,6 +629,8 @@ button:disabled {
   .card {
     width: 40px;
     height: 60px;
+    min-width: 48px;
+    min-height: 72px;
     margin-left: -12px;
     font-size: 0.8em;
   }
@@ -704,4 +706,8 @@ button:disabled {
     height: 60px;
     margin-left: -15px;
   }
+}
+.card:active {
+  transform: scale(0.98); 
+  transition: transform 0.1s;
 }
