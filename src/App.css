@@ -237,7 +237,7 @@ button:disabled {
   max-width: 900px;
   max-height: 650px;
   margin: 20px auto;
-  background: radial-gradient(ellipse at center, #0d3b4a 0%, #08222b 100%);
+  background: radial-gradient(ellipse at center, #0d4a1f 0%, #082b17 100%);
   border-radius: 50%;
   border: 15px solid #5d4037;
   box-shadow: 
