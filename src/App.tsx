@@ -193,6 +193,7 @@ function Table({ state, playerName, onDiscard, onDraw, loadingStates }: {
   loadingStates: {
     drawing: boolean;
     discarding: boolean;
+    cpuMoving: boolean;
   };
 }) {
   if (!state || !state.players || state.players.length === 0) {
@@ -230,27 +231,6 @@ function Table({ state, playerName, onDiscard, onDraw, loadingStates }: {
     }
     return false;
   };
-
-  useEffect(() => {
-    if (!state || state.game_over) return;
-    
-    const currentPlayer = state.players[state.current_player];
-    if (currentPlayer?.is_cpu && currentPlayer.name !== playerName) {
-      const timer = setTimeout(async () => {
-        try {
-          const newState = await apiService.drawCard(state.id);
-          if (newState.has_drawn && newState.players[state.current_player].hand.length > 0) {
-            const randomIndex = Math.floor(Math.random() * newState.players[state.current_player].hand.length);
-            await apiService.discardCard(state.id, randomIndex);
-          }
-        } catch (err) {
-          console.error("CPU move failed:", err);
-        }
-      }, 1500);
-
-      return () => clearTimeout(timer);
-    }
-  }, [state?.current_player]);
 
   return (
     <div className="poker-table">
@@ -364,7 +344,8 @@ function App() {
     drawing: false,
     discarding: false,
     joining: false,
-    starting: false
+    starting: false,
+    cpuMoving: false
   });
   const [error, setError] = useState<string | null>(null);
   const [gameMode, setGameMode] = useState<"cpu" | "multiplayer">("cpu");
@@ -460,6 +441,54 @@ function App() {
     return () => clearInterval(intervalId);
   }, [gameId, backendAvailable]);
 
+  // Improved CPU move logic
+  useEffect(() => {
+    if (!state || state.game_over || !backendAvailable) return;
+    
+    const currentPlayer = state.players[state.current_player];
+    if (currentPlayer?.is_cpu && currentPlayer.name !== playerName) {
+      setLoadingStates(prev => ({...prev, cpuMoving: true}));
+      
+      const makeCpuMove = async () => {
+        try {
+          // First, draw a card
+          const afterDrawState = await apiService.drawCard(state.id);
+          
+          // Then discard a random card if they have any
+          if (afterDrawState.has_drawn && afterDrawState.players[state.current_player].hand.length > 0) {
+            const randomIndex = Math.floor(
+              Math.random() * afterDrawState.players[state.current_player].hand.length
+            );
+            await apiService.discardCard(state.id, randomIndex);
+          }
+          
+          // Update state after CPU move is complete
+          const updatedState = await apiService.checkHealth()
+            .then(() => fetch(`${API}/game/${state.id}`))
+            .then(res => res.json());
+          setState(updatedState);
+        } catch (err) {
+          console.error("CPU move failed:", err);
+          // If there's an error, try to get the latest state
+          try {
+            const latestState = await fetch(`${API}/game/${state.id}`).then(res => res.json());
+            setState(latestState);
+          } catch (fetchErr) {
+            console.error("Failed to fetch game state after CPU move error:", fetchErr);
+          }
+        } finally {
+          setLoadingStates(prev => ({...prev, cpuMoving: false}));
+        }
+      };
+
+      const timer = setTimeout(makeCpuMove, 1500);
+      return () => {
+        clearTimeout(timer);
+        setLoadingStates(prev => ({...prev, cpuMoving: false}));
+      };
+    }
+  }, [state?.current_player, state?.id, playerName, backendAvailable]);
+
   const discard = async (cardIdx: number) => {
     setLoadingStates(prev => ({...prev, discarding: true}));
     setError(null);
@@ -534,6 +563,7 @@ function App() {
             <p className="turn-indicator">
               Current Turn: <strong>{state.players[state.current_player]?.name}</strong>
               {state.players[state.current_player]?.is_cpu && " (CPU)"}
+              {loadingStates.cpuMoving && " - Thinking..."}
             </p>
             <button 
               onClick={() => { 
