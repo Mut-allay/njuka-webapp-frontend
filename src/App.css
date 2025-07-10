@@ -171,8 +171,8 @@ button:disabled {
 
 /* Active player hand glow */
 .player-seat.active .hand {
-  border-radius: 15px;
-  padding: 10px;
+  border-radius: 10px;
+  padding: 5px;
   animation: active-player-glow 2s ease-in-out infinite alternate;
 }
 
