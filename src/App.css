@@ -542,11 +542,6 @@ button:disabled {
   100% { transform: rotate(360deg); }
 }
 
-@keyframes cardDeal {
-  0% { transform: translateY(-100px) rotate(-10deg); opacity: 0; }
-  100% { transform: translateY(0) rotate(0); opacity: 1; }
-}
-
 /* Error Modal */
 .error-modal {
   position: fixed;
@@ -581,59 +576,132 @@ button:disabled {
   margin-top: 15px;
 }
 
-/* Responsive Design */
-@media (max-width: 768px) {
+/* Mobile Portrait Layout */
+@media (max-width: 768px) and (orientation: portrait) {
   .poker-table {
-    width: 98vw;
-    height: 60vh;
-    border-radius: 100px / 50px;
-  }
-  
-  .player-seat {
-    min-width: 90px;
-    padding: 8px;
-  }
-  
-  .left, .right {
-    width: 90px;
-  }
-  
-  .table-center {
-    gap: 30px;
-  }
-  
-  .deck-area .card, 
-  .discard-area .card {
-    width: 35px;
-    height: 50px;
+    width: 95vw;
+    height: 70vh;
+    border-radius: 50% / 30%;
+    position: relative;
   }
 
-  .card {
-    width: 50px;
-    height: 75px;
-    margin-left: -15px;
+  .player-seat {
+    min-width: 100px;
+    padding: 8px;
+    backdrop-filter: blur(3px);
   }
-  
+
+  /* Position players around the oval */
+  .top {
+    top: 10px;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 80%;
+  }
+
+  .left {
+    left: 10px;
+    top: 50%;
+    transform: translateY(-50%);
+    width: 100px;
+  }
+
+  .right {
+    right: 10px;
+    top: 50%;
+    transform: translateY(-50%);
+    width: 100px;
+  }
+
+  .bottom {
+    bottom: 10px;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 80%;
+  }
+
+  .table-center {
+    flex-direction: column;
+    gap: 20px;
+  }
+
+  /* Adjust card sizes for mobile */
+  .card {
+    width: 40px;
+    height: 60px;
+    margin-left: -12px;
+    font-size: 0.8em;
+  }
+
   .card.small-card {
     width: 30px;
     height: 45px;
     font-size: 0.7em;
-    margin-left: -10px;
+    margin-left: -8px;
   }
 
-  /* Mobile card stacking */
-  .hand.horizontal {
-    display: flex;
-    flex-direction: row-reverse;
+  /* Stack cards horizontally for all players */
+  .hand {
+    flex-direction: row;
     justify-content: center;
+    margin: 5px 0;
+  }
+
+  .hand.horizontal {
+    flex-direction: row;
+  }
+
+  /* Adjust deck and discard areas */
+  .deck-area, .discard-area {
+    transform: scale(0.8);
+  }
+
+  .deck-count {
+    font-size: 0.7em;
+    width: 30px;
+    height: 18px;
+  }
+
+  .tutorial-prompt {
+    font-size: 0.7em;
+    top: -30px;
+  }
+}
+
+/* Landscape and Desktop Layout */
+@media (min-width: 769px), (orientation: landscape) {
+  .poker-table {
+    border-radius: 50%;
   }
   
-  .hand.horizontal .card {
+  .player-seat {
+    min-width: 120px;
+    padding: 10px 15px;
+  }
+  
+  .left, .right {
+    width: 120px;
+  }
+  
+  .table-center {
+    gap: 60px;
+  }
+  
+  .deck-area .card, 
+  .discard-area .card {
+    width: 60px;
+    height: 90px;
+  }
+
+  .card {
+    width: 60px;
+    height: 90px;
+    margin-left: -20px;
+  }
+  
+  .card.small-card {
+    width: 40px;
+    height: 60px;
     margin-left: -15px;
-    margin-right: 0;
-  }
-  
-  .hand.horizontal .card:first-child {
-    margin-left: 0;
   }
 }
