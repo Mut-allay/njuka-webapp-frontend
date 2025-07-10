@@ -218,17 +218,9 @@ function Table({ state, playerName, onDiscard, onDraw, loadingStates }: {
     return <div className="error">Player data not available</div>;
   }
 
-  // Get players in clockwise order from current player
-  const getPlayerPositions = () => {
-    const positions = [];
-    for (let i = 0; i < state.players.length; i++) {
-      const index = (currentPlayerIndex + i) % state.players.length;
-      positions.push(state.players[index]);
-    }
-    return positions;
+  const getPlayerSafe = (index: number) => {
+    return state.players[index] ?? { name: 'Player', hand: [], is_cpu: false };
   };
-
-  const playerPositions = getPlayerPositions();
 
   const isWinner = (player: Player) => isGameOver && state.winner === player.name;
 
@@ -273,44 +265,67 @@ function Table({ state, playerName, onDiscard, onDraw, loadingStates }: {
 
   return (
     <div className="poker-table">
-      {/* Render players in clockwise order */}
-      {playerPositions.map((player, index) => {
-        const positionClass = 
-          index === 0 ? 'bottom' : 
-          index === 1 ? 'top' : 
-          index === 2 ? 'left' : 'right';
-        
-        return (
-          <div 
-            key={`player-${index}`}
-            className={`player-seat ${positionClass} ${
-              state.current_player === state.players.indexOf(player) ? 'active current-turn' : ''
-            }`}
-          >
-            <h3>{player.name}{player.is_cpu && " (CPU)"}</h3>
-            <div className="hand horizontal">
-              {player.hand.map((card, i) => (
-                <Card
-                  key={`${index}-${i}`}
-                  facedown={!isGameOver && player.name !== playerName}
-                  value={card.value}
-                  suit={card.suit}
-                  small={player.name !== playerName}
-                  highlight={isWinner(player)}
-                  onClick={player.name === playerName ? () => handleCardClick(i) : undefined}
-                  disabled={!state.has_drawn || player.is_cpu || player.name !== playerName || loadingStates.discarding}
-                  selected={player.name === playerName && selectedCardIndex === i}
-                />
-              ))}
-            </div>
+      {/* Top Player (opponent across the table) */}
+      {state.players.length > 1 && (
+        <div className={`player-seat top ${currentPlayerIndex === 1 ? 'active' : ''}`}>
+          <h3>{getPlayerSafe(1).name}{getPlayerSafe(1).is_cpu && " (CPU)"}</h3>
+          <div className="hand horizontal">
+            {getPlayerSafe(1).hand.map((card, i) => (
+              <Card
+                key={`top-${i}`}
+                facedown={!isGameOver}
+                value={card.value}
+                suit={card.suit}
+                small={true}
+                highlight={isWinner(getPlayerSafe(1))}
+              />
+            ))}
           </div>
-        );
-      })}
+        </div>
+      )}
+
+      {/* Left Player (to the left in portrait) */}
+      {state.players.length > 2 && (
+        <div className={`player-seat left ${currentPlayerIndex === 2 ? 'active' : ''}`}>
+          <h3>{getPlayerSafe(2).name}{getPlayerSafe(2).is_cpu && " (CPU)"}</h3>
+          <div className="hand horizontal">
+            {getPlayerSafe(2).hand.map((card, i) => (
+              <Card
+                key={`left-${i}`}
+                facedown={!isGameOver}
+                value={card.value}
+                suit={card.suit}
+                small={true}
+                highlight={isWinner(getPlayerSafe(2))}
+              />
+            ))}
+          </div>
+        </div>
+      )}
+
+      {/* Right Player (to the right in portrait) */}
+      {state.players.length > 3 && (
+        <div className={`player-seat right ${currentPlayerIndex === 3 ? 'active' : ''}`}>
+          <h3>{getPlayerSafe(3).name}{getPlayerSafe(3).is_cpu && " (CPU)"}</h3>
+          <div className="hand horizontal">
+            {getPlayerSafe(3).hand.map((card, i) => (
+              <Card
+                key={`right-${i}`}
+                facedown={!isGameOver}
+                value={card.value}
+                suit={card.suit}
+                small={true}
+                highlight={isWinner(getPlayerSafe(3))}
+              />
+            ))}
+          </div>
+        </div>
+      )}
 
       <div className="table-center">
         <div 
           className={`deck-area ${showDeckHighlight ? 'deck-highlight' : ''}`}
-          onClick={!loadingStates.drawing && currentPlayer.name === playerName && !isGameOver && !state.has_drawn ? onDraw : undefined}
+          onClick={!loadingStates.drawing && currentPlayer.name === yourPlayer.name && !isGameOver && !state.has_drawn ? onDraw : undefined}
         >
           <div className="deck-count">{state.deck?.length ?? 0}</div>
           {shouldShowPrompt() && (
@@ -322,7 +337,7 @@ function Table({ state, playerName, onDiscard, onDraw, loadingStates }: {
             suit="" 
             className={loadingStates.drawing ? 'card-drawing' : ''}
             style={{
-              cursor: !loadingStates.drawing && currentPlayer.name === playerName && !isGameOver && !state.has_drawn ? 'pointer' : 'default'
+              cursor: !loadingStates.drawing && currentPlayer.name === yourPlayer.name && !isGameOver && !state.has_drawn ? 'pointer' : 'default'
             }}
           />
         </div>
@@ -333,6 +348,24 @@ function Table({ state, playerName, onDiscard, onDraw, loadingStates }: {
           ) : (
             <div className="discard-empty">Empty</div>
           )}
+        </div>
+      </div>
+
+      {/* Bottom Player (current player) */}
+      <div className={`player-seat bottom ${currentPlayerIndex === state.players.findIndex(p => p?.name === playerName) ? 'active' : ''}`}>
+        <h2>Your Hand ({yourPlayer.name})</h2>
+        <div className="hand">
+          {yourPlayer.hand?.map((card, i) => (
+            <Card
+              key={`you-${i}`}
+              {...card}
+              onClick={() => handleCardClick(i)}
+              disabled={!state.has_drawn || currentPlayer.is_cpu || currentPlayer.name !== yourPlayer.name || loadingStates.discarding}
+              className={loadingStates.discarding ? 'card-discarding' : ''}
+              highlight={isWinner(yourPlayer)}
+              selected={selectedCardIndex === i}
+            />
+          ))}
         </div>
       </div>
     </div>
