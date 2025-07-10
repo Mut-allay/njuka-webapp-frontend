@@ -35,13 +35,11 @@ button {
   margin: 5px;
   cursor: pointer;
   transition: all 0.3s ease;
-  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.3);
 }
 
 button:hover {
   background: linear-gradient(to bottom, #ffeb99, #f8d56b);
   transform: translateY(-2px);
-  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.4);
 }
 
 button:disabled {
@@ -49,7 +47,6 @@ button:disabled {
   color: #999;
   cursor: not-allowed;
   transform: none;
-  box-shadow: none;
 }
 
 /* Card styles */
@@ -59,14 +56,12 @@ button:disabled {
   height: 90px;
   background: linear-gradient(135deg, #ffffff, #f5f5f5);
   border-radius: 6px;
-  border: 1px solid #333;
+  border: 1px solid rgba(0, 0, 0, 0.1);
   margin-left: -20px;
-  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.3);
   position: relative;
   font-size: 1em;
   cursor: pointer;
   transition: all 0.2s ease;
-  animation: cardDeal 0.3s ease-out forwards;
   z-index: 1;
 }
 
@@ -82,15 +77,19 @@ button:disabled {
 }
 
 .card.highlight-card {
-  box-shadow: 0 0 15px 5px rgba(255, 215, 0, 0.7);
   transform: translateY(-5px);
   z-index: 10;
 }
 
-.card:hover:not(.facedown) {
-  transform: translateY(-5px);
-  box-shadow: 0 0 10px rgba(255, 255, 255, 0.5);
-  z-index: 2;
+.card-hover {
+  transform: translateY(-8px) scale(1.05);
+  transition: transform 0.2s ease;
+}
+
+.deck-hover {
+  transform: translateY(-5px) scale(1.1);
+  box-shadow: 0 0 15px rgba(248, 213, 107, 0.7);
+  transition: all 0.2s ease;
 }
 
 .card-inner {
@@ -130,6 +129,52 @@ button:disabled {
   position: absolute;
   top: 0;
   left: 0;
+}
+
+/* Animation styles */
+.card-drawing {
+  animation: cardDraw 0.5s ease-out;
+}
+
+.card-discarding {
+  animation: cardDiscard 0.5s ease-out forwards;
+}
+
+@keyframes cardDraw {
+  0% { transform: translateX(-100px) rotate(-15deg); opacity: 0; }
+  100% { transform: translateX(0) rotate(0); opacity: 1; }
+}
+
+@keyframes cardDiscard {
+  0% { transform: translateY(0) scale(1); opacity: 1; }
+  100% { transform: translateY(100px) scale(0.5); opacity: 0; }
+}
+
+@media (prefers-reduced-motion) {
+  .card-drawing, .card-discarding {
+    animation: none !important;
+  }
+}
+
+/* Tutorial prompt */
+.tutorial-prompt {
+  position: absolute;
+  top: -40px;
+  left: 50%;
+  transform: translateX(-50%);
+  background: rgba(248, 213, 107, 0.9);
+  color: #2a3439;
+  padding: 5px 10px;
+  border-radius: 15px;
+  font-size: 0.8em;
+  white-space: nowrap;
+  animation: pulse 2s infinite;
+}
+
+@keyframes pulse {
+  0% { opacity: 0.7; }
+  50% { opacity: 1; }
+  100% { opacity: 0.7; }
 }
 
 /* Hand styles */
@@ -272,7 +317,7 @@ button:disabled {
 }
 
 .discard-top {
-  box-shadow: 0 0 15px rgba(248, 213, 107, 0.8);
+  z-index: 5;
 }
 
 .discard-empty {
@@ -299,40 +344,6 @@ button:disabled {
   font-size: 1.1em;
   color: #f8d56b;
   text-shadow: 0 0 10px rgba(248, 213, 107, 0.5);
-}
-
-/* Draw Button */
-.draw-btn {
-  background: linear-gradient(45deg, #f8d56b, #e5b733);
-  margin-top: 10px;
-  padding: 8px 16px;
-  font-size: 0.9em;
-  border-radius: 20px;
-  box-shadow: 0 4px 15px rgba(248, 213, 107, 0.3);
-  position: relative;
-  overflow: hidden;
-}
-
-.draw-btn:hover {
-  background: linear-gradient(45deg, #ffeb99, #f8d56b);
-}
-
-.draw-btn:after {
-  content: "";
-  position: absolute;
-  top: -50%;
-  left: -50%;
-  width: 200%;
-  height: 200%;
-  background: rgba(255, 255, 255, 0.1);
-  transform: rotate(45deg);
-  animation: shine 3s infinite;
-}
-
-@keyframes shine {
-  0% { left: -50%; }
-  20% { left: 150%; }
-  100% { left: 150%; }
 }
 
 /* Game Over Styles */
@@ -388,7 +399,6 @@ button:disabled {
   padding: 30px;
   width: 90%;
   max-width: 400px;
-  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
 }
 
 .new-game-form label {
@@ -413,7 +423,6 @@ button:disabled {
 .new-game-form select:focus {
   outline: none;
   border-color: #ffeb99;
-  box-shadow: 0 0 10px rgba(248, 213, 107, 0.3);
 }
 
 .join-section {
@@ -549,7 +558,6 @@ button:disabled {
   padding: 25px;
   max-width: 80%;
   text-align: center;
-  box-shadow: 0 0 20px rgba(255, 68, 68, 0.3);
 }
 
 .error-content h3 {
@@ -601,5 +609,21 @@ button:disabled {
     height: 45px;
     font-size: 0.7em;
     margin-left: -10px;
+  }
+
+  /* Mobile card stacking */
+  .hand.horizontal {
+    display: flex;
+    flex-direction: row-reverse;
+    justify-content: center;
+  }
+  
+  .hand.horizontal .card {
+    margin-left: -15px;
+    margin-right: 0;
+  }
+  
+  .hand.horizontal .card:first-child {
+    margin-left: 0;
   }
 }

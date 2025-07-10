@@ -28,6 +28,8 @@ type GameState = {
   game_over?: boolean;
 };
 
+const tutorialPromptsShown = new Map<string, number>();
+
 const apiService = {
   createNewGame: async (
     mode: "cpu" | "multiplayer",
@@ -136,7 +138,9 @@ function Card({
   facedown = false,
   className = "",
   highlight = false,
-  small = false
+  small = false,
+  style = {},
+  isDeck = false
 }: {
   value: string;
   suit: string;
@@ -146,10 +150,19 @@ function Card({
   className?: string;
   highlight?: boolean;
   small?: boolean;
+  style?: React.CSSProperties;
+  isDeck?: boolean;
 }) {
+  const [isHovered, setIsHovered] = useState(false);
+
   if (facedown) {
     return (
-      <div className={`card facedown ${className} ${small ? 'small-card' : ''}`}>
+      <div 
+        className={`card facedown ${className} ${small ? 'small-card' : ''} ${isDeck && isHovered ? 'deck-hover' : ''}`}
+        style={style}
+        onMouseEnter={() => setIsHovered(true)}
+        onMouseLeave={() => setIsHovered(false)}
+      >
         <div className="card-back"></div>
       </div>
     );
@@ -158,9 +171,11 @@ function Card({
   const suitColor = suit === "♥" || suit === "♦" ? "red" : "black";
   return (
     <div
-      className={`card ${suitColor} ${className} ${highlight ? 'highlight-card' : ''} ${small ? 'small-card' : ''}`}
+      className={`card ${suitColor} ${className} ${highlight ? 'highlight-card' : ''} ${small ? 'small-card' : ''} ${isHovered ? 'card-hover' : ''}`}
       onClick={!disabled ? onClick : undefined}
-      style={disabled ? { opacity: 0.7, cursor: "not-allowed" } : {}}
+      style={disabled ? { opacity: 0.7, cursor: "not-allowed", ...style } : style}
+      onMouseEnter={() => setIsHovered(true)}
+      onMouseLeave={() => setIsHovered(false)}
     >
       <div className="card-inner">
         <span className="card-value">{value}</span>
@@ -170,12 +185,15 @@ function Card({
   );
 }
 
-function Table({ state, playerName, onDiscard, onDraw, loading }: {
+function Table({ state, playerName, onDiscard, onDraw, loadingStates }: {
   state: GameState;
   playerName: string;
   onDiscard: (index: number) => void;
   onDraw: () => void;
-  loading: boolean;
+  loadingStates: {
+    drawing: boolean;
+    discarding: boolean;
+  };
 }) {
   if (!state || !state.players || state.players.length === 0) {
     return (
@@ -200,6 +218,39 @@ function Table({ state, playerName, onDiscard, onDraw, loading }: {
   };
 
   const isWinner = (player: Player) => isGameOver && state.winner === player.name;
+
+  const shouldShowPrompt = () => {
+    const playerId = state.players[state.current_player]?.name;
+    if (!playerId || playerId !== playerName) return false;
+    
+    const count = tutorialPromptsShown.get(playerId) || 0;
+    if (count < 2) {
+      tutorialPromptsShown.set(playerId, count + 1);
+      return true;
+    }
+    return false;
+  };
+
+  useEffect(() => {
+    if (!state || state.game_over) return;
+    
+    const currentPlayer = state.players[state.current_player];
+    if (currentPlayer?.is_cpu && currentPlayer.name !== playerName) {
+      const timer = setTimeout(async () => {
+        try {
+          const newState = await apiService.drawCard(state.id);
+          if (newState.has_drawn && newState.players[state.current_player].hand.length > 0) {
+            const randomIndex = Math.floor(Math.random() * newState.players[state.current_player].hand.length);
+            await apiService.discardCard(state.id, randomIndex);
+          }
+        } catch (err) {
+          console.error("CPU move failed:", err);
+        }
+      }, 1500);
+
+      return () => clearTimeout(timer);
+    }
+  }, [state?.current_player]);
 
   return (
     <div className="poker-table">
@@ -240,9 +291,24 @@ function Table({ state, playerName, onDiscard, onDraw, loading }: {
       </div>
 
       <div className="table-center">
-        <div className="deck-area">
+        <div 
+          className="deck-area" 
+          onClick={!loadingStates.drawing && currentPlayer.name === yourPlayer.name && !isGameOver && !state.has_drawn ? onDraw : undefined}
+        >
           <div className="deck-count">{state.deck?.length ?? 0}</div>
-          <Card facedown value="" suit="" />
+          {shouldShowPrompt() && (
+            <div className="tutorial-prompt">Pick a card from the deck</div>
+          )}
+          <Card 
+            facedown 
+            value="" 
+            suit="" 
+            className={loadingStates.drawing ? 'card-drawing' : ''}
+            style={{
+              cursor: !loadingStates.drawing && currentPlayer.name === yourPlayer.name && !isGameOver && !state.has_drawn ? 'pointer' : 'default'
+            }}
+            isDeck={true}
+          />
         </div>
         
         <div className="discard-area">
@@ -280,20 +346,12 @@ function Table({ state, playerName, onDiscard, onDraw, loading }: {
               key={`you-${i}`}
               {...card}
               onClick={() => onDiscard(i)}
-              disabled={!state.has_drawn || currentPlayer.is_cpu || currentPlayer.name !== yourPlayer.name}
+              disabled={!state.has_drawn || currentPlayer.is_cpu || currentPlayer.name !== yourPlayer.name || loadingStates.discarding}
+              className={loadingStates.discarding ? 'card-discarding' : ''}
               highlight={isWinner(yourPlayer)}
             />
           ))}
         </div>
-        {!state.has_drawn && currentPlayer.name === yourPlayer.name && !isGameOver && (
-          <button 
-            onClick={onDraw} 
-            disabled={loading}
-            className="draw-btn"
-          >
-            {loading ? "Drawing..." : "Draw Card"}
-          </button>
-        )}
       </div>
     </div>
   );
@@ -302,7 +360,12 @@ function Table({ state, playerName, onDiscard, onDraw, loading }: {
 function App() {
   const [state, setState] = useState<GameState | null>(null);
   const [gameId, setGameId] = useState<string | null>(null);
-  const [loading, setLoading] = useState(false);
+  const [loadingStates, setLoadingStates] = useState({
+    drawing: false,
+    discarding: false,
+    joining: false,
+    starting: false
+  });
   const [error, setError] = useState<string | null>(null);
   const [gameMode, setGameMode] = useState<"cpu" | "multiplayer">("cpu");
   const [cpuCount, setCpuCount] = useState(1);
@@ -311,8 +374,34 @@ function App() {
   const [joinGameId, setJoinGameId] = useState("");
 
   useEffect(() => {
+    const savedGame = localStorage.getItem('njukaGame');
+    if (savedGame) {
+      try {
+        const { id, playerName: savedName } = JSON.parse(savedGame);
+        if (id && savedName) {
+          setGameId(id);
+          setPlayerName(savedName);
+        }
+      } catch (e) {
+        localStorage.removeItem('njukaGame');
+      }
+    }
+  }, []);
+
+  useEffect(() => {
+    if (state?.id && playerName) {
+      localStorage.setItem('njukaGame', JSON.stringify({
+        id: state.id,
+        playerName
+      }));
+    } else {
+      localStorage.removeItem('njukaGame');
+    }
+  }, [state, playerName]);
+
+  useEffect(() => {
     const checkConnection = async () => {
-      setLoading(true);
+      setLoadingStates(prev => ({...prev, starting: true, joining: true}));
       try {
         const isHealthy = await apiService.checkHealth();
         setBackendAvailable(isHealthy);
@@ -323,7 +412,7 @@ function App() {
         setBackendAvailable(false);
         setError("Cannot connect to game server. Please try again later.");
       } finally {
-        setLoading(false);
+        setLoadingStates(prev => ({...prev, starting: false, joining: false}));
       }
     };
     checkConnection();
@@ -332,26 +421,47 @@ function App() {
   useEffect(() => {
     if (!gameId || !backendAvailable) return;
 
+    let retries = 3;
+    let intervalId: NodeJS.Timeout;
+
     const fetchGameState = async () => {
       try {
         const res = await fetch(`${API}/game/${gameId}`);
         if (!res.ok) throw new Error('Network response was not ok');
         const latestState = await res.json();
         setState(latestState);
+        retries = 3;
       } catch (err) {
         console.error('Failed to fetch game state:', err);
-        setError('Failed to load game. Please try again.');
+        retries--;
+        if (retries <= 0) {
+          setError('Connection lost. Trying to reconnect...');
+          setTimeout(() => {
+            checkConnection();
+            retries = 3;
+          }, 5000);
+        }
       }
     };
 
-    const interval = setInterval(fetchGameState, 2000);
+    const checkConnection = async () => {
+      const isHealthy = await apiService.checkHealth();
+      setBackendAvailable(isHealthy);
+      if (isHealthy) {
+        setError(null);
+        intervalId = setInterval(fetchGameState, 2000);
+        fetchGameState();
+      }
+    };
+
+    intervalId = setInterval(fetchGameState, 2000);
     fetchGameState();
     
-    return () => clearInterval(interval);
+    return () => clearInterval(intervalId);
   }, [gameId, backendAvailable]);
 
   const discard = async (cardIdx: number) => {
-    setLoading(true);
+    setLoadingStates(prev => ({...prev, discarding: true}));
     setError(null);
     try {
       if (!state) return;
@@ -360,12 +470,12 @@ function App() {
     } catch (err: any) {
       setError(err.message || "Failed to discard card");
     } finally {
-      setLoading(false);
+      setLoadingStates(prev => ({...prev, discarding: false}));
     }
   };
 
   const draw = async () => {
-    setLoading(true);
+    setLoadingStates(prev => ({...prev, drawing: true}));
     setError(null);
     try {
       if (!state) return;
@@ -374,7 +484,7 @@ function App() {
     } catch (err: any) {
       setError(err.message || "Failed to draw card");
     } finally {
-      setLoading(false);
+      setLoadingStates(prev => ({...prev, drawing: false}));
     }
   };
 
@@ -410,7 +520,7 @@ function App() {
         </div>
       )}
 
-      {loading && (
+      {(loadingStates.starting || loadingStates.joining) && (
         <div className="loading-overlay">
           <div className="loading-spinner"></div>
           <p>Connecting to game server...</p>
@@ -440,7 +550,7 @@ function App() {
             playerName={playerName}
             onDiscard={discard}
             onDraw={draw}
-            loading={loading}
+            loadingStates={loadingStates}
           />
           {state.game_over && (
             <div className="game-over">
@@ -477,8 +587,16 @@ function App() {
             <input
               type="text"
               value={playerName}
-              onChange={e => setPlayerName(e.target.value)}
-              placeholder="Enter your name"
+              onChange={e => {
+                const name = e.target.value.trim();
+                if (name.length <= 20) {
+                  setPlayerName(name);
+                }
+              }}
+              placeholder="Enter your name (2-20 chars)"
+              minLength={2}
+              maxLength={20}
+              required
             />
           </label>
           
@@ -494,9 +612,9 @@ function App() {
               />
             </label>
             <button
-              disabled={loading || !joinGameId}
+              disabled={loadingStates.joining || !joinGameId || !playerName.trim()}
               onClick={async () => {
-                setLoading(true);
+                setLoadingStates(prev => ({...prev, joining: true}));
                 setError(null);
                 try {
                   const game = await apiService.joinGame(joinGameId, playerName);
@@ -505,12 +623,12 @@ function App() {
                 } catch (err: any) {
                   setError(err.message || "Failed to join game");
                 } finally {
-                  setLoading(false);
+                  setLoadingStates(prev => ({...prev, joining: false}));
                 }
               }}
               className="join-btn"
             >
-              Join Game
+              {loadingStates.joining ? "Joining..." : "Join Game"}
             </button>
           </div>
 
@@ -540,9 +658,9 @@ function App() {
             </label>
           )}
           <button
-            disabled={loading}
+            disabled={loadingStates.starting || !playerName.trim()}
             onClick={async () => {
-              setLoading(true);
+              setLoadingStates(prev => ({...prev, starting: true}));
               setError(null);
               try {
                 const game = await apiService.createNewGame(gameMode, playerName, cpuCount);
@@ -551,12 +669,12 @@ function App() {
               } catch (err: any) {
                 setError(err.message || "Failed to create game");
               } finally {
-                setLoading(false);
+                setLoadingStates(prev => ({...prev, starting: false}));
               }
             }}
             className="new-game-btn"
           >
-            Start New Game
+            {loadingStates.starting ? "Starting..." : "Start New Game"}
           </button>
         </div>
       )}
