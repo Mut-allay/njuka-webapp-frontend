@@ -1,57 +1,50 @@
-"use client"
+import { useState, useEffect } from "react";
+import "./App.css";
 
-import type React from "react"
-
-import { useState, useEffect } from "react"
-import "./App.css"
-
-const API = "https://njuka-webapp-backend.onrender.com"
+const API = "https://njuka-webapp-backend.onrender.com";
 
 type CardType = {
-  value: string
-  suit: string
-}
+  value: string;
+  suit: string;
+};
 
 type Player = {
-  name: string
-  hand: CardType[]
-  is_cpu: boolean
-  is_spectator?: boolean
-  wants_to_play_again?: boolean
-}
+  name: string;
+  hand: CardType[];
+  is_cpu: boolean;
+};
 
 type GameState = {
-  players: Player[]
-  pot: CardType[]
-  deck: CardType[]
-  current_player: number
-  has_drawn: boolean
-  mode: string
-  id: string
-  max_players: number
-  winner?: string
-  winner_hand?: CardType[]
-  game_over?: boolean
-  created_at?: string
-  host?: string
-  spectators?: Player[]
-  waiting_for_restart?: boolean
-}
+  players: Player[];
+  pot: CardType[];
+  deck: CardType[];
+  current_player: number;
+  has_drawn: boolean;
+  mode: string;
+  id: string;
+  max_players: number;
+  winner?: string;
+  winner_hand?: CardType[];
+  game_over?: boolean;
+};
 
 type LobbyGame = {
-  id: string
-  host: string
-  players_count: number
-  max_players: number
-  created_at: string
-  game_started: boolean
-  spectators_count?: number
-}
+  id: string;
+  host: string;
+  players: string[];
+  max_players: number;
+  created_at: string;
+  started?: boolean;
+};
 
-const tutorialPromptsShown = new Map<string, number>()
+const tutorialPromptsShown = new Map<string, number>();
 
 const apiService = {
-  createNewGame: async (mode: "cpu" | "multiplayer", playerName: string, cpuCount = 1): Promise<GameState> => {
+  createNewGame: async (
+    mode: "cpu" | "multiplayer",
+    playerName: string,
+    cpuCount: number = 1
+  ): Promise<GameState> => {
     try {
       const response = await fetch(
         `${API}/new_game?mode=${mode}&player_name=${encodeURIComponent(playerName)}&cpu_count=${cpuCount}`,
@@ -60,70 +53,40 @@ const apiService = {
           headers: {
             "Content-Type": "application/json",
           },
-        },
-      )
-
+        }
+      );
+      
       if (!response.ok) {
-        const errorData = await response.json().catch(() => ({}))
-        throw new Error(errorData.message || "Failed to create game")
+        const errorData = await response.json().catch(() => ({}));
+        throw new Error(errorData.message || "Failed to create game");
       }
-      return response.json()
+      return response.json();
     } catch (err) {
-      console.error("API Error:", err)
-      throw new Error("Network error. Please check your connection.")
-    }
-  },
-
-  getLobbyGames: async (): Promise<LobbyGame[]> => {
-    try {
-      const response = await fetch(`${API}/lobby/games`)
-      if (!response.ok) {
-        throw new Error("Failed to fetch lobby games")
-      }
-      return response.json()
-    } catch (err) {
-      console.error("API Error:", err)
-      throw new Error("Failed to fetch available games")
+      console.error("API Error:", err);
+      throw new Error("Network error. Please check your connection.");
     }
   },
 
   joinGame: async (gameId: string, playerName: string): Promise<GameState> => {
     try {
-      const response = await fetch(`${API}/join_game?game_id=${gameId}&player_name=${encodeURIComponent(playerName)}`, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-      })
-
+      const response = await fetch(
+        `${API}/join_game?game_id=${gameId}&player_name=${encodeURIComponent(playerName)}`,
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+        }
+      );
+      
       if (!response.ok) {
-        const errorData = await response.json().catch(() => ({}))
-        throw new Error(errorData.message || "Failed to join game")
+        const errorData = await response.json().catch(() => ({}));
+        throw new Error(errorData.message || "Failed to join game");
       }
-      return response.json()
+      return response.json();
     } catch (err) {
-      console.error("API Error:", err)
-      throw new Error("Network error. Please check your connection.")
-    }
-  },
-
-  playAgain: async (gameId: string, playerName: string): Promise<GameState> => {
-    try {
-      const response = await fetch(`${API}/game/${gameId}/play_again?player_name=${encodeURIComponent(playerName)}`, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-      })
-
-      if (!response.ok) {
-        const errorData = await response.json().catch(() => ({}))
-        throw new Error(errorData.message || "Failed to request play again")
-      }
-      return response.json()
-    } catch (err) {
-      console.error("API Error:", err)
-      throw new Error("Network error. Please check your connection.")
+      console.error("API Error:", err);
+      throw new Error("Network error. Please check your connection.");
     }
   },
 
@@ -134,44 +97,101 @@ const apiService = {
         headers: {
           "Content-Type": "application/json",
         },
-      })
+      });
       if (!response.ok) {
-        const errorData = await response.json().catch(() => ({}))
-        throw new Error(errorData.message || "Failed to draw card")
+        const errorData = await response.json().catch(() => ({}));
+        throw new Error(errorData.message || "Failed to draw card");
       }
-      return response.json()
+      return response.json();
     } catch (err) {
-      throw new Error("Failed to connect to server. Please try again.")
+      throw new Error("Failed to connect to server. Please try again.");
     }
   },
 
   discardCard: async (gameId: string, cardIndex: number): Promise<GameState> => {
     try {
-      const response = await fetch(`${API}/game/${gameId}/discard?card_index=${cardIndex}`, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-      })
+      const response = await fetch(
+        `${API}/game/${gameId}/discard?card_index=${cardIndex}`,
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+        }
+      );
       if (!response.ok) {
-        const errorData = await response.json().catch(() => ({}))
-        throw new Error(errorData.message || "Failed to discard card")
+        const errorData = await response.json().catch(() => ({}));
+        throw new Error(errorData.message || "Failed to discard card");
       }
-      return response.json()
+      return response.json();
     } catch (err) {
-      throw new Error("Failed to connect to server. Please try again.")
+      throw new Error("Failed to connect to server. Please try again.");
     }
   },
 
   checkHealth: async (): Promise<boolean> => {
     try {
-      const response = await fetch(`${API}/health`)
-      return response.ok
+      const response = await fetch(`${API}/health`);
+      return response.ok;
     } catch (err) {
-      return false
+      return false;
     }
   },
-}
+
+  listLobbies: async (): Promise<LobbyGame[]> => {
+    try {
+      const response = await fetch(`${API}/lobby/list`);
+      if (!response.ok) throw new Error('Failed to fetch lobbies');
+      const data = await response.json();
+      return data.lobbies;
+    } catch (err) {
+      console.error("API Error:", err);
+      throw new Error("Failed to load lobbies");
+    }
+  },
+
+  createLobby: async (hostName: string, maxPlayers: number): Promise<LobbyGame> => {
+    try {
+      const response = await fetch(
+        `${API}/lobby/create?host_name=${encodeURIComponent(hostName)}&max_players=${maxPlayers}`,
+        { method: "POST" }
+      );
+      if (!response.ok) throw new Error('Failed to create lobby');
+      return response.json();
+    } catch (err) {
+      console.error("API Error:", err);
+      throw new Error("Failed to create lobby");
+    }
+  },
+
+  joinLobby: async (lobbyId: string, playerName: string): Promise<LobbyGame> => {
+    try {
+      const response = await fetch(
+        `${API}/lobby/join?lobby_id=${lobbyId}&player_name=${encodeURIComponent(playerName)}`,
+        { method: "POST" }
+      );
+      if (!response.ok) throw new Error('Failed to join lobby');
+      return response.json();
+    } catch (err) {
+      console.error("API Error:", err);
+      throw new Error("Failed to join lobby");
+    }
+  },
+
+  startLobbyGame: async (lobbyId: string): Promise<GameState> => {
+    try {
+      const response = await fetch(
+        `${API}/lobby/start?lobby_id=${lobbyId}`,
+        { method: "POST" }
+      );
+      if (!response.ok) throw new Error('Failed to start game');
+      return response.json();
+    } catch (err) {
+      console.error("API Error:", err);
+      throw new Error("Failed to start game");
+    }
+  }
+};
 
 function Card({
   value,
@@ -183,38 +203,38 @@ function Card({
   highlight = false,
   small = false,
   style = {},
-  selected = false,
+  selected = false
 }: {
-  value: string
-  suit: string
-  onClick?: () => void
-  disabled?: boolean
-  facedown?: boolean
-  className?: string
-  highlight?: boolean
-  small?: boolean
-  style?: React.CSSProperties
-  selected?: boolean
+  value: string;
+  suit: string;
+  onClick?: () => void;
+  disabled?: boolean;
+  facedown?: boolean;
+  className?: string;
+  highlight?: boolean;
+  small?: boolean;
+  style?: React.CSSProperties;
+  selected?: boolean;
 }) {
-  const [isHovered, setIsHovered] = useState(false)
+  const [isHovered, setIsHovered] = useState(false);
 
   if (facedown) {
     return (
-      <div
-        className={`card facedown ${className} ${small ? "small-card" : ""}`}
+      <div 
+        className={`card facedown ${className} ${small ? 'small-card' : ''}`}
         style={style}
         onMouseEnter={() => setIsHovered(true)}
         onMouseLeave={() => setIsHovered(false)}
       >
         <div className="card-back"></div>
       </div>
-    )
+    );
   }
 
-  const suitColor = suit === "♥" || suit === "♦" ? "red" : "black"
+  const suitColor = suit === "♥" || suit === "♦" ? "red" : "black";
   return (
     <div
-      className={`card ${suitColor} ${className} ${highlight ? "highlight-card" : ""} ${small ? "small-card" : ""} ${isHovered ? "card-hover" : ""} ${selected ? "card-selected" : ""}`}
+      className={`card ${suitColor} ${className} ${highlight ? 'highlight-card' : ''} ${small ? 'small-card' : ''} ${isHovered ? 'card-hover' : ''} ${selected ? 'card-selected' : ''}`}
       onClick={!disabled ? onClick : undefined}
       style={disabled ? { opacity: 0.7, cursor: "not-allowed", ...style } : style}
       onMouseEnter={() => setIsHovered(true)}
@@ -225,38 +245,23 @@ function Card({
         <span className="card-suit">{suit}</span>
       </div>
     </div>
-  )
+  );
 }
 
-function WaitingIndicator() {
-  return (
-    <div className="waiting-indicator">
-      <div className="waiting-spinner"></div>
-      <div className="waiting-text">Waiting For a Player To Join</div>
-    </div>
-  )
-}
-
-function Table({
-  state,
-  playerName,
-  onDiscard,
-  onDraw,
-  loadingStates,
-}: {
-  state: GameState
-  playerName: string
-  onDiscard: (index: number) => void
-  onDraw: () => void
+function Table({ state, playerName, onDiscard, onDraw, loadingStates }: {
+  state: GameState;
+  playerName: string;
+  onDiscard: (index: number) => void;
+  onDraw: () => void;
   loadingStates: {
-    drawing: boolean
-    discarding: boolean
-    cpuMoving: boolean
-  }
+    drawing: boolean;
+    discarding: boolean;
+    cpuMoving: boolean;
+  };
 }) {
-  const [selectedCardIndex, setSelectedCardIndex] = useState<number | null>(null)
-  const [showDeckHighlight, setShowDeckHighlight] = useState(false)
-  const [hasShownPrompt, setHasShownPrompt] = useState(false)
+  const [selectedCardIndex, setSelectedCardIndex] = useState<number | null>(null);
+  const [showDeckHighlight, setShowDeckHighlight] = useState(false);
+  const [hasShownPrompt, setHasShownPrompt] = useState(false);
 
   if (!state || !state.players || state.players.length === 0) {
     return (
@@ -264,82 +269,69 @@ function Table({
         <div className="loading-spinner"></div>
         <p>Loading game data...</p>
       </div>
-    )
+    );
   }
 
-  const yourPlayer =
-    state.players.find((p) => p?.name === playerName) || state.spectators?.find((p) => p?.name === playerName)
-  const currentPlayerIndex = state.current_player ?? 0
-  const currentPlayer = state.players[currentPlayerIndex]
-  const isGameOver = state.game_over
-  const isSpectator = yourPlayer?.is_spectator || false
-
-  // Check if waiting for players in multiplayer
-  const isMultiplayer = state.mode === "multiplayer"
-  const activePlayers = state.players.filter((p) => !p.is_spectator)
-  const waitingForPlayers = isMultiplayer && activePlayers.length < 2 && !isGameOver
+  const yourPlayer = state.players.find((p) => p?.name === playerName);
+  const currentPlayerIndex = state.current_player ?? 0;
+  const currentPlayer = state.players[currentPlayerIndex];
+  const isGameOver = state.game_over;
 
   if (!yourPlayer || !currentPlayer) {
-    return <div className="error">Player data not available</div>
+    return <div className="error">Player data not available</div>;
   }
 
   const getPlayerSafe = (index: number) => {
-    return state.players[index] ?? { name: "Player", hand: [], is_cpu: false }
-  }
+    return state.players[index] ?? { name: 'Player', hand: [], is_cpu: false };
+  };
 
-  const isWinner = (player: Player) => isGameOver && state.winner === player.name
+  const isWinner = (player: Player) => isGameOver && state.winner === player.name;
 
   const shouldShowPrompt = () => {
-    if (isSpectator) return false
-    const playerId = state.players[state.current_player]?.name
-    if (!playerId || playerId !== playerName || hasShownPrompt) return false
-
-    const count = tutorialPromptsShown.get(playerId) || 0
+    const playerId = state.players[state.current_player]?.name;
+    if (!playerId || playerId !== playerName || hasShownPrompt) return false;
+    
+    const count = tutorialPromptsShown.get(playerId) || 0;
     if (count < 2) {
-      tutorialPromptsShown.set(playerId, count + 1)
-      return true
+      tutorialPromptsShown.set(playerId, count + 1);
+      return true;
     }
-    return false
-  }
+    return false;
+  };
 
   useEffect(() => {
     if (!shouldShowPrompt() && !hasShownPrompt) {
       const timer = setTimeout(() => {
-        setShowDeckHighlight(true)
-        setHasShownPrompt(true)
-      }, 3000)
-      return () => clearTimeout(timer)
+        setShowDeckHighlight(true);
+        setHasShownPrompt(true);
+      }, 3000);
+      return () => clearTimeout(timer);
     }
-  }, [state])
+  }, [state?.current_player]);
 
   useEffect(() => {
-    if (state?.current_player !== state?.players.findIndex((p) => p?.name === playerName)) {
-      setShowDeckHighlight(false)
-      setHasShownPrompt(false)
-      setSelectedCardIndex(null)
+    if (state?.current_player !== state?.players.findIndex(p => p?.name === playerName)) {
+      setShowDeckHighlight(false);
+      setHasShownPrompt(false);
+      setSelectedCardIndex(null);
     }
-  }, [state?.current_player, playerName])
+  }, [state?.current_player]);
 
   const handleCardClick = (index: number) => {
-    if (isSpectator) return
     if (selectedCardIndex === index) {
-      onDiscard(index)
-      setSelectedCardIndex(null)
+      onDiscard(index);
+      setSelectedCardIndex(null);
     } else {
-      setSelectedCardIndex(index)
+      setSelectedCardIndex(index);
     }
-  }
+  };
 
   return (
     <div className="poker-table">
       {/* Top Player (opponent across the table) */}
       {state.players.length > 1 && (
-        <div className={`player-seat top ${currentPlayerIndex === 1 ? "active" : ""}`}>
-          <h3>
-            {getPlayerSafe(1).name}
-            {getPlayerSafe(1).is_cpu && " (CPU)"}
-            {getPlayerSafe(1).is_spectator && " (Spectator)"}
-          </h3>
+        <div className={`player-seat top ${currentPlayerIndex === 1 ? 'active' : ''}`}>
+          <h3>{getPlayerSafe(1).name}{getPlayerSafe(1).is_cpu && " (CPU)"}</h3>
           <div className="hand horizontal">
             {getPlayerSafe(1).hand.map((card, i) => (
               <Card
@@ -357,12 +349,8 @@ function Table({
 
       {/* Left Player (to the left in portrait) */}
       {state.players.length > 2 && (
-        <div className={`player-seat left ${currentPlayerIndex === 2 ? "active" : ""}`}>
-          <h3>
-            {getPlayerSafe(2).name}
-            {getPlayerSafe(2).is_cpu && " (CPU)"}
-            {getPlayerSafe(2).is_spectator && " (Spectator)"}
-          </h3>
+        <div className={`player-seat left ${currentPlayerIndex === 2 ? 'active' : ''}`}>
+          <h3>{getPlayerSafe(2).name}{getPlayerSafe(2).is_cpu && " (CPU)"}</h3>
           <div className="hand horizontal">
             {getPlayerSafe(2).hand.map((card, i) => (
               <Card
@@ -380,12 +368,8 @@ function Table({
 
       {/* Right Player (to the right in portrait) */}
       {state.players.length > 3 && (
-        <div className={`player-seat right ${currentPlayerIndex === 3 ? "active" : ""}`}>
-          <h3>
-            {getPlayerSafe(3).name}
-            {getPlayerSafe(3).is_cpu && " (CPU)"}
-            {getPlayerSafe(3).is_spectator && " (Spectator)"}
-          </h3>
+        <div className={`player-seat right ${currentPlayerIndex === 3 ? 'active' : ''}`}>
+          <h3>{getPlayerSafe(3).name}{getPlayerSafe(3).is_cpu && " (CPU)"}</h3>
           <div className="hand horizontal">
             {getPlayerSafe(3).hand.map((card, i) => (
               <Card
@@ -402,426 +386,290 @@ function Table({
       )}
 
       <div className="table-center">
-        {waitingForPlayers ? (
-          <WaitingIndicator />
-        ) : (
-          <>
-            <div
-              className={`deck-area ${showDeckHighlight ? "deck-highlight" : ""}`}
-              onClick={
-                !isSpectator &&
-                !loadingStates.drawing &&
-                currentPlayer.name === playerName &&
-                !isGameOver &&
-                !state.has_drawn
-                  ? onDraw
-                  : undefined
-              }
-            >
-              <div className="deck-count">{state.deck?.length ?? 0}</div>
-              {shouldShowPrompt() && <div className="tutorial-prompt">Pick a card from the deck</div>}
-              <Card
-                facedown
-                value=""
-                suit=""
-                className={loadingStates.drawing ? "card-drawing" : ""}
-                style={{
-                  cursor:
-                    !isSpectator &&
-                    !loadingStates.drawing &&
-                    currentPlayer.name === yourPlayer.name &&
-                    !isGameOver &&
-                    !state.has_drawn
-                      ? "pointer"
-                      : "default",
-                }}
-              />
-            </div>
-
-            <div className="discard-area">
-              {state.pot?.length > 0 ? (
-                <Card {...state.pot[state.pot.length - 1]} className="discard-top" />
-              ) : (
-                <div className="discard-empty">Empty</div>
-              )}
-            </div>
-          </>
-        )}
+        <div 
+          className={`deck-area ${showDeckHighlight ? 'deck-highlight' : ''}`}
+          onClick={!loadingStates.drawing && currentPlayer.name === yourPlayer.name && !isGameOver && !state.has_drawn ? onDraw : undefined}
+        >
+          <div className="deck-count">{state.deck?.length ?? 0}</div>
+          {shouldShowPrompt() && (
+            <div className="tutorial-prompt">Pick a card from the deck</div>
+          )}
+          <Card 
+            facedown 
+            value="" 
+            suit="" 
+            className={loadingStates.drawing ? 'card-drawing' : ''}
+            style={{
+              cursor: !loadingStates.drawing && currentPlayer.name === yourPlayer.name && !isGameOver && !state.has_drawn ? 'pointer' : 'default'
+            }}
+          />
+        </div>
+        
+        <div className="discard-area">
+          {state.pot?.length > 0 ? (
+            <Card {...state.pot[state.pot.length - 1]} className="discard-top" />
+          ) : (
+            <div className="discard-empty">Empty</div>
+          )}
+        </div>
       </div>
 
       {/* Bottom Player (current player) */}
-      <div
-        className={`player-seat bottom ${currentPlayerIndex === state.players.findIndex((p) => p?.name === playerName) ? "active" : ""}`}
-      >
-        <h2>{isSpectator ? `Spectating (${yourPlayer.name})` : `Your Hand (${yourPlayer.name})`}</h2>
+      <div className={`player-seat bottom ${currentPlayerIndex === state.players.findIndex(p => p?.name === playerName) ? 'active' : ''}`}>
+        <h2>Your Hand ({yourPlayer.name})</h2>
         <div className="hand">
           {yourPlayer.hand?.map((card, i) => (
             <Card
               key={`you-${i}`}
               {...card}
               onClick={() => handleCardClick(i)}
-              disabled={
-                isSpectator ||
-                !state.has_drawn ||
-                currentPlayer.is_cpu ||
-                currentPlayer.name !== yourPlayer.name ||
-                loadingStates.discarding
-              }
-              className={loadingStates.discarding ? "card-discarding" : ""}
+              disabled={!state.has_drawn || currentPlayer.is_cpu || currentPlayer.name !== yourPlayer.name || loadingStates.discarding}
+              className={loadingStates.discarding ? 'card-discarding' : ''}
               highlight={isWinner(yourPlayer)}
               selected={selectedCardIndex === i}
             />
           ))}
         </div>
       </div>
-
-      {/* Spectators list */}
-      {state.spectators && state.spectators.length > 0 && (
-        <div className="spectators-list">
-          <h4>Spectators:</h4>
-          <div className="spectator-names">
-            {state.spectators.map((spectator, i) => (
-              <span key={i} className="spectator-name">
-                {spectator.name}
-              </span>
-            ))}
-          </div>
-        </div>
-      )}
     </div>
-  )
+  );
 }
 
 function LobbyView({
+  lobby,
   playerName,
-  onJoinGame,
-  onBackToMenu,
-  loadingStates,
+  onStartGame,
+  onLeave,
+  isHost
 }: {
-  playerName: string
-  onJoinGame: (gameId: string) => void
-  onBackToMenu: () => void
-  loadingStates: { joining: boolean }
+  lobby: LobbyGame;
+  playerName: string;
+  onStartGame: () => void;
+  onLeave: () => void;
+  isHost: boolean;
 }) {
-  const [lobbyGames, setLobbyGames] = useState<LobbyGame[]>([])
-  const [loading, setLoading] = useState(true)
-  const [error, setError] = useState<string | null>(null)
-
-  useEffect(() => {
-    const fetchLobbyGames = async () => {
-      try {
-        setLoading(true)
-        const games = await apiService.getLobbyGames()
-        setLobbyGames(games)
-        setError(null)
-      } catch (err: any) {
-        setError(err.message || "Failed to load games")
-      } finally {
-        setLoading(false)
-      }
-    }
-
-    fetchLobbyGames()
-    const interval = setInterval(fetchLobbyGames, 5000)
-
-    return () => clearInterval(interval)
-  }, [])
-
-  const formatTimeAgo = (timestamp: string) => {
-    try {
-      const now = new Date()
-      const gameTime = new Date(timestamp)
-      const diffMs = now.getTime() - gameTime.getTime()
-      const diffMins = Math.floor(diffMs / 60000)
-
-      if (diffMins < 1) return "Just now"
-      if (diffMins < 60) return `${diffMins}m ago`
-      const diffHours = Math.floor(diffMins / 60)
-      return `${diffHours}h ago`
-    } catch {
-      return "Unknown"
-    }
-  }
-
-  if (loading) {
-    return (
-      <div className="new-game-form">
-        <h2>Game Lobby</h2>
-        <div className="loading">
-          <div className="loading-spinner"></div>
-          <p>Loading available games...</p>
-        </div>
-        <button onClick={onBackToMenu}>Back to Menu</button>
-      </div>
-    )
-  }
-
   return (
     <div className="new-game-form">
-      <h2>Game Lobby</h2>
-      {error && (
-        <div className="error-notice" style={{ marginBottom: "20px" }}>
-          <p>{error}</p>
-        </div>
-      )}
-
-      <div style={{ maxHeight: "400px", overflowY: "auto", marginBottom: "20px" }}>
-        {lobbyGames.length === 0 ? (
-          <div style={{ textAlign: "center", padding: "20px", color: "#f8d56b" }}>
-            <p>No games available to join.</p>
-            <p>Create a new multiplayer game to get started!</p>
-          </div>
-        ) : (
-          lobbyGames.map((game) => (
-            <div
-              key={game.id}
-              style={{
-                background: "rgba(248, 213, 107, 0.1)",
-                border: "1px solid #f8d56b",
-                borderRadius: "10px",
-                padding: "15px",
-                margin: "10px 0",
-                display: "flex",
-                justifyContent: "space-between",
-                alignItems: "center",
-              }}
-            >
-              <div style={{ textAlign: "left" }}>
-                <div style={{ fontWeight: "bold", color: "#f8d56b" }}>Host: {game.host}</div>
-                <div style={{ fontSize: "0.9em", color: "#fff" }}>
-                  Players: {game.players_count}/{game.max_players}
-                  {game.spectators_count && game.spectators_count > 0 && (
-                    <span style={{ color: "#ccc" }}> (+{game.spectators_count} spectators)</span>
-                  )}
-                </div>
-                <div style={{ fontSize: "0.8em", color: "#ccc" }}>Created: {formatTimeAgo(game.created_at)}</div>
-                {game.game_started && <div style={{ fontSize: "0.8em", color: "#ff6b6b" }}>Game in progress</div>}
-              </div>
-              <button
-                onClick={() => onJoinGame(game.id)}
-                disabled={loadingStates.joining}
-                style={{
-                  minWidth: "80px",
-                }}
-              >
-                {loadingStates.joining ? "Joining..." : game.game_started ? "Watch" : "Join"}
-              </button>
-            </div>
-          ))
-        )}
+      <h2>Lobby: {lobby.id}</h2>
+      <p>Host: {lobby.host}</p>
+      <p>Players: {lobby.players.length}/{lobby.max_players}</p>
+      
+      <div className="player-list">
+        <h3>Players:</h3>
+        <ul>
+          {lobby.players.map(player => (
+            <li key={player}>
+              {player} {player === playerName && "(You)"}
+            </li>
+          ))}
+        </ul>
       </div>
-
-      <button onClick={onBackToMenu}>Back to Menu</button>
+      
+      {isHost && (
+        <button 
+          onClick={onStartGame}
+          disabled={lobby.players.length < 2}
+        >
+          Start Game
+        </button>
+      )}
+      
+      <button onClick={onLeave} className="quit-btn">
+        Leave Lobby
+      </button>
     </div>
-  )
+  );
 }
 
 function App() {
-  const [state, setState] = useState<GameState | null>(null)
-  const [gameId, setGameId] = useState<string | null>(null)
+  const [state, setState] = useState<GameState | null>(null);
+  const [gameId, setGameId] = useState<string | null>(null);
   const [loadingStates, setLoadingStates] = useState({
     drawing: false,
     discarding: false,
     joining: false,
     starting: false,
-    cpuMoving: false,
-  })
-  const [error, setError] = useState<string | null>(null)
-  const [gameMode, setGameMode] = useState<"cpu" | "multiplayer">("cpu")
-  const [cpuCount, setCpuCount] = useState(1)
-  const [playerName, setPlayerName] = useState("Player")
-  const [backendAvailable, setBackendAvailable] = useState(true)
-  const [joinGameId, setJoinGameId] = useState("")
-  const [showLobby, setShowLobby] = useState(false)
-
+    cpuMoving: false
+  });
+  const [error, setError] = useState<string | null>(null);
+  const [gameMode, setGameMode] = useState<"cpu" | "multiplayer">("cpu");
+  const [cpuCount, setCpuCount] = useState(1);
+  const [playerName, setPlayerName] = useState("Player");
+  const [backendAvailable, setBackendAvailable] = useState(true);
+  const [joinGameId, setJoinGameId] = useState("");
+  const [lobby, setLobby] = useState<LobbyGame | null>(null);
+  const [lobbies, setLobbies] = useState<LobbyGame[]>([]);
+  const [showLobbyList, setShowLobbyList] = useState(false);
+    
   useEffect(() => {
-    const savedGame = localStorage.getItem("njukaGame")
+    const savedGame = localStorage.getItem('njukaGame');
     if (savedGame) {
       try {
-        const { id, playerName: savedName } = JSON.parse(savedGame)
+        const { id, playerName: savedName } = JSON.parse(savedGame);
         if (id && savedName) {
-          setGameId(id)
-          setPlayerName(savedName)
+          setGameId(id);
+          setPlayerName(savedName);
         }
       } catch (e) {
-        localStorage.removeItem("njukaGame")
+        localStorage.removeItem('njukaGame');
       }
     }
-  }, [])
+  }, []);
 
   useEffect(() => {
     if (state?.id && playerName) {
-      localStorage.setItem(
-        "njukaGame",
-        JSON.stringify({
-          id: state.id,
-          playerName,
-        }),
-      )
+      localStorage.setItem('njukaGame', JSON.stringify({
+        id: state.id,
+        playerName
+      }));
     } else {
-      localStorage.removeItem("njukaGame")
+      localStorage.removeItem('njukaGame');
     }
-  }, [state, playerName])
+  }, [state, playerName]);
 
   useEffect(() => {
     const checkConnection = async () => {
-      setLoadingStates((prev) => ({ ...prev, starting: true, joining: true }))
+      setLoadingStates(prev => ({...prev, starting: true, joining: true}));
       try {
-        const isHealthy = await apiService.checkHealth()
-        setBackendAvailable(isHealthy)
+        const isHealthy = await apiService.checkHealth();
+        setBackendAvailable(isHealthy);
         if (!isHealthy) {
-          setError("Backend service unavailable. Please try again later.")
+          setError("Backend service unavailable. Please try again later.");
         }
       } catch (err) {
-        setBackendAvailable(false)
-        setError("Cannot connect to game server. Please try again later.")
+        setBackendAvailable(false);
+        setError("Cannot connect to game server. Please try again later.");
       } finally {
-        setLoadingStates((prev) => ({ ...prev, starting: false, joining: false }))
+        setLoadingStates(prev => ({...prev, starting: false, joining: false}));
       }
-    }
-    checkConnection()
-  }, [])
+    };
+    checkConnection();
+  }, []);
 
   useEffect(() => {
-    if (!gameId || !backendAvailable) return
+    if (!gameId || !backendAvailable) return;
 
-    let retries = 3
-    let intervalId: NodeJS.Timeout
+    let retries = 3;
+    let intervalId: NodeJS.Timeout;
 
     const fetchGameState = async () => {
       try {
-        const res = await fetch(`${API}/game/${gameId}`)
-        if (!res.ok) throw new Error("Network response was not ok")
-        const latestState = await res.json()
-        setState(latestState)
-        retries = 3
+        const res = await fetch(`${API}/game/${gameId}`);
+        if (!res.ok) throw new Error('Network response was not ok');
+        const latestState = await res.json();
+        setState(latestState);
+        retries = 3;
       } catch (err) {
-        console.error("Failed to fetch game state:", err)
-        retries--
+        console.error('Failed to fetch game state:', err);
+        retries--;
         if (retries <= 0) {
-          setError("Connection lost. Trying to reconnect...")
+          setError('Connection lost. Trying to reconnect...');
           setTimeout(() => {
-            checkConnection()
-            retries = 3
-          }, 5000)
+            checkConnection();
+            retries = 3;
+          }, 5000);
         }
       }
-    }
-
+    };
+ 
     const checkConnection = async () => {
-      const isHealthy = await apiService.checkHealth()
-      setBackendAvailable(isHealthy)
+      const isHealthy = await apiService.checkHealth();
+      setBackendAvailable(isHealthy);
       if (isHealthy) {
-        setError(null)
-        intervalId = setInterval(fetchGameState, 5000)
-        fetchGameState()
+        setError(null);
+        intervalId = setInterval(fetchGameState, 5000);
+        fetchGameState();
       }
-    }
+    };
 
-    intervalId = setInterval(fetchGameState, 2000)
-    fetchGameState()
-
-    return () => clearInterval(intervalId)
-  }, [gameId, backendAvailable])
+    intervalId = setInterval(fetchGameState, 2000);
+    fetchGameState();
+    
+    return () => clearInterval(intervalId);
+  }, [gameId, backendAvailable]);
 
   useEffect(() => {
-    if (!state || state.game_over || !backendAvailable) return
-
-    const currentPlayer = state.players[state.current_player]
-    if (currentPlayer?.is_cpu) {
-      setLoadingStates((prev) => ({ ...prev, cpuMoving: true }))
-
+    if (!state || state.game_over || !backendAvailable) return;
+    
+    const currentPlayer = state.players[state.current_player];
+    if (currentPlayer?.is_cpu && currentPlayer.name !== playerName) {
+      setLoadingStates(prev => ({...prev, cpuMoving: true}));
+      
       const makeCpuMove = async () => {
         try {
-          const afterDrawState = await apiService.drawCard(state.id)
-
+          const afterDrawState = await apiService.drawCard(state.id);
+          
           if (afterDrawState.has_drawn && afterDrawState.players[state.current_player].hand.length > 0) {
-            const randomIndex = Math.floor(Math.random() * afterDrawState.players[state.current_player].hand.length)
-            await apiService.discardCard(state.id, randomIndex)
+            const randomIndex = Math.floor(
+              Math.random() * afterDrawState.players[state.current_player].hand.length
+            );
+            await apiService.discardCard(state.id, randomIndex);
           }
-
-          const updatedState = await apiService
-            .checkHealth()
+          
+          const updatedState = await apiService.checkHealth()
             .then(() => fetch(`${API}/game/${state.id}`))
-            .then((res) => res.json())
-          setState(updatedState)
+            .then(res => res.json());
+          setState(updatedState);
         } catch (err) {
-          console.error("CPU move failed:", err)
+          console.error("CPU move failed:", err);
           try {
-            const latestState = await fetch(`${API}/game/${state.id}`).then((res) => res.json())
-            setState(latestState)
+            const latestState = await fetch(`${API}/game/${state.id}`).then(res => res.json());
+            setState(latestState);
           } catch (fetchErr) {
-            console.error("Failed to fetch game state after CPU move error:", fetchErr)
+            console.error("Failed to fetch game state after CPU move error:", fetchErr);
           }
         } finally {
-          setLoadingStates((prev) => ({ ...prev, cpuMoving: false }))
+          setLoadingStates(prev => ({...prev, cpuMoving: false}));
         }
-      }
+      };
 
-      const timer = setTimeout(makeCpuMove, 1500)
+      const timer = setTimeout(makeCpuMove, 1500);
       return () => {
-        clearTimeout(timer)
-        setLoadingStates((prev) => ({ ...prev, cpuMoving: false }))
-      }
+        clearTimeout(timer);
+        setLoadingStates(prev => ({...prev, cpuMoving: false}));
+      };
     }
-  }, [state, backendAvailable]) // Removed playerName from dependencies
+  }, [state?.current_player, state?.id, playerName, backendAvailable]);
+
+  useEffect(() => {
+    if (!showLobbyList || !backendAvailable) return;
+    
+    const interval = setInterval(() => {
+      apiService.listLobbies()
+        .then(setLobbies)
+        .catch(() => {});
+    }, 5000);
+    
+    return () => clearInterval(interval);
+  }, [showLobbyList, backendAvailable]);
 
   const discard = async (cardIdx: number) => {
-    setLoadingStates((prev) => ({ ...prev, discarding: true }))
-    setError(null)
+    setLoadingStates(prev => ({...prev, discarding: true}));
+    setError(null);
     try {
-      if (!state) return
-      const newState = await apiService.discardCard(state.id, cardIdx)
-      setState(newState)
+      if (!state) return;
+      const newState = await apiService.discardCard(state.id, cardIdx);
+      setState(newState);
     } catch (err: any) {
-      setError(err.message || "Failed to discard card")
+      setError(err.message || "Failed to discard card");
     } finally {
-      setLoadingStates((prev) => ({ ...prev, discarding: false }))
+      setLoadingStates(prev => ({...prev, discarding: false}));
     }
-  }
+  };
 
   const draw = async () => {
-    setLoadingStates((prev) => ({ ...prev, drawing: true }))
-    setError(null)
+    setLoadingStates(prev => ({...prev, drawing: true}));
+    setError(null);
     try {
-      if (!state) return
-      const newState = await apiService.drawCard(state.id)
-      setState(newState)
+      if (!state) return;
+      const newState = await apiService.drawCard(state.id);
+      setState(newState);
     } catch (err: any) {
-      setError(err.message || "Failed to draw card")
+      setError(err.message || "Failed to draw card");
     } finally {
-      setLoadingStates((prev) => ({ ...prev, drawing: false }))
+      setLoadingStates(prev => ({...prev, drawing: false}));
     }
-  }
-
-  const handlePlayAgain = async () => {
-    if (!state) return
-    try {
-      const newState = await apiService.playAgain(state.id, playerName)
-      setState(newState)
-    } catch (err: any) {
-      setError(err.message || "Failed to request play again")
-    }
-  }
-
-  const handleJoinFromLobby = async (gameId: string) => {
-    setLoadingStates((prev) => ({ ...prev, joining: true }))
-    setError(null)
-    try {
-      const game = await apiService.joinGame(gameId, playerName)
-      setGameId(game.id)
-      setState(game)
-      setShowLobby(false)
-    } catch (err: any) {
-      setError(err.message || "Failed to join game")
-    } finally {
-      setLoadingStates((prev) => ({ ...prev, joining: false }))
-    }
-  }
-
-  const yourPlayer =
-    state?.players.find((p) => p?.name === playerName) || state?.spectators?.find((p) => p?.name === playerName)
-  const isSpectator = yourPlayer?.is_spectator || false
+  };
 
   if (!backendAvailable) {
     return (
@@ -830,13 +678,66 @@ function App() {
         <div className="error-notice">
           <h3>Service Unavailable</h3>
           <p>We're having trouble connecting to the game server.</p>
-          <button onClick={() => window.location.reload()} className="retry-btn">
+          <button 
+            onClick={() => window.location.reload()}
+            className="retry-btn"
+          >
             Retry Connection
           </button>
         </div>
       </div>
-    )
+    );
   }
+
+
+
+const createLobby = async () => {
+    setLoadingStates(prev => ({...prev, starting: true}));
+    setError(null);
+    try {
+      const newLobby = await apiService.createLobby(playerName, 4);
+      setLobby(newLobby);
+    } catch (err: any) {
+      setError(err.message || "Failed to create lobby");
+    } finally {
+      setLoadingStates(prev => ({...prev, starting: false}));
+    }
+  };
+
+  const joinLobby = async (lobbyId: string) => {
+    setLoadingStates(prev => ({...prev, joining: true}));
+    setError(null);
+    try {
+      const joinedLobby = await apiService.joinLobby(lobbyId, playerName);
+      setLobby(joinedLobby);
+      setShowLobbyList(false);
+    } catch (err: any) {
+      setError(err.message || "Failed to join lobby");
+    } finally {
+      setLoadingStates(prev => ({...prev, joining: false}));
+    }
+  };
+
+  const startGameFromLobby = async () => {
+    if (!lobby) return;
+    setLoadingStates(prev => ({...prev, starting: true}));
+    setError(null);
+    try {
+      const gameState = await apiService.startLobbyGame(lobby.id);
+      setLobby(null);
+      setGameId(gameState.id);
+      setState(gameState);
+    } catch (err: any) {
+      setError(err.message || "Failed to start game");
+    } finally {
+      setLoadingStates(prev => ({...prev, starting: false}));
+    }
+  };
+
+  const leaveLobby = () => {
+    setLobby(null);
+    setShowLobbyList(false);
+  };
 
   return (
     <div className="App">
@@ -863,23 +764,22 @@ function App() {
         <div className="game-container">
           <div className="game-info">
             <p>Game ID: {state.id}</p>
-            {isSpectator && <p style={{ color: "#ff6b6b" }}>You are spectating this game</p>}
             <p className="turn-indicator">
               Current Turn: <strong>{state.players[state.current_player]?.name}</strong>
               {state.players[state.current_player]?.is_cpu && " (CPU)"}
               {loadingStates.cpuMoving && " - Thinking..."}
             </p>
-            <button
-              onClick={() => {
-                setState(null)
-                setGameId(null)
+            <button 
+              onClick={() => { 
+                setState(null); 
+                setGameId(null); 
               }}
               className="quit-btn"
             >
-              {isSpectator ? "Leave" : "Quit to Menu"}
+              Quit to Menu
             </button>
           </div>
-          <Table
+          <Table 
             state={state}
             playerName={playerName}
             onDiscard={discard}
@@ -890,49 +790,65 @@ function App() {
             <div className="game-over">
               <div>
                 <h2>Game Over!</h2>
-                <p>
-                  Winner: <strong>{state.winner}</strong>
-                </p>
+                <p>Winner: <strong>{state.winner}</strong></p>
                 {state.winner_hand && (
                   <div className="winning-hand">
                     <p>Winning Hand:</p>
                     <div className="hand">
                       {state.winner_hand.map((card, i) => (
-                        <Card key={`winner-${i}`} value={card.value} suit={card.suit} highlight={true} />
+                        <Card
+                          key={`winner-${i}`}
+                          value={card.value}
+                          suit={card.suit}
+                          highlight={true}
+                        />
                       ))}
                     </div>
                   </div>
                 )}
-                {state.waiting_for_restart && (
-                  <p style={{ color: "#f8d56b", marginTop: "15px" }}>
-                    Waiting for more players to join the next game...
-                  </p>
-                )}
-                <div style={{ display: "flex", gap: "10px", justifyContent: "center", marginTop: "20px" }}>
-                  <button onClick={handlePlayAgain} disabled={yourPlayer?.wants_to_play_again}>
-                    {yourPlayer?.wants_to_play_again ? "Ready!" : "Play Again"}
-                  </button>
-                  <button
-                    onClick={() => {
-                      setState(null)
-                      setGameId(null)
-                    }}
-                  >
-                    New Game
-                  </button>
-                </div>
+                <button onClick={() => { setState(null); setGameId(null); }}>
+                  New Game
+                </button>
               </div>
             </div>
           )}
         </div>
-      ) : showLobby ? (
+      ) : lobby ? (
         <LobbyView
+          lobby={lobby}
           playerName={playerName}
-          onJoinGame={handleJoinFromLobby}
-          onBackToMenu={() => setShowLobby(false)}
-          loadingStates={loadingStates}
+          onStartGame={startGameFromLobby}
+          onLeave={leaveLobby}
+          isHost={lobby.host === playerName}
         />
-      ) : (
+      ) : showLobbyList ? (
+        <div className="new-game-form">
+          <h2>Available Games</h2>
+          <button onClick={() => setShowLobbyList(false)}>
+            Back to Menu
+          </button>
+          
+          <div className="lobby-list">
+            {lobbies.length === 0 ? (
+              <p>No available games found</p>
+            ) : (
+              lobbies.map(lobby => (
+                <div key={lobby.id} className="lobby-item">
+                  <h3>Host: {lobby.host}</h3>
+                  <p>Players: {lobby.players.length}/{lobby.max_players}</p>
+                  <p>Created: {new Date(lobby.created_at).toLocaleTimeString()}</p>
+                  <button 
+                    onClick={() => joinLobby(lobby.id)}
+                    disabled={lobby.players.length >= lobby.max_players}
+                  >
+                    Join Game
+                  </button>
+                </div>
+              ))
+            )}
+          </div>
+        </div>
+      ) : (        
         <div className="new-game-form">
           <h2>Start or Join a Game</h2>
           <label>
@@ -940,10 +856,10 @@ function App() {
             <input
               type="text"
               value={playerName}
-              onChange={(e) => {
-                const name = e.target.value.trim()
+              onChange={e => {
+                const name = e.target.value.trim();
                 if (name.length <= 20) {
-                  setPlayerName(name)
+                  setPlayerName(name);
                 }
               }}
               placeholder="Enter your name (2-20 chars)"
@@ -952,45 +868,40 @@ function App() {
               required
             />
           </label>
-
+          
           <div className="join-section">
-            <h3>Join Multiplayer Game</h3>
-            <button
-              disabled={!playerName.trim()}
-              onClick={() => setShowLobby(true)}
-              className="join-btn"
-              style={{ marginBottom: "10px" }}
-            >
-              Browse Available Games
-            </button>
-
+            <h3>Join Existing Game</h3>
             <label>
-              Or Enter Game ID:
+              Game ID:
               <input
                 type="text"
                 value={joinGameId}
-                onChange={(e) => setJoinGameId(e.target.value)}
+                onChange={e => setJoinGameId(e.target.value)}
                 placeholder="Enter game ID"
               />
             </label>
             <button
-              disabled={loadingStates.joining || !joinGameId || !playerName.trim()}
+              disabled={loadingStates.starting || !playerName.trim()}
               onClick={async () => {
-                setLoadingStates((prev) => ({ ...prev, joining: true }))
-                setError(null)
-                try {
-                  const game = await apiService.joinGame(joinGameId, playerName)
-                  setGameId(game.id)
-                  setState(game)
-                } catch (err: any) {
-                  setError(err.message || "Failed to join game")
-                } finally {
-                  setLoadingStates((prev) => ({ ...prev, joining: false }))
+                if (gameMode === "multiplayer") {
+                  await createLobby();
+                } else {
+                  setLoadingStates(prev => ({...prev, starting: true}));
+                  setError(null);
+                  try {
+                    const game = await apiService.createNewGame(gameMode, playerName, cpuCount);
+                    setGameId(game.id);
+                    setState(game);
+                  } catch (err: any) {
+                    setError(err.message || "Failed to create game");
+                  } finally {
+                    setLoadingStates(prev => ({...prev, starting: false}));
+                  }
                 }
-              }}
-              className="join-btn"
+             }}
+             className="new-game-btn"
             >
-              {loadingStates.joining ? "Joining..." : "Join Game"}
+             {loadingStates.starting ? "Starting..." : "Start New Game"}
             </button>
           </div>
 
@@ -999,7 +910,10 @@ function App() {
           <h3>Start New Game</h3>
           <label>
             Game Mode:
-            <select value={gameMode} onChange={(e) => setGameMode(e.target.value as "cpu" | "multiplayer")}>
+            <select
+              value={gameMode}
+              onChange={e => setGameMode(e.target.value as "cpu" | "multiplayer")}
+            >
               <option value="cpu">Play vs CPU</option>
               <option value="multiplayer">Multiplayer</option>
             </select>
@@ -1012,33 +926,46 @@ function App() {
                 min={1}
                 max={3}
                 value={cpuCount}
-                onChange={(e) => setCpuCount(Number(e.target.value))}
+                onChange={e => setCpuCount(Number(e.target.value))}
               />
             </label>
           )}
           <button
             disabled={loadingStates.starting || !playerName.trim()}
             onClick={async () => {
-              setLoadingStates((prev) => ({ ...prev, starting: true }))
-              setError(null)
+              setLoadingStates(prev => ({...prev, starting: true}));
+              setError(null);
               try {
-                const game = await apiService.createNewGame(gameMode, playerName, cpuCount)
-                setGameId(game.id)
-                setState(game)
+                const game = await apiService.createNewGame(gameMode, playerName, cpuCount);
+                setGameId(game.id);
+                setState(game);
               } catch (err: any) {
-                setError(err.message || "Failed to create game")
+                setError(err.message || "Failed to create game");
               } finally {
-                setLoadingStates((prev) => ({ ...prev, starting: false }))
+                setLoadingStates(prev => ({...prev, starting: false}));
               }
             }}
             className="new-game-btn"
           >
             {loadingStates.starting ? "Starting..." : "Start New Game"}
           </button>
-        </div>
+
+            <div className="divider">OR</div>
+          
+          <button
+            onClick={() => {
+              setShowLobbyList(true);
+              apiService.listLobbies()
+                .then(setLobbies)
+                .catch(err => setError(err.message));
+            }}
+          >
+            Browse Multiplayer Games
+          </button>
+        </div>       
       )}
     </div>
-  )
+  );
 }
 
-export default App
+export default App;
