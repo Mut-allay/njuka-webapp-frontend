@@ -139,16 +139,22 @@ const apiService = {
   },
 
   listLobbies: async (): Promise<LobbyGame[]> => {
-    try {
-      const response = await fetch(`${API}/lobby/list`);
-      if (!response.ok) throw new Error('Failed to fetch lobbies');
-      const data = await response.json();
-      return data.lobbies;
-    } catch (err) {
-      console.error("API Error:", err);
-      throw new Error("Failed to load lobbies");
+  try {
+    const response = await fetch(`${API}/lobby/list`);
+    if (!response.ok) {
+      if (response.status === 404) {
+        console.log("Lobby endpoint not found - returning empty list");
+        return []; // Return empty array instead of error
+      }
+      throw new Error('Failed to fetch lobbies');
     }
-  },
+    const data = await response.json();
+    return data.lobbies || [];
+  } catch (err) {
+    console.error("API Error:", err);
+    return []; // Return empty array on error
+  }
+},
 
   createLobby: async (hostName: string, maxPlayers: number): Promise<LobbyGame> => {
     try {
