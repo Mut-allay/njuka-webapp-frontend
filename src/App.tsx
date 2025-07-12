@@ -637,6 +637,13 @@ function App() {
     }
   }, [state?.current_player, state?.id, playerName, backendAvailable]);
 
+  // Temporary test in your frontend
+useEffect(() => {
+  fetch(`${API}/health`)
+    .then(res => console.log("Backend connection:", res.ok))
+    .catch(err => console.error("Connection failed:", err));
+}, []);
+  
   useEffect(() => {
     if (!showLobbyList || !backendAvailable) return;
     
