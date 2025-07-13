@@ -1,904 +1,1006 @@
-/* Main App Styling */
-.App {
-  text-align: center;
-  background: linear-gradient(135deg, #0a2e38, #123d4a, #1a4a5c);
-  color: #fff;
-  min-height: 100vh;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: flex-start;
-  padding: 20px;
-  font-family: "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
-}
+import { useState, useEffect } from "react";
+import "./App.css";
 
-h1 {
-  color: #f8d56b;
-  margin-bottom: 20px;
-  text-shadow: 0 2px 4px rgba(0, 0, 0, 0.5);
-  font-size: 1.5em; /* Reduced for mobile */
-}
+const API = "https://njuka-webapp-backend.onrender.com";
 
-h2,
-h3 {
-  color: #f8d56b;
-  margin-bottom: 10px;
-  text-shadow: 0 1px 3px rgba(0, 0, 0, 0.3);
-  font-size: 1em;
-}
+type CardType = {
+  value: string;
+  suit: string;
+};
 
-button {
-  background: linear-gradient(to bottom, #f8d56b, #e5b733);
-  color: #2a3439;
-  border: none;
-  border-radius: 25px;
-  padding: 10px 20px;
-  font-size: 0.9em;
-  font-weight: bold;
-  margin: 5px;
-  cursor: pointer;
-  transition: all 0.3s ease;
-}
+type Player = {
+  name: string;
+  hand: CardType[];
+  is_cpu: boolean;
+};
 
-button:hover {
-  background: linear-gradient(to bottom, #ffeb99, #f8d56b);
-  transform: translateY(-2px);
-}
+type GameState = {
+  players: Player[];
+  pot: CardType[];
+  deck: CardType[];
+  current_player: number;
+  has_drawn: boolean;
+  mode: string;
+  id: string;
+  max_players: number;
+  winner?: string;
+  winner_hand?: CardType[];
+  game_over?: boolean;
+};
 
-button:disabled {
-  background: #666;
-  color: #999;
-  cursor: not-allowed;
-  transform: none;
-}
+type LobbyGame = {
+  id: string;
+  host: string;
+  players: string[];
+  max_players: number;
+  created_at: string;
+  started?: boolean;
+};
 
-/* Card styles */
-.card {
-  display: inline-block;
-  width: 60px;
-  height: 90px;
-  min-width: 48px;
-  min-height: 72px;
-  background: linear-gradient(135deg, #ffffff, #f5f5f5);
-  border-radius: 6px;
-  border: 1px solid rgba(0, 0, 0, 0.1);
-  margin: 0 -15px;
-  position: relative;
-  font-size: 1em;
-  cursor: pointer;
-  transition: all 0.2s ease;
-  z-index: 1;
-  touch-action: manipulation;
-}
+const tutorialPromptsShown = new Map<string, number>();
 
-.card:first-child {
-  margin-left: 0;
-}
+const apiService = {
+  createNewGame: async (
+    mode: "cpu" | "multiplayer",
+    playerName: string,
+    cpuCount: number = 1
+  ): Promise<GameState> => {
+    try {
+      const response = await fetch(
+        `${API}/new_game?mode=${mode}&player_name=${encodeURIComponent(playerName)}&cpu_count=${cpuCount}`,
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+        }
+      );
+      
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({}));
+        throw new Error(errorData.message || "Failed to create game");
+      }
+      return response.json();
+    } catch (err) {
+      console.error("API Error:", err);
+      throw new Error("Network error. Please check your connection.");
+    }
+  },
 
-.card.small-card {
-  width: 40px;
-  height: 60px;
-  min-width: 40px;
-  min-height: 60px;
-  font-size: 0.8em;
-  margin: 0 -10px;
-}
+  joinGame: async (gameId: string, playerName: string): Promise<GameState> => {
+    try {
+      const response = await fetch(
+        `${API}/join_game?game_id=${gameId}&player_name=${encodeURIComponent(playerName)}`,
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+        }
+      );
+      
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({}));
+        throw new Error(errorData.message || "Failed to join game");
+      }
+      return response.json();
+    } catch (err) {
+      console.error("API Error:", err);
+      throw new Error("Network error. Please check your connection.");
+    }
+  },
 
-.card.highlight-card {
-  transform: translateY(-5px);
-  z-index: 10;
-}
+  drawCard: async (gameId: string): Promise<GameState> => {
+    try {
+      const response = await fetch(`${API}/game/${gameId}/draw`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+      });
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({}));
+        throw new Error(errorData.message || "Failed to draw card");
+      }
+      return response.json();
+    } catch (err) {
+      throw new Error("Failed to connect to server. Please try again.");
+    }
+  },
 
-.card-hover {
-  transform: translateY(-8px);
-  transition: transform 0.2s ease;
-}
+  discardCard: async (gameId: string, cardIndex: number): Promise<GameState> => {
+    try {
+      const response = await fetch(
+        `${API}/game/${gameId}/discard?card_index=${cardIndex}`,
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+        }
+      );
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({}));
+        throw new Error(errorData.message || "Failed to discard card");
+      }
+      return response.json();
+    } catch (err) {
+      throw new Error("Failed to connect to server. Please try again.");
+    }
+  },
 
-.card-selected {
-  transform: translateY(-15px) !important;
-  z-index: 100 !important;
-}
+  checkHealth: async (): Promise<boolean> => {
+    try {
+      const response = await fetch(`${API}/health`);
+      return response.ok;
+    } catch (err) {
+      return false;
+    }
+  },
 
-.card-inner {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  height: 100%;
-  padding: 5px;
-}
-
-.card.red {
-  color: #d32f2f;
-}
-
-.card.black {
-  color: #222;
-}
-
-.card.facedown {
-  background: linear-gradient(135deg, #1a3a5a, #2a4a6a);
-  border: 1px solid #f8d56b;
-  color: #f8d56b;
-}
-
-.card.facedown .card-back {
-  width: 100%;
-  height: 100%;
-  background: repeating-linear-gradient(45deg, #1a3a5a 0px, #1a3a5a 8px, #2a4a6a 8px, #2a4a6a 16px);
-  border-radius: 6px;
-  position: absolute;
-  top: 0;
-  left: 0;
-}
-
-.card-value,
-.card-suit {
-  font-size: 0.9em; /* Ensure readability */
-  text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.5); /* Enhanced contrast */
-}
-
-.card:active {
-  transform: scale(0.98);
-  transition: transform 0.1s;
-}
-
-/* Ensure proper touch targets on mobile */
-@media (pointer: coarse) {
-  .card {
-    min-width: 48px;
-    min-height: 72px;
+  listLobbies: async (): Promise<LobbyGame[]> => {
+  try {
+    const response = await fetch(`${API}/lobby/list`);
+    if (!response.ok) {
+      if (response.status === 404) {
+        console.log("Lobby endpoint not found - returning empty list");
+        return []; // Return empty array instead of error
+      }
+      throw new Error('Failed to fetch lobbies');
+    }
+    const data = await response.json();
+    return data.lobbies || [];
+  } catch (err) {
+    console.error("API Error:", err);
+    return []; // Return empty array on error
   }
-  .card.small-card {
-    min-width: 40px;
-    min-height: 60px;
+},
+
+  createLobby: async (hostName: string, maxPlayers: number): Promise<LobbyGame> => {
+    try {
+      const response = await fetch(
+        `${API}/lobby/create?host_name=${encodeURIComponent(hostName)}&max_players=${maxPlayers}`,
+        { method: "POST" }
+      );
+      if (!response.ok) throw new Error('Failed to create lobby');
+      return response.json();
+    } catch (err) {
+      console.error("API Error:", err);
+      throw new Error("Failed to create lobby");
+    }
+  },
+
+  joinLobby: async (lobbyId: string, playerName: string): Promise<LobbyGame> => {
+    try {
+      const response = await fetch(
+        `${API}/lobby/join?lobby_id=${lobbyId}&player_name=${encodeURIComponent(playerName)}`,
+        { method: "POST" }
+      );
+      if (!response.ok) throw new Error('Failed to join lobby');
+      return response.json();
+    } catch (err) {
+      console.error("API Error:", err);
+      throw new Error("Failed to join lobby");
+    }
+  },
+
+  startLobbyGame: async (lobbyId: string): Promise<GameState> => {
+    try {
+      const response = await fetch(
+        `${API}/lobby/start?lobby_id=${lobbyId}`,
+        { method: "POST" }
+      );
+      if (!response.ok) throw new Error('Failed to start game');
+      return response.json();
+    } catch (err) {
+      console.error("API Error:", err);
+      throw new Error("Failed to start game");
+    }
   }
-}
-
-/* Deck highlight styles - removed box shadows */
-.deck-highlight .card {
-  animation: pulse-glow 1.5s infinite alternate;
-}
-
-@keyframes pulse-glow {
-  0% {
-    /* box-shadow removed */
-  }
-  100% {
-    /* box-shadow removed */
-  }
-}
-
-/* Active player hand glow */
-.player-seat.active .hand {
-  border-radius: 15px;
-  padding: 10px;
-  animation: active-player-glow 2s ease-in-out infinite alternate;
-}
-
-@keyframes active-player-glow {
-  0% {
-    box-shadow: 0 0 15px 3px rgba(248, 213, 107, 0.4);
-    background: rgba(248, 213, 107, 0.05);
-  }
-  100% {
-    box-shadow: 0 0 25px 8px rgba(248, 213, 107, 0.8);
-    background: rgba(248, 213, 107, 0.1);
-  }
-}
-
-/* Waiting indicator styles */
-.waiting-indicator {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  padding: 20px;
-  background: rgba(248, 213, 107, 0.1);
-  border-radius: 15px;
-  border: 2px solid rgba(248, 213, 107, 0.3);
-  animation: waiting-pulse 2s ease-in-out infinite alternate;
-}
-
-.waiting-spinner {
-  width: 40px;
-  height: 40px;
-  border: 4px solid rgba(248, 213, 107, 0.3);
-  border-top: 4px solid #f8d56b;
-  border-radius: 50%;
-  animation: spin 1s linear infinite;
-  margin-bottom: 15px;
-}
-
-.waiting-text {
-  color: #f8d56b;
-  font-weight: bold;
-  font-size: 1.1em;
-  text-align: center;
-  text-shadow: 0 1px 3px rgba(0, 0, 0, 0.5);
-}
-
-@keyframes waiting-pulse {
-  0% {
-    background: rgba(248, 213, 107, 0.05);
-    border-color: rgba(248, 213, 107, 0.2);
-  }
-  100% {
-    background: rgba(248, 213, 107, 0.15);
-    border-color: rgba(248, 213, 107, 0.5);
-  }
-}
-
-/* Spectators list */
-.spectators-list {
-  position: absolute;
-  bottom: -60px;
-  left: 50%;
-  transform: translateX(-50%);
-  background: rgba(10, 30, 40, 0.9);
-  border-radius: 10px;
-  padding: 10px 15px;
-  border: 1px solid rgba(248, 213, 107, 0.3);
-  text-align: center;
-  min-width: 200px;
-}
-
-.spectators-list h4 {
-  margin: 0 0 8px 0;
-  color: #f8d56b;
-  font-size: 0.9em;
-}
-
-.spectator-names {
-  display: flex;
-  flex-wrap: wrap;
-  justify-content: center;
-  gap: 8px;
-}
-
-.spectator-name {
-  background: rgba(248, 213, 107, 0.2);
-  color: #f8d56b;
-  padding: 4px 8px;
-  border-radius: 12px;
-  font-size: 0.8em;
-  border: 1px solid rgba(248, 213, 107, 0.4);
-}
-
-/* Animation styles */
-.card-drawing {
-  animation: cardDraw 0.5s ease-out;
-}
-
-.card-discarding {
-  animation: cardDiscard 0.5s ease-out forwards;
-}
-
-@keyframes cardDraw {
-  0% {
-    transform: translateX(-100px) rotate(-15deg);
-    opacity: 0;
-  }
-  100% {
-    transform: translateX(0) rotate(0);
-    opacity: 1;
-  }
-}
-
-@keyframes cardDiscard {
-  0% {
-    transform: translateY(0) scale(1);
-    opacity: 1;
-  }
-  100% {
-    transform: translateY(100px) scale(0.5);
-    opacity: 0;
-  }
-}
-
-@media (prefers-reduced-motion) {
-  .card-drawing,
-  .card-discarding {
-    animation: none !important;
-  }
-}
-
-/* Tutorial prompt */
-.tutorial-prompt {
-  position: absolute;
-  top: -40px;
-  left: 50%;
-  transform: translateX(-50%);
-  background: rgba(248, 213, 107, 0.9);
-  color: #2a3439;
-  padding: 5px 10px;
-  border-radius: 15px;
-  font-size: 0.8em;
-  white-space: nowrap;
-  animation: pulse 2s infinite;
-}
-
-@keyframes pulse {
-  0% {
-    opacity: 0.7;
-  }
-  50% {
-    opacity: 1;
-  }
-  100% {
-    opacity: 0.7;
-  }
-}
-
-/* Hand styles */
-.hand {
-  display: flex;
-  justify-content: center;
-  margin: 8px 0;
-  padding: 0 20px;
-}
-
-.hand.horizontal {
-  flex-direction: row;
-  align-items: center;
-}
-
-/* Poker Table Styles */
-.poker-table {
-  position: relative;
-  width: 95vw;
-  height: 70vh;
-  max-width: 900px;
-  max-height: 650px;
-  margin: 20px auto;
-  background: radial-gradient(ellipse at center, #0d3b4a 0%, #08222b 100%);
-  border-radius: 50%;
-  border: 15px solid #5d4037;
-  box-shadow: 0 0 40px rgba(0, 0, 0, 0.8), inset 0 0 30px rgba(0, 0, 0, 0.6);
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  overflow: hidden;
-}
-
-/* Player Positions */
-.player-seat {
-  position: absolute;
-  background: rgba(10, 30, 40, 0.85);
-  border-radius: 15px;
-  padding: 10px 15px;
-  text-align: center;
-  min-width: 120px;
-  backdrop-filter: blur(5px);
-  transition: all 0.3s ease;
-}
-
-.player-seat.active {
-  background: rgba(248, 213, 107, 0.1);
-}
-
-.player-seat h2,
-.player-seat h3 {
-  margin: 5px 0;
-  color: white;
-  text-shadow: 1px 1px 2px black;
-  font-size: 0.9em;
-  white-space: nowrap;
-}
-
-.bottom {
-  bottom: 20px;
-  left: 50%;
-  transform: translateX(-50%);
-  width: 60%;
-  max-width: 300px;
-}
-
-.top {
-  top: 20px;
-  left: 50%;
-  transform: translateX(-50%);
-  width: 50%;
-  max-width: 250px;
-}
-
-.left {
-  left: 20px;
-  top: 50%;
-  transform: translateY(-50%);
-  width: 120px;
-}
-
-.right {
-  right: 20px;
-  top: 50%;
-  transform: translateY(-50%);
-  width: 120px;
-}
-
-/* Table Center */
-.table-center {
-  position: absolute;
-  top: 50%;
-  left: 50%;
-  transform: translate(-50%, -50%);
-  display: flex;
-  gap: 60px;
-  z-index: 2;
-  align-items: center;
-}
-
-.deck-area,
-.discard-area {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  position: relative;
-}
-
-.deck-area::before,
-.discard-area::before {
-  content: "";
-  position: absolute;
-  top: -25px;
-  color: rgba(248, 213, 107, 0.7);
-  font-size: 0.8em;
-  font-weight: bold;
-}
-
-.deck-area::before {
-  content: "DECK";
-}
-
-.discard-area::before {
-  content: "DISCARD";
-}
-
-.deck-count {
-  position: absolute;
-  top: -25px;
-  background: rgba(248, 213, 107, 0.9);
-  color: #2a3439;
-  border-radius: 20px;
-  width: 35px;
-  height: 20px;
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  font-weight: bold;
-  font-size: 0.8em;
-  border: 1px solid #f8d56b;
-}
-
-.discard-top {
-  z-index: 5;
-}
-
-.discard-empty {
-  width: 50px;
-  height: 70px;
-  background: rgba(255, 255, 255, 0.1);
-  border: 2px dashed rgba(255, 255, 255, 0.3);
-  border-radius: 6px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-size: 0.7em;
-  color: rgba(255, 255, 255, 0.5);
-}
-
-/* Game Info */
-.game-info {
-  margin-bottom: 15px;
-  color: #f8d56b;
-  position: relative;
-}
-
-.turn-indicator {
-  font-size: 1.1em;
-  color: #f8d56b;
-  text-shadow: 0 0 10px rgba(248, 213, 107, 0.5);
-}
-
-/* Game Over Styles */
-.game-over {
-  position: fixed;
-  top: 0;
-  left: 0;
-  width: 100vw;
-  height: 100vh;
-  background: rgba(0, 0, 0, 0.8);
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  z-index: 1000;
-}
-
-.game-over > div {
-  background: linear-gradient(135deg, #1a4a5c, #0f2832);
-  border-radius: 20px;
-  padding: 30px;
-  text-align: center;
-  max-width: 80%;
-}
-
-.game-over h2 {
-  color: #f8d56b;
-  font-size: 2em;
-  margin-bottom: 20px;
-}
-
-.game-over p {
-  font-size: 1.5em;
-  margin-bottom: 30px;
-}
-
-.winning-hand {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  margin: 20px 0;
-}
-
-.winning-hand .hand {
-  margin-top: 10px;
-}
-
-/* New Game Form */
-.new-game-form {
-  background: rgba(10, 30, 40, 0.9);
-  border: 2px solid #f8d56b;
-  border-radius: 15px;
-  padding: 30px;
-  width: 90%;
-  max-width: 400px;
-}
-
-.new-game-form label {
-  display: block;
-  margin: 15px 0 5px 0;
-  color: #f8d56b;
-  font-weight: bold;
-}
-
-.new-game-form input,
-.new-game-form select {
-  padding: 10px;
-  border-radius: 8px;
-  border: 1px solid #f8d56b;
-  background: rgba(255, 255, 255, 0.1);
-  color: white;
-  width: 100%;
-  margin: 5px 0 20px 0;
-}
-
-.new-game-form input:focus,
-.new-game-form select:focus {
-  outline: none;
-  border-color: #ffeb99;
-}
-
-.join-section {
-  background: rgba(248, 213, 107, 0.1);
-  border-radius: 10px;
-  padding: 15px;
-  margin: 15px 0;
-}
-
-.divider {
-  display: flex;
-  align-items: center;
-  margin: 20px 0;
-  color: #f8d56b;
-  font-weight: bold;
-}
-
-.divider::before,
-.divider::after {
-  content: "";
-  flex: 1;
-  border-bottom: 1px solid #f8d56b;
-  margin: 0 10px;
-}
-
-.quit-btn {
-  background: #d32f2f !important;
-  color: white !important;
-  position: absolute;
-  top: 20px;
-  right: 20px;
-  padding: 8px 15px !important;
-  font-size: 0.8em !important;
-}
-
-.quit-btn:hover {
-  background: #ff4444 !important;
-}
-
-.join-btn {
-  width: 100%;
-  margin-top: 10px;
-}
-
-.new-game-btn {
-  width: 100%;
-  margin-top: 10px;
-}
-
-/* Connection Error Styling */
-.error-notice {
-  background: rgba(0, 0, 0, 0.7);
-  border: 2px solid #ff4444;
-  border-radius: 15px;
-  padding: 30px;
-  max-width: 500px;
-  margin: 20px auto;
-}
-
-.error-notice h3 {
-  color: #ff4444;
-  margin-top: 0;
-}
-
-.error-notice p {
-  margin: 15px 0;
-}
-
-.retry-btn {
-  background: #ff4444;
-  color: white;
-  padding: 10px 25px;
-}
-
-/* Loading Overlay */
-.loading-overlay {
-  position: fixed;
-  top: 0;
-  left: 0;
-  width: 100%;
-  height: 100%;
-  background: rgba(0, 0, 0, 0.7);
-  display: flex;
-  flex-direction: column;
-  justify-content: center;
-  align-items: center;
-  z-index: 1000;
-  color: #f8d56b;
-}
-
-.loading-overlay p {
-  margin-top: 20px;
-  font-size: 1.2em;
-}
-
-.loading-spinner {
-  border: 4px solid rgba(248, 213, 107, 0.3);
-  border-radius: 50%;
-  border-top: 4px solid #f8d56b;
-  width: 40px;
-  height: 40px;
-  animation: spin 1s linear infinite;
-}
-
-@keyframes spin {
-  0% {
-    transform: rotate(0deg);
-  }
-  100% {
-    transform: rotate(360deg);
-  }
-}
-
-/* Error Modal */
-.error-modal {
-  position: fixed;
-  top: 0;
-  left: 0;
-  width: 100vw;
-  height: 100vh;
-  background: rgba(0, 0, 0, 0.8);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  z-index: 1000;
-}
-
-.error-content {
-  background: #1a1a1a;
-  border: 2px solid #ff4444;
-  border-radius: 15px;
-  padding: 25px;
-  max-width: 80%;
-  text-align: center;
-}
-
-.error-content h3 {
-  color: #ff4444;
-  margin-top: 0;
-}
-
-.error-content button {
-  background: #ff4444;
-  color: white;
-  margin-top: 15px;
-}
-
-/* Mobile Portrait Layout */
-@media (max-width: 768px) {
-  h1 {
-    font-size: 1.2em;
-  }
-  h2,
-  h3 {
-    font-size: 0.9em;
-  }
-  .card-value,
-  .card-suit {
-    font-size: 0.8em;
+};
+
+function Card({
+  value,
+  suit,
+  onClick,
+  disabled,
+  facedown = false,
+  className = "",
+  highlight = false,
+  small = false,
+  style = {},
+  selected = false
+}: {
+  value: string;
+  suit: string;
+  onClick?: () => void;
+  disabled?: boolean;
+  facedown?: boolean;
+  className?: string;
+  highlight?: boolean;
+  small?: boolean;
+  style?: React.CSSProperties;
+  selected?: boolean;
+}) {
+  const [isHovered, setIsHovered] = useState(false);
+
+  if (facedown) {
+    return (
+      <div 
+        className={`card facedown ${className} ${small ? 'small-card' : ''}`}
+        style={style}
+        onMouseEnter={() => setIsHovered(true)}
+        onMouseLeave={() => setIsHovered(false)}
+      >
+        <div className="card-back"></div>
+      </div>
+    );
   }
 
-  .poker-table {
-    width: 95vw;
-    height: 70vh;
-    border-radius: 50% / 30%;
-    position: relative;
-  }
-
-  .player-seat {
-    min-width: 100px;
-    padding: 8px;
-    backdrop-filter: blur(3px);
-  }
-
-  /* Position players around the oval */
-  .top {
-    top: 10px;
-    left: 50%;
-    transform: translateX(-50%);
-    width: 80%;
-  }
-
-  .left {
-    left: 10px;
-    top: 50%;
-    transform: translateY(-50%);
-    width: 100px;
-  }
-
-  .right {
-    right: 10px;
-    top: 50%;
-    transform: translateY(-50%);
-    width: 100px;
-  }
-
-  .bottom {
-    bottom: 10px;
-    left: 50%;
-    transform: translateX(-50%);
-    width: 80%;
-  }
-
-  .table-center {
-    flex-direction: column;
-    gap: 20px;
-  }
-
-  /* Adjust card sizes for mobile */
-  .card {
-    width: 40px;
-    height: 60px;
-    min-width: 48px;
-    min-height: 72px;
-    margin: 0 -8px;
-  }
-
-  .card + .card {
-    margin-left: -12px;
-  }
-
-  .card.small-card {
-    width: 30px;
-    height: 45px;
-    min-width: 40px;
-    min-height: 60px;
-    margin: 0 -6px;
-  }
-
-  .card.small-card + .card.small-card {
-    margin-left: -10px;
-  }
-
-  /* Stack cards horizontally for all players */
-  .hand {
-    flex-direction: row;
-    justify-content: center;
-    margin: 5px 0;
-    padding: 0 12px;
-    max-width: 100%;
-    overflow-x: visible;
-  }
-
-  /* Adjust deck and discard areas */
-  .deck-area,
-  .discard-area {
-    transform: scale(0.8);
-  }
-
-  .deck-count {
-    font-size: 0.7em;
-    width: 30px;
-    height: 18px;
-  }
-
-  .tutorial-prompt {
-    font-size: 0.7em;
-    top: -30px;
-  }
-
-  .waiting-indicator {
-    padding: 15px;
-    max-width: 250px;
-  }
-
-  .waiting-text {
-    font-size: 1em;
-  }
-
-  .spectators-list {
-    bottom: -50px;
-    min-width: 150px;
-    padding: 8px 12px;
-  }
+  const suitColor = suit === "♥" || suit === "♦" ? "red" : "black";
+  return (
+    <div
+      className={`card ${suitColor} ${className} ${highlight ? 'highlight-card' : ''} ${small ? 'small-card' : ''} ${isHovered ? 'card-hover' : ''} ${selected ? 'card-selected' : ''}`}
+      onClick={!disabled ? onClick : undefined}
+      style={disabled ? { opacity: 0.7, cursor: "not-allowed", ...style } : style}
+      onMouseEnter={() => setIsHovered(true)}
+      onMouseLeave={() => setIsHovered(false)}
+    >
+      <div className="card-inner">
+        <span className="card-value">{value}</span>
+        <span className="card-suit">{suit}</span>
+      </div>
+    </div>
+  );
 }
 
-/* Mobile Landscape Layout */
-@media (max-width: 768px) and (orientation: landscape) {
-  .card {
-    width: 40px;
-    height: 60px;
-    margin: 0 -6px;
+function Table({ state, playerName, onDiscard, onDraw, loadingStates }: {
+  state: GameState;
+  playerName: string;
+  onDiscard: (index: number) => void;
+  onDraw: () => void;
+  loadingStates: {
+    drawing: boolean;
+    discarding: boolean;
+    cpuMoving: boolean;
+  };
+}) {
+  const [selectedCardIndex, setSelectedCardIndex] = useState<number | null>(null);
+  const [showDeckHighlight, setShowDeckHighlight] = useState(false);
+  const [hasShownPrompt, setHasShownPrompt] = useState(false);
+
+  if (!state || !state.players || state.players.length === 0) {
+    return (
+      <div className="loading">
+        <div className="loading-spinner"></div>
+        <p>Loading game data...</p>
+      </div>
+    );
   }
 
-  .card + .card {
-    margin-left: -10px;
+  const yourPlayer = state.players.find((p) => p?.name === playerName);
+  const currentPlayerIndex = state.current_player ?? 0;
+  const currentPlayer = state.players[currentPlayerIndex];
+  const isGameOver = state.game_over;
+
+  if (!yourPlayer || !currentPlayer) {
+    return <div className="error">Player data not available</div>;
   }
 
-  .card.small-card {
-    width: 35px;
-    height: 52px;
-    margin: 0 -5px;
-  }
+  const getPlayerSafe = (index: number) => {
+    return state.players[index] ?? { name: 'Player', hand: [], is_cpu: false };
+  };
 
-  .card.small-card + .card.small-card {
-    margin-left: -8px;
-  }
+  const isWinner = (player: Player) => isGameOver && state.winner === player.name;
+
+  const shouldShowPrompt = () => {
+    const playerId = state.players[state.current_player]?.name;
+    if (!playerId || playerId !== playerName || hasShownPrompt) return false;
+    
+    const count = tutorialPromptsShown.get(playerId) || 0;
+    if (count < 2) {
+      tutorialPromptsShown.set(playerId, count + 1);
+      return true;
+    }
+    return false;
+  };
+
+  useEffect(() => {
+    if (!shouldShowPrompt() && !hasShownPrompt) {
+      const timer = setTimeout(() => {
+        setShowDeckHighlight(true);
+        setHasShownPrompt(true);
+      }, 3000);
+      return () => clearTimeout(timer);
+    }
+  }, [state?.current_player]);
+
+  useEffect(() => {
+    if (state?.current_player !== state?.players.findIndex(p => p?.name === playerName)) {
+      setShowDeckHighlight(false);
+      setHasShownPrompt(false);
+      setSelectedCardIndex(null);
+    }
+  }, [state?.current_player]);
+
+  const handleCardClick = (index: number) => {
+    if (selectedCardIndex === index) {
+      onDiscard(index);
+      setSelectedCardIndex(null);
+    } else {
+      setSelectedCardIndex(index);
+    }
+  };
+
+  return (
+    <div className="poker-table">
+      {/* Top Player (opponent across the table) */}
+      {state.players.length > 1 && (
+        <div className={`player-seat top ${currentPlayerIndex === 1 ? 'active' : ''}`}>
+          <h3>{getPlayerSafe(1).name}{getPlayerSafe(1).is_cpu && " (CPU)"}</h3>
+          <div className="hand horizontal">
+            {getPlayerSafe(1).hand.map((card, i) => (
+              <Card
+                key={`top-${i}`}
+                facedown={!isGameOver}
+                value={card.value}
+                suit={card.suit}
+                small={true}
+                highlight={isWinner(getPlayerSafe(1))}
+              />
+            ))}
+          </div>
+        </div>
+      )}
+
+      {/* Left Player (to the left in portrait) */}
+      {state.players.length > 2 && (
+        <div className={`player-seat left ${currentPlayerIndex === 2 ? 'active' : ''}`}>
+          <h3>{getPlayerSafe(2).name}{getPlayerSafe(2).is_cpu && " (CPU)"}</h3>
+          <div className="hand horizontal">
+            {getPlayerSafe(2).hand.map((card, i) => (
+              <Card
+                key={`left-${i}`}
+                facedown={!isGameOver}
+                value={card.value}
+                suit={card.suit}
+                small={true}
+                highlight={isWinner(getPlayerSafe(2))}
+              />
+            ))}
+          </div>
+        </div>
+      )}
+
+      {/* Right Player (to the right in portrait) */}
+      {state.players.length > 3 && (
+        <div className={`player-seat right ${currentPlayerIndex === 3 ? 'active' : ''}`}>
+          <h3>{getPlayerSafe(3).name}{getPlayerSafe(3).is_cpu && " (CPU)"}</h3>
+          <div className="hand horizontal">
+            {getPlayerSafe(3).hand.map((card, i) => (
+              <Card
+                key={`right-${i}`}
+                facedown={!isGameOver}
+                value={card.value}
+                suit={card.suit}
+                small={true}
+                highlight={isWinner(getPlayerSafe(3))}
+              />
+            ))}
+          </div>
+        </div>
+      )}
+
+      <div className="table-center">
+        <div 
+          className={`deck-area ${showDeckHighlight ? 'deck-highlight' : ''}`}
+          onClick={!loadingStates.drawing && currentPlayer.name === yourPlayer.name && !isGameOver && !state.has_drawn ? onDraw : undefined}
+        >
+          <div className="deck-count">{state.deck?.length ?? 0}</div>
+          {shouldShowPrompt() && (
+            <div className="tutorial-prompt">Pick a card from the deck</div>
+          )}
+          <Card 
+            facedown 
+            value="" 
+            suit="" 
+            className={loadingStates.drawing ? 'card-drawing' : ''}
+            style={{
+              cursor: !loadingStates.drawing && currentPlayer.name === yourPlayer.name && !isGameOver && !state.has_drawn ? 'pointer' : 'default'
+            }}
+          />
+        </div>
+        
+        <div className="discard-area">
+          {state.pot?.length > 0 ? (
+            <Card {...state.pot[state.pot.length - 1]} className="discard-top" />
+          ) : (
+            <div className="discard-empty">Empty</div>
+          )}
+        </div>
+      </div>
+
+      {/* Bottom Player (current player) */}
+      <div className={`player-seat bottom ${currentPlayerIndex === state.players.findIndex(p => p?.name === playerName) ? 'active' : ''}`}>
+        <h2>Your Hand ({yourPlayer.name})</h2>
+        <div className="hand">
+          {yourPlayer.hand?.map((card, i) => (
+            <Card
+              key={`you-${i}`}
+              {...card}
+              onClick={() => handleCardClick(i)}
+              disabled={!state.has_drawn || currentPlayer.is_cpu || currentPlayer.name !== yourPlayer.name || loadingStates.discarding}
+              className={loadingStates.discarding ? 'card-discarding' : ''}
+              highlight={isWinner(yourPlayer)}
+              selected={selectedCardIndex === i}
+            />
+          ))}
+        </div>
+      </div>
+    </div>
+  );
 }
 
-/* Landscape and Desktop Layout */
-@media (min-width: 769px), (orientation: landscape) {
-  .poker-table {
-    border-radius: 50%;
-  }
-
-  .player-seat {
-    min-width: 120px;
-    padding: 10px 15px;
-  }
-
-  .left,
-  .right {
-    width: 120px;
-  }
-
-  .table-center {
-    gap: 60px;
-  }
-
-  .deck-area .card,
-  .discard-area .card {
-    width: 60px;
-    height: 90px;
-  }
+function LobbyView({
+  lobby,
+  playerName,
+  onStartGame,
+  onLeave,
+  isHost
+}: {
+  lobby: LobbyGame;
+  playerName: string;
+  onStartGame: () => void;
+  onLeave: () => void;
+  isHost: boolean;
+}) {
+  return (
+    <div className="new-game-form">
+      <h2>Lobby: {lobby.id}</h2>
+      <p>Host: {lobby.host}</p>
+      <p>Players: {lobby.players.length}/{lobby.max_players}</p>
+      
+      <div className="player-list">
+        <h3>Players:</h3>
+        <ul>
+          {lobby.players.map(player => (
+            <li key={player}>
+              {player} {player === playerName}
+            </li>
+          ))}
+        </ul>
+      </div>
+      
+      {isHost && (
+        <button 
+          onClick={onStartGame}
+          disabled={lobby.players.length < 2}
+        >
+          Start Game
+        </button>
+      )}
+      
+      <button onClick={onLeave} className="quit-btn">
+        Leave Lobby
+      </button>
+    </div>
+  );
 }
+
+function App() {
+  const [state, setState] = useState<GameState | null>(null);
+  const [gameId, setGameId] = useState<string | null>(null);
+  const [loadingStates, setLoadingStates] = useState({
+    drawing: false,
+    discarding: false,
+    joining: false,
+    starting: false,
+    cpuMoving: false
+  });
+  const [error, setError] = useState<string | null>(null);
+  const [gameMode, setGameMode] = useState<"cpu" | "multiplayer">("cpu");
+  const [cpuCount, setCpuCount] = useState(1);
+  const [playerName, setPlayerName] = useState("Player");
+  const [backendAvailable, setBackendAvailable] = useState(true);
+  const [joinGameId, setJoinGameId] = useState("");
+  const [lobby, setLobby] = useState<LobbyGame | null>(null);
+  const [lobbies, setLobbies] = useState<LobbyGame[]>([]);
+  const [showLobbyList, setShowLobbyList] = useState(false);
+    
+  useEffect(() => {
+    const savedGame = localStorage.getItem('njukaGame');
+    if (savedGame) {
+      try {
+        const { id, playerName: savedName } = JSON.parse(savedGame);
+        if (id && savedName) {
+          setGameId(id);
+          setPlayerName(savedName);
+        }
+      } catch (e) {
+        localStorage.removeItem('njukaGame');
+      }
+    }
+  }, []);
+
+  useEffect(() => {
+    if (state?.id && playerName) {
+      localStorage.setItem('njukaGame', JSON.stringify({
+        id: state.id,
+        playerName
+      }));
+    } else {
+      localStorage.removeItem('njukaGame');
+    }
+  }, [state, playerName]);
+
+  useEffect(() => {
+    const checkConnection = async () => {
+      setLoadingStates(prev => ({...prev, starting: true, joining: true}));
+      try {
+        const isHealthy = await apiService.checkHealth();
+        setBackendAvailable(isHealthy);
+        if (!isHealthy) {
+          setError("Backend service unavailable. Please try again later.");
+        }
+      } catch (err) {
+        setBackendAvailable(false);
+        setError("Cannot connect to game server. Please try again later.");
+      } finally {
+        setLoadingStates(prev => ({...prev, starting: false, joining: false}));
+      }
+    };
+    checkConnection();
+  }, []);
+
+  useEffect(() => {
+    if (!gameId || !backendAvailable) return;
+
+    let retries = 3;
+    let intervalId: NodeJS.Timeout;
+
+    const fetchGameState = async () => {
+      try {
+        const res = await fetch(`${API}/game/${gameId}`);
+        if (!res.ok) throw new Error('Network response was not ok');
+        const latestState = await res.json();
+        setState(latestState);
+        retries = 3;
+      } catch (err) {
+        console.error('Failed to fetch game state:', err);
+        retries--;
+        if (retries <= 0) {
+          setError('Connection lost. Trying to reconnect...');
+          setTimeout(() => {
+            checkConnection();
+            retries = 3;
+          }, 5000);
+        }
+      }
+    };
+ 
+    const checkConnection = async () => {
+      const isHealthy = await apiService.checkHealth();
+      setBackendAvailable(isHealthy);
+      if (isHealthy) {
+        setError(null);
+        intervalId = setInterval(fetchGameState, 5000);
+        fetchGameState();
+      }
+    };
+
+    intervalId = setInterval(fetchGameState, 2000);
+    fetchGameState();
+    
+    return () => clearInterval(intervalId);
+  }, [gameId, backendAvailable]);
+
+  useEffect(() => {
+    if (!state || state.game_over || !backendAvailable) return;
+    
+    const currentPlayer = state.players[state.current_player];
+    if (currentPlayer?.is_cpu && currentPlayer.name !== playerName) {
+      setLoadingStates(prev => ({...prev, cpuMoving: true}));
+      
+      const makeCpuMove = async () => {
+        try {
+          const afterDrawState = await apiService.drawCard(state.id);
+          
+          if (afterDrawState.has_drawn && afterDrawState.players[state.current_player].hand.length > 0) {
+            const randomIndex = Math.floor(
+              Math.random() * afterDrawState.players[state.current_player].hand.length
+            );
+            await apiService.discardCard(state.id, randomIndex);
+          }
+          
+          const updatedState = await apiService.checkHealth()
+            .then(() => fetch(`${API}/game/${state.id}`))
+            .then(res => res.json());
+          setState(updatedState);
+        } catch (err) {
+          console.error("CPU move failed:", err);
+          try {
+            const latestState = await fetch(`${API}/game/${state.id}`).then(res => res.json());
+            setState(latestState);
+          } catch (fetchErr) {
+            console.error("Failed to fetch game state after CPU move error:", fetchErr);
+          }
+        } finally {
+          setLoadingStates(prev => ({...prev, cpuMoving: false}));
+        }
+      };
+
+      const timer = setTimeout(makeCpuMove, 1500);
+      return () => {
+        clearTimeout(timer);
+        setLoadingStates(prev => ({...prev, cpuMoving: false}));
+      };
+    }
+  }, [state?.current_player, state?.id, playerName, backendAvailable]);
+
+  // Temporary test in your frontend
+useEffect(() => {
+  fetch(`${API}/health`)
+    .then(res => console.log("Backend connection:", res.ok))
+    .catch(err => console.error("Connection failed:", err));
+}, []);
+  
+  useEffect(() => {
+    if (!showLobbyList || !backendAvailable) return;
+    
+    const interval = setInterval(() => {
+      apiService.listLobbies()
+        .then(setLobbies)
+        .catch(() => {});
+    }, 5000);
+    
+    return () => clearInterval(interval);
+  }, [showLobbyList, backendAvailable]);
+
+  const discard = async (cardIdx: number) => {
+    setLoadingStates(prev => ({...prev, discarding: true}));
+    setError(null);
+    try {
+      if (!state) return;
+      const newState = await apiService.discardCard(state.id, cardIdx);
+      setState(newState);
+    } catch (err: any) {
+      setError(err.message || "Failed to discard card");
+    } finally {
+      setLoadingStates(prev => ({...prev, discarding: false}));
+    }
+  };
+
+  const draw = async () => {
+    setLoadingStates(prev => ({...prev, drawing: true}));
+    setError(null);
+    try {
+      if (!state) return;
+      const newState = await apiService.drawCard(state.id);
+      setState(newState);
+    } catch (err: any) {
+      setError(err.message || "Failed to draw card");
+    } finally {
+      setLoadingStates(prev => ({...prev, drawing: false}));
+    }
+  };
+
+  if (!backendAvailable) {
+    return (
+      <div className="App">
+        <h1>Njuka King</h1>
+        <div className="error-notice">
+          <h3>Service Unavailable</h3>
+          <p>We're having trouble connecting to the game server.</p>
+          <button 
+            onClick={() => window.location.reload()}
+            className="retry-btn"
+          >
+            Retry Connection
+          </button>
+        </div>
+      </div>
+    );
+  }
+
+const createLobby = async () => {
+    setLoadingStates(prev => ({...prev, starting: true}));
+    setError(null);
+    try {
+      const newLobby = await apiService.createLobby(playerName, 4);
+      setLobby(newLobby);
+    } catch (err: any) {
+      setError(err.message || "Failed to create lobby");
+    } finally {
+      setLoadingStates(prev => ({...prev, starting: false}));
+    }
+  };
+
+  const joinLobby = async (lobbyId: string) => {
+    setLoadingStates(prev => ({...prev, joining: true}));
+    setError(null);
+    try {
+      const joinedLobby = await apiService.joinLobby(lobbyId, playerName);
+      setLobby(joinedLobby);
+      setShowLobbyList(false);
+    } catch (err: any) {
+      setError(err.message || "Failed to join lobby");
+    } finally {
+      setLoadingStates(prev => ({...prev, joining: false}));
+    }
+  };
+
+  const startGameFromLobby = async () => {
+    if (!lobby) return;
+    setLoadingStates(prev => ({...prev, starting: true}));
+    setError(null);
+    try {
+      const gameState = await apiService.startLobbyGame(lobby.id);
+      setLobby(null);
+      setGameId(gameState.id);
+      setState(gameState);
+    } catch (err: any) {
+      setError(err.message || "Failed to start game");
+    } finally {
+      setLoadingStates(prev => ({...prev, starting: false}));
+    }
+  };
+
+  const leaveLobby = () => {
+    setLobby(null);
+    setShowLobbyList(false);
+  };
+
+  return (
+  <div className="App">
+    <h1>Njuka King</h1>
+
+    {error && (
+      <div className="error-modal">
+        <div className="error-content">
+          <h3>Error</h3>
+          <p>{error}</p>
+          <button onClick={() => setError(null)}>OK</button>
+        </div>
+      </div>
+    )}
+
+    {(loadingStates.starting || loadingStates.joining) && (
+      <div className="loading-overlay">
+        <div className="loading-spinner"></div>
+        <p>Connecting to game server...</p>
+      </div>
+    )}
+
+    {state ? (
+      <div className="game-container">
+        <div className="game-info">
+          <p>Game ID: {state.id}</p>
+          <p className="turn-indicator">
+            Current Turn: <strong>{state.players[state.current_player]?.name}</strong>
+            {state.players[state.current_player]?.is_cpu && " (CPU)"}
+            {loadingStates.cpuMoving && " - Thinking..."}
+          </p>
+          <button 
+            onClick={() => { 
+              setState(null); 
+              setGameId(null); 
+            }}
+            className="quit-btn"
+          >
+            Quit to Menu
+          </button>
+        </div>
+        <Table 
+          state={state}
+          playerName={playerName}
+          onDiscard={discard}
+          onDraw={draw}
+          loadingStates={loadingStates}
+        />
+        {state.game_over && (
+          <div className="game-over">
+            <div>
+              <h2>Game Over!</h2>
+              <p>Winner: <strong>{state.winner}</strong></p>
+              {state.winner_hand && (
+                <div className="winning-hand">
+                  <p>Winning Hand:</p>
+                  <div className="hand">
+                    {state.winner_hand.map((card, i) => (
+                      <Card
+                        key={`winner-${i}`}
+                        value={card.value}
+                        suit={card.suit}
+                        highlight={true}
+                      />
+                    ))}
+                  </div>
+                </div>
+              )}
+              <button onClick={() => { setState(null); setGameId(null); }}>
+                New Game
+              </button>
+            </div>
+          </div>
+        )}
+      </div>
+      ) : lobby ? (
+        <LobbyView
+          lobby={lobby}
+          playerName={playerName}
+          onStartGame={startGameFromLobby}
+          onLeave={leaveLobby}
+          isHost={lobby.host === playerName}
+        />
+      ) : showLobbyList ? (
+           <div className="new-game-form">
+             <h2>Available Games</h2>
+             <div style={{ display: 'flex', gap: '10px', marginBottom: '15px' }}>
+               <button onClick={() => setShowLobbyList(false)}>
+        Back to Menu
+      </button>
+      <button
+        onClick={() => {
+          apiService.listLobbies()
+            .then(setLobbies)
+            .catch(err => setError(err.message));
+        }}
+      >
+        Refresh List
+      </button>
+    </div>
+          
+    <div className="lobby-list">
+      {lobbies.length === 0 ? (
+        <p>No available games found. Create a new game to start playing!</p>
+      ) : (
+        lobbies.map(lobby => (
+          <div key={lobby.id} className="lobby-item">
+            <h3>Host: {lobby.host}</h3>
+            <p>Players: {lobby.players.join(', ')}</p>
+            <p>Slots: {lobby.players.length}/{lobby.max_players}</p>
+            <p>Created: {new Date(lobby.created_at).toLocaleString()}</p>
+            <button 
+              onClick={() => joinLobby(lobby.id)}
+              disabled={lobby.players.length >= lobby.max_players || loadingStates.joining}
+            >
+              {loadingStates.joining ? "Joining..." : "Join Game"}
+            </button>
+          </div>
+        ))
+       )}
+     </div>
+    </div>
+) : (        
+        <div className="new-game-form">
+          <h2>Start or Join a Game</h2>
+          <label>
+            Your Name:
+            <input
+              type="text"
+              value={playerName}
+              onChange={e => {
+                const name = e.target.value.trim();
+                if (name.length <= 20) {
+                  setPlayerName(name);
+                }
+              }}
+              placeholder="Enter your name (2-20 chars)"
+              minLength={2}
+              maxLength={20}
+              required
+            />
+          </label>
+
+          <div className="join-section">
+            <h3>Join Existing Game</h3>
+            <label>
+              Game ID:
+              <input
+                type="text"
+                value={joinGameId}
+                onChange={e => setJoinGameId(e.target.value)}
+                placeholder="Enter game ID"
+              />
+            </label>
+            <button
+              disabled={loadingStates.joining || !playerName.trim() || !joinGameId.trim()}
+              onClick={async () => {
+                setLoadingStates(prev => ({...prev, joining: true}));
+                setError(null);
+                try {
+                  const game = await apiService.joinGame(joinGameId, playerName);
+                  setGameId(game.id);
+                  setState(game);
+                } catch (err: any) {
+                  setError(err.message || "Failed to join game");
+                } finally {
+                  setLoadingStates(prev => ({...prev, joining: false}));
+                }
+              }}
+              className="join-btn"
+            >
+              {loadingStates.joining ? "Joining..." : "Join Game"}
+            </button>
+          </div>
+
+          <div className="divider">OR</div>
+
+          <h3>Create New Game</h3>
+          <label>
+            Game Mode:
+            <select
+              value={gameMode}
+              onChange={e => setGameMode(e.target.value as "cpu" | "multiplayer")}
+            >
+              <option value="cpu">Play vs CPU</option>
+              <option value="multiplayer">Multiplayer</option>
+            </select>
+          </label>
+          {gameMode === "cpu" && (
+            <label>
+              Number of CPU Players:
+              <input
+                type="number"
+                min={1}
+                max={3}
+                value={cpuCount}
+                onChange={e => setCpuCount(Number(e.target.value))}
+              />
+            </label>
+          )}
+          {gameMode === "multiplayer" && (
+            <label>
+              Max Players:
+              <input
+                type="number"
+                min={2}
+                max={6}
+                value={cpuCount}
+                onChange={e => setCpuCount(Number(e.target.value))}
+              />
+            </label>
+          )}
+          <button
+            disabled={loadingStates.starting || !playerName.trim()}
+            onClick={async () => {
+              if (gameMode === "multiplayer") {
+                await createLobby();
+              } else {
+                setLoadingStates(prev => ({...prev, starting: true}));
+                setError(null);
+                try {
+                  const game = await apiService.createNewGame(gameMode, playerName, cpuCount);
+                  setGameId(game.id);
+                  setState(game);
+                } catch (err: any) {
+                  setError(err.message || "Failed to create game");
+                } finally {
+                  setLoadingStates(prev => ({...prev, starting: false}));
+                }
+              }
+            }}
+            className="new-game-btn"
+          >
+            {loadingStates.starting ? "Creating..." : gameMode === "multiplayer" ? "Create Multiplayer Lobby" : "Start New Game"}
+          </button>
+
+          <div className="divider">OR</div>
+          
+          <button
+            onClick={() => {
+              setShowLobbyList(true);
+              apiService.listLobbies()
+                .then(setLobbies)
+                .catch(err => setError(err.message));
+            }}
+          >
+            Browse Multiplayer Games
+          </button>
+        </div>
+  )}
+  </div>
+  );
+}
+
+export default App;
