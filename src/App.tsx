@@ -465,7 +465,7 @@ function LobbyView({
         <ul>
           {lobby.players.map(player => (
             <li key={player}>
-              {player} {player === playerName && "(You)"}
+              {player} {player === playerName}
             </li>
           ))}
         </ul>
@@ -687,7 +687,7 @@ useEffect(() => {
   if (!backendAvailable) {
     return (
       <div className="App">
-        <h1>Njuka Card Game</h1>
+        <h1>Njuka King</h1>
         <div className="error-notice">
           <h3>Service Unavailable</h3>
           <p>We're having trouble connecting to the game server.</p>
@@ -701,8 +701,6 @@ useEffect(() => {
       </div>
     );
   }
-
-
 
 const createLobby = async () => {
     setLoadingStates(prev => ({...prev, starting: true}));
@@ -753,79 +751,79 @@ const createLobby = async () => {
   };
 
   return (
-    <div className="App">
-      <h1>Njuka Card Game</h1>
+  <div className="App">
+    <h1>Njuka King</h1>
 
-      {error && (
-        <div className="error-modal">
-          <div className="error-content">
-            <h3>Error</h3>
-            <p>{error}</p>
-            <button onClick={() => setError(null)}>OK</button>
-          </div>
+    {error && (
+      <div className="error-modal">
+        <div className="error-content">
+          <h3>Error</h3>
+          <p>{error}</p>
+          <button onClick={() => setError(null)}>OK</button>
         </div>
-      )}
+      </div>
+    )}
 
-      {(loadingStates.starting || loadingStates.joining) && (
-        <div className="loading-overlay">
-          <div className="loading-spinner"></div>
-          <p>Connecting to game server...</p>
+    {(loadingStates.starting || loadingStates.joining) && (
+      <div className="loading-overlay">
+        <div className="loading-spinner"></div>
+        <p>Connecting to game server...</p>
+      </div>
+    )}
+
+    {state ? (
+      <div className="game-container">
+        <div className="game-info">
+          <p>Game ID: {state.id}</p>
+          <p className="turn-indicator">
+            Current Turn: <strong>{state.players[state.current_player]?.name}</strong>
+            {state.players[state.current_player]?.is_cpu && " (CPU)"}
+            {loadingStates.cpuMoving && " - Thinking..."}
+          </p>
+          <button 
+            onClick={() => { 
+              setState(null); 
+              setGameId(null); 
+            }}
+            className="quit-btn"
+          >
+            Quit to Menu
+          </button>
         </div>
-      )}
-
-      {state ? (
-        <div className="game-container">
-          <div className="game-info">
-            <p>Game ID: {state.id}</p>
-            <p className="turn-indicator">
-              Current Turn: <strong>{state.players[state.current_player]?.name}</strong>
-              {state.players[state.current_player]?.is_cpu && " (CPU)"}
-              {loadingStates.cpuMoving && " - Thinking..."}
-            </p>
-            <button 
-              onClick={() => { 
-                setState(null); 
-                setGameId(null); 
-              }}
-              className="quit-btn"
-            >
-              Quit to Menu
-            </button>
-          </div>
-          <Table 
-            state={state}
-            playerName={playerName}
-            onDiscard={discard}
-            onDraw={draw}
-            loadingStates={loadingStates}
-          />
-          {state.game_over && (
-            <div className="game-over">
-              <div>
-                <h2>Game Over!</h2>
-                <p>Winner: <strong>{state.winner}</strong></p>
-                {state.winner_hand && (
-                  <div className="winning-hand">
-                    <p>Winning Hand:</p>
-                    <div className="hand">
-                      {state.winner_hand.map((card, i) => (
-                        <Card
-                          key={`winner-${i}`}
-                          value={card.value}
-                          suit={card.suit}
-                          highlight={true}
-                        />
-                      ))}
-                    </div>
+        <Table 
+          state={state}
+          playerName={playerName}
+          onDiscard={discard}
+          onDraw={draw}
+          loadingStates={loadingStates}
+        />
+        {state.game_over && (
+          <div className="game-over">
+            <div>
+              <h2>Game Over!</h2>
+              <p>Winner: <strong>{state.winner}</strong></p>
+              {state.winner_hand && (
+                <div className="winning-hand">
+                  <p>Winning Hand:</p>
+                  <div className="hand">
+                    {state.winner_hand.map((card, i) => (
+                      <Card
+                        key={`winner-${i}`}
+                        value={card.value}
+                        suit={card.suit}
+                        highlight={true}
+                      />
+                    ))}
                   </div>
-                )}
-                <button onClick={() => { setState(null); setGameId(null); }}>
-                  New Game
-                </button>
-              </div>
+                </div>
+              )}
+              <button onClick={() => { setState(null); setGameId(null); }}>
+                New Game
+              </button>
             </div>
-          )}
-        </div>
+          </div>
+        )}
+      </div>
       ) : lobby ? (
         <LobbyView
           lobby={lobby}
@@ -835,33 +833,45 @@ const createLobby = async () => {
           isHost={lobby.host === playerName}
         />
       ) : showLobbyList ? (
-        <div className="new-game-form">
-          <h2>Available Games</h2>
-          <button onClick={() => setShowLobbyList(false)}>
-            Back to Menu
-          </button>
+           <div className="new-game-form">
+             <h2>Available Games</h2>
+             <div style={{ display: 'flex', gap: '10px', marginBottom: '15px' }}>
+               <button onClick={() => setShowLobbyList(false)}>
+        Back to Menu
+      </button>
+      <button
+        onClick={() => {
+          apiService.listLobbies()
+            .then(setLobbies)
+            .catch(err => setError(err.message));
+        }}
+      >
+        Refresh List
+      </button>
+    </div>
           
-          <div className="lobby-list">
-            {lobbies.length === 0 ? (
-              <p>No available games found</p>
-            ) : (
-              lobbies.map(lobby => (
-                <div key={lobby.id} className="lobby-item">
-                  <h3>Host: {lobby.host}</h3>
-                  <p>Players: {lobby.players.length}/{lobby.max_players}</p>
-                  <p>Created: {new Date(lobby.created_at).toLocaleTimeString()}</p>
-                  <button 
-                    onClick={() => joinLobby(lobby.id)}
-                    disabled={lobby.players.length >= lobby.max_players}
-                  >
-                    Join Game
-                  </button>
-                </div>
-              ))
-            )}
+    <div className="lobby-list">
+      {lobbies.length === 0 ? (
+        <p>No available games found. Create a new game to start playing!</p>
+      ) : (
+        lobbies.map(lobby => (
+          <div key={lobby.id} className="lobby-item">
+            <h3>Host: {lobby.host}</h3>
+            <p>Players: {lobby.players.join(', ')}</p>
+            <p>Slots: {lobby.players.length}/{lobby.max_players}</p>
+            <p>Created: {new Date(lobby.created_at).toLocaleString()}</p>
+            <button 
+              onClick={() => joinLobby(lobby.id)}
+              disabled={lobby.players.length >= lobby.max_players || loadingStates.joining}
+            >
+              {loadingStates.joining ? "Joining..." : "Join Game"}
+            </button>
           </div>
-        </div>
-      ) : (        
+        ))
+       )}
+     </div>
+    </div>
+) : (        
         <div className="new-game-form">
           <h2>Start or Join a Game</h2>
           <label>
@@ -881,7 +891,7 @@ const createLobby = async () => {
               required
             />
           </label>
-          
+
           <div className="join-section">
             <h3>Join Existing Game</h3>
             <label>
@@ -894,33 +904,29 @@ const createLobby = async () => {
               />
             </label>
             <button
-              disabled={loadingStates.starting || !playerName.trim()}
+              disabled={loadingStates.joining || !playerName.trim() || !joinGameId.trim()}
               onClick={async () => {
-                if (gameMode === "multiplayer") {
-                  await createLobby();
-                } else {
-                  setLoadingStates(prev => ({...prev, starting: true}));
-                  setError(null);
-                  try {
-                    const game = await apiService.createNewGame(gameMode, playerName, cpuCount);
-                    setGameId(game.id);
-                    setState(game);
-                  } catch (err: any) {
-                    setError(err.message || "Failed to create game");
-                  } finally {
-                    setLoadingStates(prev => ({...prev, starting: false}));
-                  }
+                setLoadingStates(prev => ({...prev, joining: true}));
+                setError(null);
+                try {
+                  const game = await apiService.joinGame(joinGameId, playerName);
+                  setGameId(game.id);
+                  setState(game);
+                } catch (err: any) {
+                  setError(err.message || "Failed to join game");
+                } finally {
+                  setLoadingStates(prev => ({...prev, joining: false}));
                 }
-             }}
-             className="new-game-btn"
+              }}
+              className="join-btn"
             >
-             {loadingStates.starting ? "Starting..." : "Start New Game"}
+              {loadingStates.joining ? "Joining..." : "Join Game"}
             </button>
           </div>
 
           <div className="divider">OR</div>
 
-          <h3>Start New Game</h3>
+          <h3>Create New Game</h3>
           <label>
             Game Mode:
             <select
@@ -943,27 +949,43 @@ const createLobby = async () => {
               />
             </label>
           )}
+          {gameMode === "multiplayer" && (
+            <label>
+              Max Players:
+              <input
+                type="number"
+                min={2}
+                max={6}
+                value={cpuCount}
+                onChange={e => setCpuCount(Number(e.target.value))}
+              />
+            </label>
+          )}
           <button
             disabled={loadingStates.starting || !playerName.trim()}
             onClick={async () => {
-              setLoadingStates(prev => ({...prev, starting: true}));
-              setError(null);
-              try {
-                const game = await apiService.createNewGame(gameMode, playerName, cpuCount);
-                setGameId(game.id);
-                setState(game);
-              } catch (err: any) {
-                setError(err.message || "Failed to create game");
-              } finally {
-                setLoadingStates(prev => ({...prev, starting: false}));
+              if (gameMode === "multiplayer") {
+                await createLobby();
+              } else {
+                setLoadingStates(prev => ({...prev, starting: true}));
+                setError(null);
+                try {
+                  const game = await apiService.createNewGame(gameMode, playerName, cpuCount);
+                  setGameId(game.id);
+                  setState(game);
+                } catch (err: any) {
+                  setError(err.message || "Failed to create game");
+                } finally {
+                  setLoadingStates(prev => ({...prev, starting: false}));
+                }
               }
             }}
             className="new-game-btn"
           >
-            {loadingStates.starting ? "Starting..." : "Start New Game"}
+            {loadingStates.starting ? "Creating..." : gameMode === "multiplayer" ? "Create Multiplayer Lobby" : "Start New Game"}
           </button>
 
-            <div className="divider">OR</div>
+          <div className="divider">OR</div>
           
           <button
             onClick={() => {
@@ -975,9 +997,9 @@ const createLobby = async () => {
           >
             Browse Multiplayer Games
           </button>
-        </div>       
-      )}
-    </div>
+        </div>
+  )}
+  </div>
   );
 }
 
