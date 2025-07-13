@@ -716,18 +716,19 @@ const createLobby = async () => {
   };
 
   const joinLobby = async (lobbyId: string) => {
-    setLoadingStates(prev => ({...prev, joining: true}));
-    setError(null);
-    try {
-      const joinedLobby = await apiService.joinLobby(lobbyId, playerName);
-      setLobby(joinedLobby);
-      setShowLobbyList(false);
-    } catch (err: any) {
-      setError(err.message || "Failed to join lobby");
-    } finally {
-      setLoadingStates(prev => ({...prev, joining: false}));
-    }
-  };
+  setLoadingStates(prev => ({...prev, joining: true}));
+  setError(null);
+  try {
+    const joinedLobby = await apiService.joinLobby(lobbyId, playerName);
+    setLobby(joinedLobby);
+    setShowLobbyList(false);
+  } catch (err: any) {
+    setError(err.message || "Failed to join lobby. Please try again.");
+    console.error("Join lobby error:", err);
+  } finally {
+    setLoadingStates(prev => ({...prev, joining: false}));
+  }
+};
 
   const startGameFromLobby = async () => {
     if (!lobby) return;
