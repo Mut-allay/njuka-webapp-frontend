@@ -46,7 +46,7 @@
   align-items: center;
   justify-content: flex-start;
   padding: 20px;
-  font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+  font-family: "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
 }
 
 h1 {
@@ -56,7 +56,8 @@ h1 {
   font-size: 1.5em; /* Reduced for mobile */
 }
 
-h2, h3 {
+h2,
+h3 {
   color: #f8d56b;
   margin-bottom: 10px;
   text-shadow: 0 1px 3px rgba(0, 0, 0, 0.3);
@@ -161,26 +162,21 @@ button:disabled {
 .card.facedown .card-back {
   width: 100%;
   height: 100%;
-  background: repeating-linear-gradient(
-    45deg,
-    #1a3a5a 0px,
-    #1a3a5a 8px,
-    #2a4a6a 8px,
-    #2a4a6a 16px
-  );
+  background: repeating-linear-gradient(45deg, #1a3a5a 0px, #1a3a5a 8px, #2a4a6a 8px, #2a4a6a 16px);
   border-radius: 6px;
   position: absolute;
   top: 0;
   left: 0;
 }
 
-.card-value, .card-suit {
+.card-value,
+.card-suit {
   font-size: 0.9em; /* Ensure readability */
   text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.5); /* Enhanced contrast */
 }
 
 .card:active {
-  transform: scale(0.98); 
+  transform: scale(0.98);
   transition: transform 0.1s;
 }
 
@@ -203,8 +199,12 @@ button:disabled {
 }
 
 @keyframes pulse-glow {
-  0% { box-shadow: 0 0 10px 2px rgba(248, 213, 107, 0.6); }
-  100% { box-shadow: 0 0 25px 8px rgba(248, 213, 107, 0.9); }
+  0% {
+    box-shadow: 0 0 10px 2px rgba(248, 213, 107, 0.6);
+  }
+  100% {
+    box-shadow: 0 0 25px 8px rgba(248, 213, 107, 0.9);
+  }
 }
 
 /* Animation styles */
@@ -217,17 +217,30 @@ button:disabled {
 }
 
 @keyframes cardDraw {
-  0% { transform: translateX(-100px) rotate(-15deg); opacity: 0; }
-  100% { transform: translateX(0) rotate(0); opacity: 1; }
+  0% {
+    transform: translateX(-100px) rotate(-15deg);
+    opacity: 0;
+  }
+  100% {
+    transform: translateX(0) rotate(0);
+    opacity: 1;
+  }
 }
 
 @keyframes cardDiscard {
-  0% { transform: translateY(0) scale(1); opacity: 1; }
-  100% { transform: translateY(100px) scale(0.5); opacity: 0; }
+  0% {
+    transform: translateY(0) scale(1);
+    opacity: 1;
+  }
+  100% {
+    transform: translateY(100px) scale(0.5);
+    opacity: 0;
+  }
 }
 
 @media (prefers-reduced-motion) {
-  .card-drawing, .card-discarding {
+  .card-drawing,
+  .card-discarding {
     animation: none !important;
   }
 }
@@ -248,9 +261,15 @@ button:disabled {
 }
 
 @keyframes pulse {
-  0% { opacity: 0.7; }
-  50% { opacity: 1; }
-  100% { opacity: 0.7; }
+  0% {
+    opacity: 0.7;
+  }
+  50% {
+    opacity: 1;
+  }
+  100% {
+    opacity: 0.7;
+  }
 }
 
 /* Hand styles */
@@ -277,9 +296,7 @@ button:disabled {
   background: radial-gradient(ellipse at center, #0d4a24 0%, #0d4a24 100%);
   border-radius: 50%;
   border: 15px solid #5d4037;
-  box-shadow: 
-    0 0 40px rgba(0, 0, 0, 0.8),
-    inset 0 0 30px rgba(0, 0, 0, 0.6);
+  box-shadow: 0 0 40px rgba(0, 0, 0, 0.8), inset 0 0 30px rgba(0, 0, 0, 0.6);
   display: flex;
   justify-content: center;
   align-items: center;
@@ -302,7 +319,8 @@ button:disabled {
   background: rgba(248, 213, 107, 0.1);
 }
 
-.player-seat h2, .player-seat h3 {
+.player-seat h2,
+.player-seat h3 {
   margin: 5px 0;
   color: white;
   text-shadow: 1px 1px 2px black;
@@ -352,15 +370,17 @@ button:disabled {
   align-items: center;
 }
 
-.deck-area, .discard-area {
+.deck-area,
+.discard-area {
   display: flex;
   flex-direction: column;
   align-items: center;
   position: relative;
 }
 
-.deck-area::before, .discard-area::before {
-  content: '';
+.deck-area::before,
+.discard-area::before {
+  content: "";
   position: absolute;
   top: -25px;
   color: rgba(248, 213, 107, 0.7);
@@ -369,11 +389,11 @@ button:disabled {
 }
 
 .deck-area::before {
-  content: 'DECK';
+  content: "DECK";
 }
 
 .discard-area::before {
-  content: 'DISCARD';
+  content: "DISCARD";
 }
 
 .deck-count {
@@ -604,8 +624,12 @@ button:disabled {
 }
 
 @keyframes spin {
-  0% { transform: rotate(0deg); }
-  100% { transform: rotate(360deg); }
+  0% {
+    transform: rotate(0deg);
+  }
+  100% {
+    transform: rotate(360deg);
+  }
 }
 
 /* Error Modal */
@@ -644,14 +668,16 @@ button:disabled {
 
 /* Mobile Portrait Layout */
 @media (max-width: 768px) {
-  h1 { 
-    font-size: 1.2em; 
+  h1 {
+    font-size: 1.2em;
   }
-  h2, h3 { 
-    font-size: 0.9em; 
+  h2,
+  h3 {
+    font-size: 0.9em;
   }
-  .card-value, .card-suit { 
-    font-size: 0.8em; 
+  .card-value,
+  .card-suit {
+    font-size: 0.8em;
   }
 
   .poker-table {
@@ -737,7 +763,8 @@ button:disabled {
   }
 
   /* Adjust deck and discard areas */
-  .deck-area, .discard-area {
+  .deck-area,
+  .discard-area {
     transform: scale(0.8);
   }
 
@@ -781,21 +808,22 @@ button:disabled {
   .poker-table {
     border-radius: 50%;
   }
-  
+
   .player-seat {
     min-width: 120px;
     padding: 10px 15px;
   }
-  
-  .left, .right {
+
+  .left,
+  .right {
     width: 120px;
   }
-  
+
   .table-center {
     gap: 60px;
   }
-  
-  .deck-area .card, 
+
+  .deck-area .card,
   .discard-area .card {
     width: 60px;
     height: 90px;
@@ -834,8 +862,14 @@ lobby-item {
 }
 
 @keyframes drawCard {
-  from { transform: translateY(-50px); opacity: 0; }
-  to { transform: translateY(0); opacity: 1; }
+  from {
+    transform: translateY(-50px);
+    opacity: 0;
+  }
+  to {
+    transform: translateY(0);
+    opacity: 1;
+  }
 }
 
 .disabled-btn {
@@ -852,7 +886,7 @@ lobby-item {
 .player-list li {
   padding: 8px;
   margin: 4px 0;
-  background: rgba(255,255,255,0.1);
+  background: rgba(255, 255, 255, 0.1);
   border-radius: 4px;
 }
 
