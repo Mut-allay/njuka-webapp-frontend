@@ -465,7 +465,8 @@ function LobbyView({
         <ul>
           {lobby.players.map(player => (
             <li key={player}>
-              {player} {player === playerName}
+              {player} {player === playerName && "(You)"}
+              {player === lobby.host && " 👑"}
             </li>
           ))}
         </ul>
@@ -475,8 +476,11 @@ function LobbyView({
         <button 
           onClick={onStartGame}
           disabled={lobby.players.length < 2}
+          className={lobby.players.length < 2 ? "disabled-btn" : ""}
         >
-          Start Game
+          {lobby.players.length < 2 
+            ? "Waiting for more players..." 
+            : "Start Game"}
         </button>
       )}
       
@@ -731,20 +735,23 @@ const createLobby = async () => {
 };
 
   const startGameFromLobby = async () => {
-    if (!lobby) return;
-    setLoadingStates(prev => ({...prev, starting: true}));
-    setError(null);
-    try {
-      const gameState = await apiService.startLobbyGame(lobby.id);
-      setLobby(null);
-      setGameId(gameState.id);
-      setState(gameState);
-    } catch (err: any) {
-      setError(err.message || "Failed to start game");
-    } finally {
-      setLoadingStates(prev => ({...prev, starting: false}));
-    }
-  };
+  if (!lobby) return;
+  
+  setLoadingStates(prev => ({...prev, starting: true}));
+  setError(null);
+  
+  try {
+    const gameState = await apiService.startLobbyGame(lobby.id);
+    setLobby(null);
+    setGameId(gameState.id);
+    setState(gameState);
+  } catch (err: any) {
+    setError(err.message || "Failed to start game. Please try again.");
+    console.error("Start game error:", err);
+  } finally {
+    setLoadingStates(prev => ({...prev, starting: false}));
+  }
+};
 
   const leaveLobby = () => {
     setLobby(null);
