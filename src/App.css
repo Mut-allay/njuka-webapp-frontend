@@ -1,3 +1,245 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  --background: hsl(0, 0%, 100%);
+  --foreground: hsl(20, 14.3%, 4.1%);
+  --muted: hsl(60, 4.8%, 95.9%);
+  --muted-foreground: hsl(25, 5.3%, 44.7%);
+  --popover: hsl(0, 0%, 100%);
+  --popover-foreground: hsl(20, 14.3%, 4.1%);
+  --card: hsl(0, 0%, 100%);
+  --card-foreground: hsl(20, 14.3%, 4.1%);
+  --border: hsl(20, 5.9%, 90%);
+  --input: hsl(20, 5.9%, 90%);
+  --primary: hsl(207, 90%, 54%);
+  --primary-foreground: hsl(211, 100%, 99%);
+  --secondary: hsl(60, 4.8%, 95.9%);
+  --secondary-foreground: hsl(24, 9.8%, 10%);
+  --accent: hsl(60, 4.8%, 95.9%);
+  --accent-foreground: hsl(24, 9.8%, 10%);
+  --destructive: hsl(0, 84.2%, 60.2%);
+  --destructive-foreground: hsl(60, 9.1%, 97.8%);
+  --ring: hsl(20, 14.3%, 4.1%);
+  --radius: 0.5rem;
+
+  /* Custom theater colors */
+  --casino-red: hsl(0, 100%, 27%);
+  --deep-red: hsl(348, 83%, 47%);
+  --rich-gold: hsl(51, 100%, 50%);
+  --warm-gold: hsl(39, 100%, 50%);
+  --dark-theater: hsl(0, 0%, 10%);
+  --curtain-shadow: hsl(0, 0%, 18%);
+}
+
+.dark {
+  --background: hsl(240, 10%, 3.9%);
+  --foreground: hsl(0, 0%, 98%);
+  --muted: hsl(240, 3.7%, 15.9%);
+  --muted-foreground: hsl(240, 5%, 64.9%);
+  --popover: hsl(240, 10%, 3.9%);
+  --popover-foreground: hsl(0, 0%, 98%);
+  --card: hsl(240, 10%, 3.9%);
+  --card-foreground: hsl(0, 0%, 98%);
+  --border: hsl(240, 3.7%, 15.9%);
+  --input: hsl(240, 3.7%, 15.9%);
+  --primary: hsl(207, 90%, 54%);
+  --primary-foreground: hsl(211, 100%, 99%);
+  --secondary: hsl(240, 3.7%, 15.9%);
+  --secondary-foreground: hsl(0, 0%, 98%);
+  --accent: hsl(240, 3.7%, 15.9%);
+  --accent-foreground: hsl(0, 0%, 98%);
+  --destructive: hsl(0, 62.8%, 30.6%);
+  --destructive-foreground: hsl(0, 0%, 98%);
+  --ring: hsl(240, 4.9%, 83.9%);
+  --radius: 0.5rem;
+}
+
+@layer base {
+  * {
+    @apply border-border;
+  }
+
+  body {
+    @apply font-sans antialiased bg-background text-foreground;
+  }
+}
+
+@layer utilities {
+  .casino-red {
+    color: var(--casino-red);
+  }
+
+  .deep-red {
+    color: var(--deep-red);
+  }
+
+  .rich-gold {
+    color: var(--rich-gold);
+  }
+
+  .warm-gold {
+    color: var(--warm-gold);
+  }
+
+  .dark-theater {
+    background-color: var(--dark-theater);
+  }
+
+  .curtain-shadow {
+    background-color: var(--curtain-shadow);
+  }
+}
+
+/* Custom animations */
+@keyframes curtainSway {
+  0%,
+  100% {
+    transform: translateX(0);
+  }
+  50% {
+    transform: translateX(2px);
+  }
+}
+
+@keyframes glowPulse {
+  0% {
+    text-shadow: 0 0 10px var(--rich-gold), 0 0 20px var(--rich-gold), 0 0 30px var(--warm-gold);
+  }
+  100% {
+    text-shadow: 0 0 20px var(--rich-gold), 0 0 30px var(--rich-gold), 0 0 40px var(--warm-gold);
+  }
+}
+
+@keyframes sparkle {
+  0%,
+  100% {
+    opacity: 0.3;
+    transform: scale(0.8);
+  }
+  50% {
+    opacity: 1;
+    transform: scale(1.2);
+  }
+}
+
+@keyframes ropeSwing {
+  0%,
+  100% {
+    transform: rotate(-1deg);
+  }
+  50% {
+    transform: rotate(1deg);
+  }
+}
+
+@keyframes fadeInScale {
+  0% {
+    opacity: 0;
+    transform: scale(0.8);
+  }
+  100% {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+/* Custom classes */
+.golden-text {
+  background: linear-gradient(45deg, var(--rich-gold) 0%, var(--warm-gold) 50%, var(--rich-gold) 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+  animation: glowPulse 2s ease-in-out infinite alternate;
+}
+
+.card-suit {
+  background: linear-gradient(45deg, var(--casino-red) 0%, var(--deep-red) 50%, var(--casino-red) 100%);
+  border: 3px solid var(--rich-gold);
+  box-shadow: 0 0 15px rgba(255, 215, 0, 0.5);
+}
+
+.curtain-gradient {
+  background: linear-gradient(
+    to right,
+    var(--casino-red) 0%,
+    var(--deep-red) 20%,
+    var(--casino-red) 40%,
+    var(--deep-red) 60%,
+    var(--casino-red) 80%,
+    var(--deep-red) 100%
+  );
+}
+
+.rope-barrier {
+  background: linear-gradient(45deg, hsl(45, 86%, 35%) 0%, var(--rich-gold) 50%, hsl(45, 86%, 35%) 100%);
+  border-radius: 50%;
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.3);
+}
+
+.carpet-stripe {
+  background: repeating-linear-gradient(
+    90deg,
+    var(--casino-red) 0px,
+    var(--deep-red) 10px,
+    var(--casino-red) 20px,
+    var(--rich-gold) 21px,
+    var(--warm-gold) 23px,
+    var(--rich-gold) 24px,
+    var(--casino-red) 25px
+  );
+}
+
+.ornate-frame {
+  border: 6px solid var(--rich-gold);
+  border-radius: 20px;
+  background: linear-gradient(45deg, var(--rich-gold) 0%, var(--warm-gold) 50%, var(--rich-gold) 100%);
+  box-shadow: 0 0 30px rgba(255, 215, 0, 0.6), inset 0 0 20px rgba(255, 215, 0, 0.3);
+}
+
+.curtain-sway {
+  animation: curtainSway 4s ease-in-out infinite;
+}
+
+.glow-pulse {
+  animation: glowPulse 2s ease-in-out infinite alternate;
+}
+
+.sparkle-animation {
+  animation: sparkle 3s linear infinite;
+}
+
+.rope-swing {
+  animation: ropeSwing 6s ease-in-out infinite;
+}
+
+.fade-in-scale {
+  animation: fadeInScale 1s ease-out;
+}
+
+/* Responsive adjustments */
+@media (max-width: 768px) {
+  .golden-text {
+    font-size: 3rem;
+  }
+
+  .card-suit {
+    width: 2rem;
+    height: 2rem;
+  }
+
+  .ornate-frame {
+    padding: 1rem;
+  }
+}
+
+@media (max-width: 640px) {
+  .golden-text {
+    font-size: 2.5rem;
+  }
+}
+
 /* Add these at the end of App.css */
 .lobby-list {
   margin-top: 20px;
@@ -11,11 +253,22 @@
   padding: 15px;
   margin: 10px 0;
   border: 1px solid rgba(248, 213, 107, 0.3);
+  transition: all 0.3s ease;
+}
+
+.lobby-item:hover {
+  background: rgba(10, 30, 40, 0.9);
+  border-color: rgba(248, 213, 107, 0.5);
 }
 
 .lobby-item h3 {
   margin-top: 0;
   color: #f8d56b;
+}
+
+.lobby-item button {
+  width: 100%;
+  margin-top: 10px;
 }
 
 .player-list {
@@ -32,8 +285,23 @@
 }
 
 .player-list li {
-  padding: 5px 0;
-  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 8px 0;
+  margin: 4px 0;
+  background: rgba(255, 255, 255, 0.1);
+  border-radius: 4px;
+}
+
+.player-list li:has(👑) {
+  font-weight: bold;
+  color: #f8d56b;
+}
+
+.player-list li button {
+  padding: 5px 10px;
+  font-size: 0.8em;
 }
 
 .App {
@@ -208,6 +476,10 @@ button:disabled {
 }
 
 /* Animation styles */
+.card {
+  transition: transform 0.3s ease, opacity 0.2s ease;
+}
+
 .card-drawing {
   animation: cardDraw 0.5s ease-out;
 }
@@ -830,48 +1102,6 @@ button:disabled {
   }
 }
 
-lobby-item {
-  background: rgba(10, 30, 40, 0.7);
-  border-radius: 10px;
-  padding: 15px;
-  margin: 10px 0;
-  border: 1px solid rgba(248, 213, 107, 0.3);
-  transition: all 0.3s ease;
-}
-
-.lobby-item:hover {
-  background: rgba(10, 30, 40, 0.9);
-  border-color: rgba(248, 213, 107, 0.5);
-}
-
-.lobby-item button {
-  width: 100%;
-  margin-top: 10px;
-}
-
-.player-list li {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  padding: 8px 0;
-}
-
-.player-list li button {
-  padding: 5px 10px;
-  font-size: 0.8em;
-}
-
-@keyframes drawCard {
-  from {
-    transform: translateY(-50px);
-    opacity: 0;
-  }
-  to {
-    transform: translateY(0);
-    opacity: 1;
-  }
-}
-
 .disabled-btn {
   opacity: 0.7;
   cursor: not-allowed;
@@ -881,16 +1111,4 @@ lobby-item {
 .disabled-btn:hover {
   background: #666 !important;
   transform: none !important;
-}
-
-.player-list li {
-  padding: 8px;
-  margin: 4px 0;
-  background: rgba(255, 255, 255, 0.1);
-  border-radius: 4px;
-}
-
-.player-list li:has(👑) {
-  font-weight: bold;
-  color: #f8d56b;
 }
