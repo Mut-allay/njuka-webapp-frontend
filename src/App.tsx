@@ -178,9 +178,12 @@ const apiService = {
     }
   },
 
-  getLobbyDetails: async (lobbyId: string): Promise<LobbyGame> => {
+  getLobbyDetails: async (lobbyId: string): Promise<LobbyGame | null> => {
     try {
       const response = await fetch(`${API}/lobby/${lobbyId}`)
+      if (response.status === 404) {
+        return null // Return null if lobby not found (game started or lobby expired)
+      }
       if (!response.ok) throw new Error("Failed to fetch lobby details")
       return response.json()
     } catch (err) {
@@ -279,15 +282,6 @@ function Table({
   const [showDeckHighlight, setShowDeckHighlight] = useState(false)
   const [hasShownPrompt, setHasShownPrompt] = useState(false)
 
-  if (!state || !state.players || state.players.length === 0) {
-    return (
-      <div className="loading">
-        <div className="loading-spinner"></div>
-        <p>Loading game data...</p>
-      </div>
-    )
-  }
-
   const yourPlayer = state.players.find((p) => p?.name === playerName)
   const currentPlayerIndex = state.current_player ?? 0
   const currentPlayer = state.players[currentPlayerIndex]
@@ -316,14 +310,12 @@ function Table({
   }
 
   useEffect(() => {
-    if (!shouldShowPrompt() && !hasShownPrompt) {
-      const timer = setTimeout(() => {
-        setShowDeckHighlight(true)
-        setHasShownPrompt(true)
-      }, 3000)
-      return () => clearTimeout(timer)
-    }
-  }, [state])
+    const timer = setTimeout(() => {
+      setShowDeckHighlight(true)
+      setHasShownPrompt(true)
+    }, 3000)
+    return () => clearTimeout(timer)
+  }, [])
 
   useEffect(() => {
     if (state?.current_player !== state?.players.findIndex((p) => p?.name === playerName)) {
@@ -701,17 +693,32 @@ function App() {
     const fetchLobbyDetails = async () => {
       try {
         const updatedLobby = await apiService.getLobbyDetails(lobby.id)
-        setLobby(updatedLobby)
-      } catch (err) {
-        console.error("Failed to fetch lobby details:", err)
-        // Optionally handle error, e.g., if lobby no longer exists
+        if (updatedLobby === null) {
+          // Lobby no longer exists, assume game has started
+          console.log("Lobby no longer exists. Attempting to join game...")
+          try {
+            const game = await apiService.joinGame(lobby.id, playerName)
+            setLobby(null) // Exit lobby view
+            setGameId(game.id)
+            setState(game) // Transition to game view
+          } catch (joinErr: any) {
+            setError(joinErr.message || "Failed to join game after lobby disappeared.")
+            console.error("Failed to join game after lobby disappeared:", joinErr)
+            setLobby(null) // Ensure we exit the lobby view even if game join fails
+          }
+        } else {
+          setLobby(updatedLobby)
+        }
+      } catch (err: any) {
+        setError(err.message || "An unexpected error occurred while fetching lobby details.")
+        console.error("Error fetching lobby details:", err)
       }
     }
 
     const intervalId = setInterval(fetchLobbyDetails, 3000) // Poll every 3 seconds
 
     return () => clearInterval(intervalId) // Clean up on unmount or lobby change
-  }, [lobby, backendAvailable]) // Re-run if lobby ID changes or backend availability changes
+  }, [lobby, backendAvailable, playerName]) // Add playerName to dependencies
 
   const discard = async (cardIdx: number) => {
     setLoadingStates((prev) => ({ ...prev, discarding: true }))
