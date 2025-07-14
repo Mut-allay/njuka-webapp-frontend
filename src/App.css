@@ -837,3 +837,26 @@ lobby-item {
   from { transform: translateY(-50px); opacity: 0; }
   to { transform: translateY(0); opacity: 1; }
 }
+
+.disabled-btn {
+  opacity: 0.7;
+  cursor: not-allowed;
+  background: #666 !important;
+}
+
+.disabled-btn:hover {
+  background: #666 !important;
+  transform: none !important;
+}
+
+.player-list li {
+  padding: 8px;
+  margin: 4px 0;
+  background: rgba(255,255,255,0.1);
+  border-radius: 4px;
+}
+
+.player-list li:has(👑) {
+  font-weight: bold;
+  color: #f8d56b;
+}
