@@ -39,6 +39,7 @@ type LobbyGame = {
   max_players: number
   created_at: string
   started?: boolean
+  game_id?: string // Add game_id to LobbyGame type
 }
 
 const tutorialPromptsShown = new Map<string, number>()
@@ -309,6 +310,15 @@ function Table({
     return false
   }
 
+  const handleCardClick = (index: number) => {
+    if (selectedCardIndex === index) {
+      onDiscard(index)
+      setSelectedCardIndex(null)
+    } else {
+      setSelectedCardIndex(index)
+    }
+  }
+
   useEffect(() => {
     const timer = setTimeout(() => {
       setShowDeckHighlight(true)
@@ -324,15 +334,6 @@ function Table({
       setSelectedCardIndex(null)
     }
   }, [state])
-
-  const handleCardClick = (index: number) => {
-    if (selectedCardIndex === index) {
-      onDiscard(index)
-      setSelectedCardIndex(null)
-    } else {
-      setSelectedCardIndex(index)
-    }
-  }
 
   return (
     <div className="poker-table">
@@ -406,7 +407,7 @@ function Table({
         <div
           className={`deck-area ${showDeckHighlight ? "deck-highlight" : ""}`}
           onClick={
-            !loadingStates.drawing && currentPlayer.name === yourPlayer.name && !isGameOver && !state.has_drawn
+            !loadingStates.drawing && currentPlayer.name === playerName && !isGameOver && !state.has_drawn
               ? onDraw
               : undefined
           }
@@ -420,7 +421,7 @@ function Table({
             className={loadingStates.drawing ? "card-drawing" : ""}
             style={{
               cursor:
-                !loadingStates.drawing && currentPlayer.name === yourPlayer.name && !isGameOver && !state.has_drawn
+                !loadingStates.drawing && currentPlayer.name === playerName && !isGameOver && !state.has_drawn
                   ? "pointer"
                   : "default",
             }}
@@ -694,19 +695,30 @@ function App() {
       try {
         const updatedLobby = await apiService.getLobbyDetails(lobby.id)
         if (updatedLobby === null) {
-          // Lobby no longer exists, assume game has started
-          console.log("Lobby no longer exists. Attempting to join game...")
+          // Lobby no longer exists, it might have been cleaned up or game started
+          console.log("Lobby no longer exists. Checking if game started...")
+          // If the lobby is gone, and we were in a lobby, try to join the game with the same ID
+          // This assumes the game ID will be the same as the lobby ID, which is not true with current backend.
+          // We need to rely on the `game_id` field in the lobby object.
+          // If the lobby is null, it means we missed the update where game_id was set.
+          // For now, if lobby is null, we just exit the lobby view.
+          setLobby(null)
+          setError("Lobby disappeared. It might have started or expired. Please check available games.")
+        } else if (updatedLobby.started && updatedLobby.game_id) {
+          // Lobby has started and has a game_id, join the game
+          console.log(`Lobby started. Joining game with ID: ${updatedLobby.game_id}`)
           try {
-            const game = await apiService.joinGame(lobby.id, playerName)
+            const game = await apiService.joinGame(updatedLobby.game_id, playerName)
             setLobby(null) // Exit lobby view
             setGameId(game.id)
             setState(game) // Transition to game view
           } catch (joinErr: any) {
-            setError(joinErr.message || "Failed to join game after lobby disappeared.")
-            console.error("Failed to join game after lobby disappeared:", joinErr)
+            setError(joinErr.message || "Failed to join game after lobby started.")
+            console.error("Failed to join game after lobby started:", joinErr)
             setLobby(null) // Ensure we exit the lobby view even if game join fails
           }
         } else {
+          // Lobby still exists and hasn't started, update state
           setLobby(updatedLobby)
         }
       } catch (err: any) {
