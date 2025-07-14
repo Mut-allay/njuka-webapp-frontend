@@ -319,11 +319,12 @@ function Table({
     }
   }
 
+  const timer = setTimeout(() => {
+    setShowDeckHighlight(true)
+    setHasShownPrompt(true)
+  }, 3000)
+
   useEffect(() => {
-    const timer = setTimeout(() => {
-      setShowDeckHighlight(true)
-      setHasShownPrompt(true)
-    }, 3000)
     return () => clearTimeout(timer)
   }, [])
 
@@ -592,7 +593,18 @@ function App() {
     const fetchGameState = async () => {
       try {
         const res = await fetch(`${API}/game/${gameId}`)
-        if (!res.ok) throw new Error("Network response was not ok")
+        if (!res.ok) {
+          // Handle 404 specifically: game not found on backend
+          if (res.status === 404) {
+            console.error(`Game ${gameId} not found on backend. Returning to menu.`)
+            setError("Game not found or expired. Returning to main menu.")
+            setState(null)
+            setGameId(null)
+            clearInterval(intervalId) // Stop polling
+            return
+          }
+          throw new Error("Network response was not ok")
+        }
         const latestState = await res.json()
         setState(latestState)
         retries = 3
@@ -614,7 +626,7 @@ function App() {
       setBackendAvailable(isHealthy)
       if (isHealthy) {
         setError(null)
-        intervalId = setInterval(fetchGameState, 5000)
+        intervalId = setInterval(fetchGameState, 2000) // Poll every 2 seconds
         fetchGameState()
       }
     }
