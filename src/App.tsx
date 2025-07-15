@@ -39,7 +39,7 @@ type LobbyGame = {
   max_players: number
   created_at: string
   started?: boolean
-  game_id?: string // Add game_id to LobbyGame type
+  game_id?: string
 }
 
 const tutorialPromptsShown = new Map<string, number>()
@@ -139,7 +139,7 @@ const apiService = {
       if (!response.ok) {
         if (response.status === 404) {
           console.log("Lobby endpoint not found - returning empty list")
-          return [] // Return empty array instead of error
+          return []
         }
         throw new Error("Failed to fetch lobbies")
       }
@@ -147,7 +147,7 @@ const apiService = {
       return data.lobbies || []
     } catch (err) {
       console.error("API Error:", err)
-      return [] // Return empty array on error
+      return []
     }
   },
 
@@ -183,7 +183,7 @@ const apiService = {
     try {
       const response = await fetch(`${API}/lobby/${lobbyId}`)
       if (response.status === 404) {
-        return null // Return null if lobby not found (game started or lobby expired)
+        return null
       }
       if (!response.ok) throw new Error("Failed to fetch lobby details")
       return response.json()
@@ -319,12 +319,12 @@ function Table({
     }
   }
 
-  useEffect(() => {
-    const timer = setTimeout(() => {
-      setShowDeckHighlight(true)
-      setHasShownPrompt(true)
-    }, 3000)
+  const timer = setTimeout(() => {
+    setShowDeckHighlight(true)
+    setHasShownPrompt(true)
+  }, 3000)
 
+  useEffect(() => {
     return () => clearTimeout(timer)
   }, [])
 
@@ -594,13 +594,12 @@ function App() {
       try {
         const res = await fetch(`${API}/game/${gameId}`)
         if (!res.ok) {
-          // Handle 404 specifically: game not found on backend
           if (res.status === 404) {
             console.error(`Game ${gameId} not found on backend. Returning to menu.`)
             setError("Game not found or expired. Returning to main menu.")
             setState(null)
             setGameId(null)
-            clearInterval(intervalId) // Stop polling
+            clearInterval(intervalId)
             return
           }
           throw new Error("Network response was not ok")
@@ -626,7 +625,7 @@ function App() {
       setBackendAvailable(isHealthy)
       if (isHealthy) {
         setError(null)
-        intervalId = setInterval(fetchGameState, 2000) // Poll every 2 seconds
+        intervalId = setInterval(fetchGameState, 2000)
         fetchGameState()
       }
     }
@@ -640,26 +639,9 @@ function App() {
   useEffect(() => {
     if (!state || state.game_over || !backendAvailable) return
 
-    const currentPlayerIndex = state.current_player
-    const currentPlayer = state.players[currentPlayerIndex]
-    const yourPlayerIndex = state.players.findIndex((p) => p?.name === playerName)
-
-    // If your player isn't found, or current player is invalid, exit
-    if (yourPlayerIndex === -1 || !currentPlayer) {
-      return
-    }
-
-    // --- START DEBUG LOGS ---
-    console.log("--- CPU Turn Check ---")
-    console.log("Current Player Name:", currentPlayer.name)
-    console.log("Current Player is CPU:", currentPlayer.is_cpu)
-    console.log("Your Player Name (frontend state):", playerName)
-    console.log("Your Player Index in state.players:", yourPlayerIndex)
-    console.log("Is it your turn (by index)?", currentPlayerIndex === yourPlayerIndex)
-    console.log("--- END DEBUG LOGS ---")
-
-    // Condition: current player is a CPU AND it's not your turn
-    if (currentPlayer.is_cpu && currentPlayerIndex !== yourPlayerIndex) {
+    const currentPlayer = state.players[state.current_player]
+    // Only make CPU move if it's actually a CPU player's turn AND it's not the human player
+    if (currentPlayer?.is_cpu && currentPlayer.name !== playerName) {
       setLoadingStates((prev) => ({ ...prev, cpuMoving: true }))
 
       const makeCpuMove = async () => {
@@ -697,7 +679,6 @@ function App() {
     }
   }, [state, playerName, backendAvailable])
 
-  // Temporary test in your frontend
   useEffect(() => {
     fetch(`${API}/health`)
       .then((res) => console.log("Backend connection:", res.ok))
@@ -717,7 +698,6 @@ function App() {
     return () => clearInterval(interval)
   }, [showLobbyList, backendAvailable])
 
-  // New useEffect for polling lobby details when in a lobby
   useEffect(() => {
     if (!lobby || !backendAvailable) return
 
@@ -725,30 +705,21 @@ function App() {
       try {
         const updatedLobby = await apiService.getLobbyDetails(lobby.id)
         if (updatedLobby === null) {
-          // Lobby no longer exists, it might have been cleaned up or game started
-          console.log("Lobby no longer exists. Checking if game started...")
-          // If the lobby is gone, and we were in a lobby, try to join the game with the same ID
-          // This assumes the game ID will be the same as the lobby ID, which is not true with current backend.
-          // We need to rely on the `game_id` field in the lobby object.
-          // If the lobby is null, it means we missed the update where game_id was set.
-          // For now, if lobby is null, we just exit the lobby view.
           setLobby(null)
           setError("Lobby disappeared. It might have started or expired. Please check available games.")
         } else if (updatedLobby.started && updatedLobby.game_id) {
-          // Lobby has started and has a game_id, join the game
           console.log(`Lobby started. Joining game with ID: ${updatedLobby.game_id}`)
           try {
             const game = await apiService.joinGame(updatedLobby.game_id, playerName)
-            setLobby(null) // Exit lobby view
+            setLobby(null)
             setGameId(game.id)
-            setState(game) // Transition to game view
+            setState(game)
           } catch (joinErr: any) {
             setError(joinErr.message || "Failed to join game after lobby started.")
             console.error("Failed to join game after lobby started:", joinErr)
-            setLobby(null) // Ensure we exit the lobby view even if game join fails
+            setLobby(null)
           }
         } else {
-          // Lobby still exists and hasn't started, update state
           setLobby(updatedLobby)
         }
       } catch (err: any) {
@@ -757,10 +728,9 @@ function App() {
       }
     }
 
-    const intervalId = setInterval(fetchLobbyDetails, 3000) // Poll every 3 seconds
-
-    return () => clearInterval(intervalId) // Clean up on unmount or lobby change
-  }, [lobby, backendAvailable, playerName]) // Add playerName to dependencies
+    const intervalId = setInterval(fetchLobbyDetails, 3000)
+    return () => clearInterval(intervalId)
+  }, [lobby, backendAvailable, playerName])
 
   const discard = async (cardIdx: number) => {
     setLoadingStates((prev) => ({ ...prev, discarding: true }))
@@ -840,7 +810,7 @@ function App() {
     setError(null)
 
     try {
-      const gameState = await apiService.startLobbyGame(lobby.id, playerName) // Pass playerName as host_name
+      const gameState = await apiService.startLobbyGame(lobby.id, playerName)
       setLobby(null)
       setGameId(gameState.id)
       setState(gameState)
