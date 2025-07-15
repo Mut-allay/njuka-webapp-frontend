@@ -1,8 +1,8 @@
 "use client"
 
 import type React from "react"
-import { useState, useEffect, useCallback } from "react" // Import useCallback
-import "./App.css" // Corrected import path
+import { useState, useEffect, useCallback } from "react"
+import "./App.css"
 
 const API = "https://njuka-webapp-backend.onrender.com"
 
@@ -38,7 +38,7 @@ type LobbyGame = {
   max_players: number
   created_at: string
   started?: boolean
-  game_id?: string // Add game_id to LobbyGame type
+  game_id?: string
 }
 
 const tutorialPromptsShown = new Map<string, number>()
@@ -143,7 +143,7 @@ const apiService = {
       if (!response.ok) {
         if (response.status === 404) {
           console.log("Lobby endpoint not found - returning empty list")
-          return [] // Return empty array instead of error
+          return []
         }
         throw new Error("Failed to fetch lobbies")
       }
@@ -151,7 +151,7 @@ const apiService = {
       return data.lobbies || []
     } catch (err) {
       console.error("API Error:", err)
-      return [] // Return empty array on error
+      return []
     }
   },
 
@@ -187,7 +187,7 @@ const apiService = {
     try {
       const response = await fetch(`${API}/lobby/${lobbyId}`)
       if (response.status === 404) {
-        return null // Return null if lobby not found (game started or lobby expired)
+        return null
       }
       if (!response.ok) throw new Error("Failed to fetch lobby details")
       return response.json()
@@ -302,6 +302,10 @@ function Table({
 
   const isWinner = (player: Player) => isGameOver && state.winner === player.name
 
+  const shouldShowFaceDown = (player: Player) => {
+    return player.name !== playerName && !isGameOver
+  }
+
   const shouldShowPrompt = () => {
     const playerId = state.players[state.current_player]?.name
     if (!playerId || playerId !== playerName || hasShownPrompt) return false
@@ -353,9 +357,9 @@ function Table({
             {Array.from({ length: getPlayerSafe(1).hand.length }).map((_, i) => (
               <Card
                 key={`top-${i}`}
-                facedown={!isGameOver}
-                value={isGameOver ? getPlayerSafe(1).hand[i].value : ""}
-                suit={isGameOver ? getPlayerSafe(1).hand[i].suit : ""}
+                facedown={shouldShowFaceDown(getPlayerSafe(1))}
+                value={isGameOver ? getPlayerSafe(1).hand[i]?.value : ""}
+                suit={isGameOver ? getPlayerSafe(1).hand[i]?.suit : ""}
                 small={true}
                 highlight={isWinner(getPlayerSafe(1))}
               />
@@ -375,9 +379,9 @@ function Table({
             {Array.from({ length: getPlayerSafe(2).hand.length }).map((_, i) => (
               <Card
                 key={`left-${i}`}
-                facedown={!isGameOver}
-                value={isGameOver ? getPlayerSafe(2).hand[i].value : ""}
-                suit={isGameOver ? getPlayerSafe(2).hand[i].suit : ""}
+                facedown={shouldShowFaceDown(getPlayerSafe(2))}
+                value={isGameOver ? getPlayerSafe(2).hand[i]?.value : ""}
+                suit={isGameOver ? getPlayerSafe(2).hand[i]?.suit : ""}
                 small={true}
                 highlight={isWinner(getPlayerSafe(2))}
               />
@@ -397,9 +401,9 @@ function Table({
             {Array.from({ length: getPlayerSafe(3).hand.length }).map((_, i) => (
               <Card
                 key={`right-${i}`}
-                facedown={!isGameOver}
-                value={isGameOver ? getPlayerSafe(3).hand[i].value : ""}
-                suit={isGameOver ? getPlayerSafe(3).hand[i].suit : ""}
+                facedown={shouldShowFaceDown(getPlayerSafe(3))}
+                value={isGameOver ? getPlayerSafe(3).hand[i]?.value : ""}
+                suit={isGameOver ? getPlayerSafe(3).hand[i]?.suit : ""}
                 small={true}
                 highlight={isWinner(getPlayerSafe(3))}
               />
@@ -532,7 +536,7 @@ function App() {
   })
   const [error, setError] = useState<string | null>(null)
   const [currentMenu, setCurrentMenu] = useState<"main" | "multiplayer" | "cpu">("main")
-  const [numPlayersSetting, setNumPlayersSetting] = useState(1) // Used for CPU count or max players
+  const [numPlayersSetting, setNumPlayersSetting] = useState(1)
   const [playerName, setPlayerName] = useState("Player")
   const [backendAvailable, setBackendAvailable] = useState(true)
   const [lobby, setLobby] = useState<LobbyGame | null>(null)
@@ -567,7 +571,6 @@ function App() {
     }
   }, [state, playerName])
 
-  // checkConnection is now a useCallback at the top level
   const checkConnection = useCallback(async () => {
     setLoadingStates((prev) => ({ ...prev, starting: true, joining: true }))
     try {
@@ -584,60 +587,56 @@ function App() {
     }
   }, [setBackendAvailable, setError, setLoadingStates])
 
-  // Initial connection check on mount
   useEffect(() => {
     checkConnection()
-  }, [checkConnection]) // Dependency on checkConnection
+  }, [checkConnection])
 
   useEffect(() => {
     if (!gameId || !backendAvailable) return
 
     let intervalId: NodeJS.Timeout
-    let currentRetries = 3 // Use a local variable for retries within this effect closure
+    let currentRetries = 3
 
     const fetchGameState = async () => {
       try {
         const res = await fetch(`${API}/game/${gameId}`)
         if (!res.ok) {
-          // Handle 404 specifically: game not found on backend
           if (res.status === 404) {
             console.error(`Game ${gameId} not found on backend. Returning to menu.`)
             setError("Game not found or expired. Returning to main menu.")
             setState(null)
             setGameId(null)
-            clearInterval(intervalId) // Stop polling
+            clearInterval(intervalId)
             return
           }
           throw new Error("Network response was not ok")
         }
         const latestState = await res.json()
         setState(latestState)
-        currentRetries = 3 // Reset retries on success
+        currentRetries = 3
       } catch (err) {
         console.error("Failed to fetch game state:", err)
         currentRetries--
         if (currentRetries <= 0) {
           setError("Connection lost. Trying to reconnect...")
-          clearInterval(intervalId) // Stop current polling
+          clearInterval(intervalId)
           setTimeout(async () => {
-            await checkConnection() // Call the global checkConnection
+            await checkConnection()
             if (backendAvailable) {
-              // If connection is restored, restart polling
               intervalId = setInterval(fetchGameState, 2000)
               fetchGameState()
             }
-            currentRetries = 3 // Reset retries after attempting reconnection
+            currentRetries = 3
           }, 5000)
         }
       }
     }
 
-    // Initial fetch and start polling
     intervalId = setInterval(fetchGameState, 2000)
     fetchGameState()
 
-    return () => clearInterval(intervalId) // Cleanup
-  }, [gameId, backendAvailable, checkConnection, setState, setGameId, setError]) // Add all dependencies
+    return () => clearInterval(intervalId)
+  }, [gameId, backendAvailable, checkConnection, setState, setGameId, setError])
 
   useEffect(() => {
     if (!state || state.game_over || !backendAvailable) return
@@ -645,38 +644,28 @@ function App() {
     const currentPlayer = state.players[state.current_player]
     const isMyTurn = currentPlayer.name === playerName
 
-    // Only proceed if it's a CPU's turn, it's not the human player's turn, and a CPU move isn't already in progress
     if (currentPlayer?.is_cpu && !isMyTurn && !loadingStates.cpuMoving) {
-      setLoadingStates((prev) => ({ ...prev, cpuMoving: true })) // Indicate CPU move is starting
+      setLoadingStates((prev) => ({ ...prev, cpuMoving: true }))
 
       const makeCpuMove = async () => {
         try {
-          // Simulate CPU thinking before drawing
           await new Promise((resolve) => setTimeout(resolve, 1000))
-
-          // Step 1: CPU draws a card
           const updatedStateAfterDraw = await apiService.drawCard(state.id)
-          setState(updatedStateAfterDraw) // Update state immediately after draw
+          setState(updatedStateAfterDraw)
 
-          // Simulate CPU thinking before discarding
           await new Promise((resolve) => setTimeout(resolve, 1000))
 
-          // Step 2: CPU discards a card
-          // Find the CPU player in the *latest* state after draw to get its current hand
           const cpuPlayerAfterDraw = updatedStateAfterDraw.players.find((p) => p.name === currentPlayer.name)
           if (cpuPlayerAfterDraw && cpuPlayerAfterDraw.hand.length > 0) {
             const randomIndex = Math.floor(Math.random() * cpuPlayerAfterDraw.hand.length)
             const finalState = await apiService.discardCard(updatedStateAfterDraw.id, randomIndex)
-            setState(finalState) // Update state after discard, which should pass the turn
+            setState(finalState)
           } else {
-            // Fallback: if for some reason CPU has no cards after drawing, just fetch latest state
-            // This should ideally not happen if draw always adds a card
             const latestState = await fetch(`${API}/game/${state.id}`).then((res) => res.json())
             setState(latestState)
           }
         } catch (err) {
           console.error("CPU move failed:", err)
-          // Attempt to fetch latest state even on error to recover
           try {
             const latestState = await fetch(`${API}/game/${state.id}`).then((res) => res.json())
             setState(latestState)
@@ -684,16 +673,14 @@ function App() {
             console.error("Failed to fetch game state after CPU move error:", fetchErr)
           }
         } finally {
-          setLoadingStates((prev) => ({ ...prev, cpuMoving: false })) // Reset CPU moving state
+          setLoadingStates((prev) => ({ ...prev, cpuMoving: false }))
         }
       }
 
-      // Execute the CPU move sequence
       makeCpuMove()
     }
   }, [state, playerName, backendAvailable, loadingStates.cpuMoving])
 
-  // Poll lobbies when in multiplayer menu
   useEffect(() => {
     if (currentMenu !== "multiplayer" || !backendAvailable) return
 
@@ -707,7 +694,6 @@ function App() {
     return () => clearInterval(interval)
   }, [currentMenu, backendAvailable])
 
-  // New useEffect for polling lobby details when in a lobby
   useEffect(() => {
     if (!lobby || !backendAvailable) return
 
@@ -718,19 +704,19 @@ function App() {
           console.log("Lobby no longer exists. Checking if game started...")
           setLobby(null)
           setError("Lobby disappeared. It might have started or expired. Please check available games.")
-          setCurrentMenu("main") // Return to main menu
+          setCurrentMenu("main")
         } else if (updatedLobby.started && updatedLobby.game_id) {
           console.log(`Lobby started. Joining game with ID: ${updatedLobby.game_id}`)
           try {
             const game = await apiService.joinGame(updatedLobby.game_id, playerName)
-            setLobby(null) // Exit lobby view
+            setLobby(null)
             setGameId(game.id)
-            setState(game) // Transition to game view
+            setState(game)
           } catch (joinErr: any) {
             setError(joinErr.message || "Failed to join game after lobby started.")
             console.error("Failed to join game after lobby started:", joinErr)
-            setLobby(null) // Ensure we exit the lobby view even if game join fails
-            setCurrentMenu("main") // Return to main menu
+            setLobby(null)
+            setCurrentMenu("main")
           }
         } else {
           setLobby(updatedLobby)
@@ -741,9 +727,9 @@ function App() {
       }
     }
 
-    const intervalId = setInterval(fetchLobbyDetails, 3000) // Poll every 3 seconds
+    const intervalId = setInterval(fetchLobbyDetails, 3000)
 
-    return () => clearInterval(intervalId) // Clean up on unmount or lobby change
+    return () => clearInterval(intervalId)
   }, [lobby, backendAvailable, playerName])
 
   const discard = async (cardIdx: number) => {
@@ -793,7 +779,7 @@ function App() {
     setLoadingStates((prev) => ({ ...prev, starting: true }))
     setError(null)
     try {
-      const newLobby = await apiService.createLobby(playerName, numPlayersSetting) // Use numPlayersSetting for max_players
+      const newLobby = await apiService.createLobby(playerName, numPlayersSetting)
       setLobby(newLobby)
     } catch (err: any) {
       setError(err.message || "Failed to create lobby")
@@ -823,7 +809,7 @@ function App() {
     setError(null)
 
     try {
-      const gameState = await apiService.startLobbyGame(lobby.id, playerName) // Pass playerName as host_name
+      const gameState = await apiService.startLobbyGame(lobby.id, playerName)
       setLobby(null)
       setGameId(gameState.id)
       setState(gameState)
@@ -851,13 +837,13 @@ function App() {
 
   const leaveLobby = () => {
     setLobby(null)
-    setCurrentMenu("main") // Go back to main menu
+    setCurrentMenu("main")
   }
 
   const quitGameToMenu = () => {
     setState(null)
     setGameId(null)
-    setCurrentMenu("main") // Go back to main menu
+    setCurrentMenu("main")
   }
 
   return (
