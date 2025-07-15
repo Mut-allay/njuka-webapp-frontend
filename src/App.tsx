@@ -2,7 +2,7 @@
 
 import type React from "react"
 import { useState, useEffect, useCallback } from "react" // Import useCallback
-import "./App.css"
+import "./App-XAY4w8qSmPiLXs9coXA0hLCWTqN2LC.css"
 
 const API = "https://njuka-webapp-backend.onrender.com"
 
@@ -323,12 +323,12 @@ function Table({
     }
   }
 
-  const timer = setTimeout(() => {
-    setShowDeckHighlight(true)
-    setHasShownPrompt(true)
-  }, 3000)
-
   useEffect(() => {
+    const timer = setTimeout(() => {
+      setShowDeckHighlight(true)
+      setHasShownPrompt(true)
+    }, 3000)
+
     return () => clearTimeout(timer)
   }, [])
 
@@ -350,12 +350,12 @@ function Table({
             {getPlayerSafe(1).is_cpu && " (CPU)"}
           </h3>
           <div className="hand horizontal">
-            {getPlayerSafe(1).hand.map((card, i) => (
+            {Array.from({ length: getPlayerSafe(1).hand.length }).map((_, i) => (
               <Card
                 key={`top-${i}`}
                 facedown={!isGameOver}
-                value={card.value}
-                suit={card.suit}
+                value={isGameOver ? getPlayerSafe(1).hand[i].value : ""}
+                suit={isGameOver ? getPlayerSafe(1).hand[i].suit : ""}
                 small={true}
                 highlight={isWinner(getPlayerSafe(1))}
               />
@@ -372,12 +372,12 @@ function Table({
             {getPlayerSafe(2).is_cpu && " (CPU)"}
           </h3>
           <div className="hand horizontal">
-            {getPlayerSafe(2).hand.map((card, i) => (
+            {Array.from({ length: getPlayerSafe(2).hand.length }).map((_, i) => (
               <Card
                 key={`left-${i}`}
                 facedown={!isGameOver}
-                value={card.value}
-                suit={card.suit}
+                value={isGameOver ? getPlayerSafe(2).hand[i].value : ""}
+                suit={isGameOver ? getPlayerSafe(2).hand[i].suit : ""}
                 small={true}
                 highlight={isWinner(getPlayerSafe(2))}
               />
@@ -394,12 +394,12 @@ function Table({
             {getPlayerSafe(3).is_cpu && " (CPU)"}
           </h3>
           <div className="hand horizontal">
-            {getPlayerSafe(3).hand.map((card, i) => (
+            {Array.from({ length: getPlayerSafe(3).hand.length }).map((_, i) => (
               <Card
                 key={`right-${i}`}
                 facedown={!isGameOver}
-                value={card.value}
-                suit={card.suit}
+                value={isGameOver ? getPlayerSafe(3).hand[i].value : ""}
+                suit={isGameOver ? getPlayerSafe(3).hand[i].suit : ""}
                 small={true}
                 highlight={isWinner(getPlayerSafe(3))}
               />
