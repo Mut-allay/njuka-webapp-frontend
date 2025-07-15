@@ -646,18 +646,34 @@ function App() {
 
       const makeCpuMove = async () => {
         try {
-          const afterDrawState = await apiService.drawCard(state.id)
+          // First check if CPU needs to draw (hasn't drawn yet)
+          if (!state.has_drawn) {
+            const afterDrawState = await apiService.drawCard(state.id)
+            setState(afterDrawState)
+            
+            // Check if CPU can win after drawing
+            const updatedState = await fetch(`${API}/game/${state.id}`).then((res) => res.json())
+            const winner = updatedState.winner
+            if (winner) {
+              setState(updatedState)
+              return
+            }
 
-          if (afterDrawState.has_drawn && afterDrawState.players[state.current_player].hand.length > 0) {
-            const randomIndex = Math.floor(Math.random() * afterDrawState.players[state.current_player].hand.length)
+            // If CPU has 4 cards, they must discard one
+            if (updatedState.players[state.current_player].hand.length === 4) {
+              const randomIndex = Math.floor(Math.random() * updatedState.players[state.current_player].hand.length)
+              await apiService.discardCard(state.id, randomIndex)
+            }
+          } 
+          // If CPU has already drawn, they must discard
+          else if (state.has_drawn && state.players[state.current_player].hand.length > 0) {
+            const randomIndex = Math.floor(Math.random() * state.players[state.current_player].hand.length)
             await apiService.discardCard(state.id, randomIndex)
           }
 
-          const updatedState = await apiService
-            .checkHealth()
-            .then(() => fetch(`${API}/game/${state.id}`))
-            .then((res) => res.json())
-          setState(updatedState)
+          // Get final updated state
+          const finalState = await fetch(`${API}/game/${state.id}`).then((res) => res.json())
+          setState(finalState)
         } catch (err) {
           console.error("CPU move failed:", err)
           try {
