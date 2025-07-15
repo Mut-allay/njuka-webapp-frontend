@@ -642,26 +642,41 @@ function App() {
   useEffect(() => {
     if (!state || state.game_over || !backendAvailable) return
 
-  const currentPlayer = state.players[state.current_player]
-    if (currentPlayer?.is_cpu && currentPlayer.name !== playerName) {
-    setLoadingStates((prev) => ({ ...prev, cpuMoving: true }))
+    const currentPlayer = state.players[state.current_player]
+    const isMyTurn = currentPlayer.name === playerName
 
-    const makeCpuMove = async () => {
-      try {
-          const afterDrawState = await apiService.drawCard(state.id)
+    // Only proceed if it's a CPU's turn, it's not the human player's turn, and a CPU move isn't already in progress
+    if (currentPlayer?.is_cpu && !isMyTurn && !loadingStates.cpuMoving) {
+      setLoadingStates((prev) => ({ ...prev, cpuMoving: true })) // Indicate CPU move is starting
 
-          if (afterDrawState.has_drawn && afterDrawState.players[state.current_player].hand.length > 0) {
-            const randomIndex = Math.floor(Math.random() * afterDrawState.players[state.current_player].hand.length)
-            await apiService.discardCard(state.id, randomIndex)
+      const makeCpuMove = async () => {
+        try {
+          // Simulate CPU thinking before drawing
+          await new Promise((resolve) => setTimeout(resolve, 1000))
+
+          // Step 1: CPU draws a card
+          const updatedStateAfterDraw = await apiService.drawCard(state.id)
+          setState(updatedStateAfterDraw) // Update state immediately after draw
+
+          // Simulate CPU thinking before discarding
+          await new Promise((resolve) => setTimeout(resolve, 1000))
+
+          // Step 2: CPU discards a card
+          // Find the CPU player in the *latest* state after draw to get its current hand
+          const cpuPlayerAfterDraw = updatedStateAfterDraw.players.find((p) => p.name === currentPlayer.name)
+          if (cpuPlayerAfterDraw && cpuPlayerAfterDraw.hand.length > 0) {
+            const randomIndex = Math.floor(Math.random() * cpuPlayerAfterDraw.hand.length)
+            const finalState = await apiService.discardCard(updatedStateAfterDraw.id, randomIndex)
+            setState(finalState) // Update state after discard, which should pass the turn
+          } else {
+            // Fallback: if for some reason CPU has no cards after drawing, just fetch latest state
+            // This should ideally not happen if draw always adds a card
+            const latestState = await fetch(`${API}/game/${state.id}`).then((res) => res.json())
+            setState(latestState)
           }
-
-          const updatedState = await apiService
-            .checkHealth()
-            .then(() => fetch(`${API}/game/${state.id}`))
-            .then((res) => res.json())
-          setState(updatedState)
         } catch (err) {
           console.error("CPU move failed:", err)
+          // Attempt to fetch latest state even on error to recover
           try {
             const latestState = await fetch(`${API}/game/${state.id}`).then((res) => res.json())
             setState(latestState)
@@ -669,17 +684,14 @@ function App() {
             console.error("Failed to fetch game state after CPU move error:", fetchErr)
           }
         } finally {
-          setLoadingStates((prev) => ({ ...prev, cpuMoving: false }))
+          setLoadingStates((prev) => ({ ...prev, cpuMoving: false })) // Reset CPU moving state
         }
       }
 
-      const timer = setTimeout(makeCpuMove, 1500)
-      return () => {
-        clearTimeout(timer)
-        setLoadingStates((prev) => ({ ...prev, cpuMoving: false }))
-      }
+      // Execute the CPU move sequence
+      makeCpuMove()
     }
-  }, [state, playerName, backendAvailable])
+  }, [state, playerName, backendAvailable, loadingStates.cpuMoving])
 
   // Poll lobbies when in multiplayer menu
   useEffect(() => {
