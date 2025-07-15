@@ -219,7 +219,7 @@ function Card({
   facedown = false,
   className = "",
   highlight = false,
-  small = false,
+  small = true,
   style = {},
   selected = false,
 }: {
@@ -287,17 +287,17 @@ function Table({
   const [showDeckHighlight, setShowDeckHighlight] = useState(false)
   const [hasShownPrompt, setHasShownPrompt] = useState(false)
 
-  const yourPlayer = state.players.find((p) => p?.name === playerName)
+  const yourPlayerIndex = state.players.findIndex((p) => p?.name === playerName)
   const currentPlayerIndex = state.current_player ?? 0
   const currentPlayer = state.players[currentPlayerIndex]
   const isGameOver = state.game_over
 
-  if (!yourPlayer || !currentPlayer) {
+  if (yourPlayerIndex === -1 || !currentPlayer) {
     return <div className="error">Player data not available</div>
   }
 
   const getPlayerSafe = (index: number) => {
-    return state.players[index] ?? { name: "Player", hand: [], is_cpu: false }
+    return state.players[index % state.players.length] ?? { name: "Opponent", hand: [], is_cpu: false }
   }
 
   const isWinner = (player: Player) => isGameOver && state.winner === player.name
@@ -333,75 +333,73 @@ function Table({
   }, [])
 
   useEffect(() => {
-    if (state?.current_player !== state?.players.findIndex((p) => p?.name === playerName)) {
+    if (state?.current_player !== yourPlayerIndex) {
       setShowDeckHighlight(false)
       setHasShownPrompt(false)
       setSelectedCardIndex(null)
     }
-  }, [state])
+  }, [state, yourPlayerIndex])
 
   return (
     <div className="poker-table">
-      {/* Top Player (opponent across the table) */}
-      {state.players.length > 1 && (
-        <div className={`player-seat top ${currentPlayerIndex === 1 ? "active" : ""}`}>
-          <h3>
-            {getPlayerSafe(1).name}
-            {getPlayerSafe(1).is_cpu && " (CPU)"}
-          </h3>
-          <div className="hand horizontal">
-            {Array.from({ length: getPlayerSafe(1).hand.length }).map((_, i) => (
-              <Card
-                key={`top-${i}`}
-                facedown={state.mode === "multiplayer" && !isGameOver} // Face down in multiplayer unless game over
-                value={isGameOver ? getPlayerSafe(1).hand[i]?.value || "" : ""}
-                suit={isGameOver ? getPlayerSafe(1).hand[i]?.suit || "" : ""}
-                small={true}
-                highlight={isWinner(getPlayerSafe(1))}
-              />
-            ))}
-          </div>
+      {/* Top Player (opponent across the table) - Next player after current player */}
+      <div className={`player-seat top ${currentPlayerIndex === (yourPlayerIndex + 1) % state.players.length ? "active" : ""}`}>
+        <h3>
+          {getPlayerSafe((yourPlayerIndex + 1) % state.players.length).name}
+          {getPlayerSafe((yourPlayerIndex + 1) % state.players.length).is_cpu && " (CPU)"}
+        </h3>
+        <div className="hand horizontal">
+          {Array.from({ length: getPlayerSafe((yourPlayerIndex + 1) % state.players.length).hand.length }).map((_, i) => (
+            <Card
+              key={`top-${i}`}
+              facedown={state.mode === "multiplayer" && !isGameOver}
+              value={isGameOver ? getPlayerSafe((yourPlayerIndex + 1) % state.players.length).hand[i]?.value || "" : ""}
+              suit={isGameOver ? getPlayerSafe((yourPlayerIndex + 1) % state.players.length).hand[i]?.suit || "" : ""}
+              small={true}
+              highlight={isWinner(getPlayerSafe((yourPlayerIndex + 1) % state.players.length))}
+            />
+          ))}
         </div>
-      )}
+      </div>
 
-      {/* Left Player (to the left in portrait) */}
+      {/* Left Player (to the left in portrait) - Player two positions ahead */}
       {state.players.length > 2 && (
-        <div className={`player-seat left ${currentPlayerIndex === 2 ? "active" : ""}`}>
+        <div className={`player-seat left ${currentPlayerIndex === (yourPlayerIndex + 2) % state.players.length ? "active" : ""}`}>
           <h3>
-            {getPlayerSafe(2).name}
-            {getPlayerSafe(2).is_cpu && " (CPU)"}
+            {getPlayerSafe((yourPlayerIndex + 2) % state.players.length).name}
+            {getPlayerSafe((yourPlayerIndex + 2) % state.players.length).is_cpu && " (CPU)"}
           </h3>
           <div className="hand horizontal">
-            {Array.from({ length: getPlayerSafe(2).hand.length }).map((_, i) => (
+            {Array.from({ length: getPlayerSafe((yourPlayerIndex + 2) % state.players.length).hand.length }).map((_, i) => (
               <Card
                 key={`left-${i}`}
-                facedown={state.mode === "multiplayer" && !isGameOver} // Face down in multiplayer unless game over
-                value={isGameOver ? getPlayerSafe(2).hand[i]?.value || "" : ""}
-                suit={isGameOver ? getPlayerSafe(2).hand[i]?.suit || "" : ""}
+                facedown={state.mode === "multiplayer" && !isGameOver}
+                value={isGameOver ? getPlayerSafe((yourPlayerIndex + 2) % state.players.length).hand[i]?.value || "" : ""}
+                suit={isGameOver ? getPlayerSafe((yourPlayerIndex + 2) % state.players.length).hand[i]?.suit || "" : ""}
                 small={true}
-                highlight={isWinner(getPlayerSafe(2))}
+                highlight={isWinner(getPlayerSafe((yourPlayerIndex + 2) % state.players.length))}
               />
             ))}
           </div>
         </div>
       )}
 
-      {/* Right Player (to the right in portrait) */}
+      {/* Right Player (to the right in portrait) - Player one position behind */}
       {state.players.length > 3 && (
-        <div className={`player-seat right ${currentPlayerIndex === 3 ? "active" : ""}`}>
+        <div className={`player-seat right ${currentPlayerIndex === (yourPlayerIndex - 1 + state.players.length) % state.players.length ? "active" : ""}`}>
           <h3>
-            {getPlayerSafe(3).name}
-            {getPlayerSafe(3).is_cpu && " (CPU)"}
+            {getPlayerSafe((yourPlayerIndex - 1 + state.players.length) % state.players.length).name}
+            {getPlayerSafe((yourPlayerIndex - 1 + state.players.length) % state.players.length).is_cpu && " (CPU)"}
           </h3>
           <div className="hand horizontal">
-            {Array.from({ length: getPlayerSafe(3).hand.length }).map((_, i) => (
+            {Array.from({ length: getPlayerSafe((yourPlayerIndex - 1 + state.players.length) % state.players.length).hand.length }).map((_, i) => (
               <Card
                 key={`right-${i}`}
-                facedown={state.mode === "multiplayer" && !isGameOver} // Face down in multiplayer unless game over
-                value={isGameOver ? getPlayerSafe(3).hand[i]?.value || "" : ""}
-                suit={isGameOver ? getPlayerSafe(3).hand[i]?.suit || "" : ""}
+                facedown={state.mode === "multiplayer" && !isGameOver}
+                value={isGameOver ? getPlayerSafe((yourPlayerIndex - 1 + state.players.length) % state.players.length).hand[i]?.value || "" : ""}
+                suit={isGameOver ? getPlayerSafe((yourPlayerIndex - 1 + state.players.length) % state.players.length).hand[i]?.suit || "" : ""}
                 small={true}
-                highlight={isWinner(getPlayerSafe(3))}
+                highlight={isWinner(getPlayerSafe((yourPlayerIndex - 1 + state.players.length) % state.players.length))}
               />
             ))}
           </div>
@@ -444,11 +442,11 @@ function Table({
 
       {/* Bottom Player (current player) */}
       <div
-        className={`player-seat bottom ${currentPlayerIndex === state.players.findIndex((p) => p?.name === playerName) ? "active" : ""}`}
+        className={`player-seat bottom ${currentPlayerIndex === yourPlayerIndex ? "active" : ""}`}
       >
-        <h2>Your Hand ({yourPlayer.name})</h2>
+        <h2>Your Hand ({yourPlayerIndex !== -1 ? state.players[yourPlayerIndex].name : "You"})</h2>
         <div className="hand">
-          {yourPlayer.hand?.map((card, i) => (
+          {yourPlayerIndex !== -1 && state.players[yourPlayerIndex].hand?.map((card, i) => (
             <Card
               key={`you-${i}`}
               {...card}
@@ -456,11 +454,11 @@ function Table({
               disabled={
                 !state.has_drawn ||
                 currentPlayer.is_cpu ||
-                currentPlayer.name !== yourPlayer.name ||
+                currentPlayer.name !== state.players[yourPlayerIndex].name ||
                 loadingStates.discarding
               }
               className={loadingStates.discarding ? "card-discarding" : ""}
-              highlight={isWinner(yourPlayer)}
+              highlight={isWinner(state.players[yourPlayerIndex])}
               selected={selectedCardIndex === i}
             />
           ))}
