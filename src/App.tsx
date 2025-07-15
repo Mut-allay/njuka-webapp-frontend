@@ -2,7 +2,7 @@
 
 import type React from "react"
 import { useState, useEffect, useCallback } from "react" // Import useCallback
-import "./App-XAY4w8qSmPiLXs9coXA0hLCWTqN2LC.css"
+import "./App.css"
 
 const API = "https://njuka-webapp-backend.onrender.com"
 
@@ -323,12 +323,12 @@ function Table({
     }
   }
 
-  useEffect(() => {
-    const timer = setTimeout(() => {
-      setShowDeckHighlight(true)
-      setHasShownPrompt(true)
-    }, 3000)
+  const timer = setTimeout(() => {
+    setShowDeckHighlight(true)
+    setHasShownPrompt(true)
+  }, 3000)
 
+  useEffect(() => {
     return () => clearTimeout(timer)
   }, [])
 
