@@ -640,62 +640,46 @@ function App() {
   }, [gameId, backendAvailable, checkConnection, setState, setGameId, setError]) // Add all dependencies
 
   useEffect(() => {
-  if (!state || state.game_over || !backendAvailable) return
+    if (!state || state.game_over || !backendAvailable) return
 
   const currentPlayer = state.players[state.current_player]
-  // Only make CPU move if it's actually a CPU player's turn AND it's not the human player
-  if (currentPlayer?.is_cpu && currentPlayer.name !== playerName) {
+    if (currentPlayer?.is_cpu && currentPlayer.name !== playerName) {
     setLoadingStates((prev) => ({ ...prev, cpuMoving: true }))
 
     const makeCpuMove = async () => {
       try {
-        // First check if CPU needs to draw (hasn't drawn yet)
-        if (!state.has_drawn) {
-          // Draw exactly one card
           const afterDrawState = await apiService.drawCard(state.id)
-          const updatedState = await fetch(`${API}/game/${state.id}`).then((res) => res.json())
-          
-          // If game ended after draw, return immediately
-          if (updatedState.winner) {
-            setState(updatedState)
-            return
-          }
 
-          // If CPU now has 4 cards, discard one
-          if (updatedState.players[state.current_player].hand.length === 4) {
-            const randomIndex = Math.floor(Math.random() * updatedState.players[state.current_player].hand.length)
+          if (afterDrawState.has_drawn && afterDrawState.players[state.current_player].hand.length > 0) {
+            const randomIndex = Math.floor(Math.random() * afterDrawState.players[state.current_player].hand.length)
             await apiService.discardCard(state.id, randomIndex)
           }
-        } 
-        // If CPU has already drawn, they must discard one card
-        else if (state.has_drawn && state.players[state.current_player].hand.length > 0) {
-          const randomIndex = Math.floor(Math.random() * state.players[state.current_player].hand.length)
-          await apiService.discardCard(state.id, randomIndex)
-        }
 
-        // Get final updated state
-        const finalState = await fetch(`${API}/game/${state.id}`).then((res) => res.json())
-        setState(finalState)
-      } catch (err) {
-        console.error("CPU move failed:", err)
-        try {
-          const latestState = await fetch(`${API}/game/${state.id}`).then((res) => res.json())
-          setState(latestState)
-        } catch (fetchErr) {
-          console.error("Failed to fetch game state after CPU move error:", fetchErr)
+          const updatedState = await apiService
+            .checkHealth()
+            .then(() => fetch(`${API}/game/${state.id}`))
+            .then((res) => res.json())
+          setState(updatedState)
+        } catch (err) {
+          console.error("CPU move failed:", err)
+          try {
+            const latestState = await fetch(`${API}/game/${state.id}`).then((res) => res.json())
+            setState(latestState)
+          } catch (fetchErr) {
+            console.error("Failed to fetch game state after CPU move error:", fetchErr)
+          }
+        } finally {
+          setLoadingStates((prev) => ({ ...prev, cpuMoving: false }))
         }
-      } finally {
+      }
+
+      const timer = setTimeout(makeCpuMove, 1500)
+      return () => {
+        clearTimeout(timer)
         setLoadingStates((prev) => ({ ...prev, cpuMoving: false }))
       }
     }
-
-    const timer = setTimeout(makeCpuMove, 1500)
-    return () => {
-      clearTimeout(timer)
-      setLoadingStates((prev) => ({ ...prev, cpuMoving: false }))
-    }
-  }
-}, [state, playerName, backendAvailable])
+  }, [state, playerName, backendAvailable])
 
   // Poll lobbies when in multiplayer menu
   useEffect(() => {
