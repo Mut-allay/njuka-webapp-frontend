@@ -455,6 +455,21 @@ function Table({
                 currentPlayer.name !== yourPlayer.name ||
                 loadingStates.discarding
               }
+              onMouseEnter={() => {
+                console.log("--- Card Disabled Check ---")
+                console.log("!state.has_drawn:", !state.has_drawn)
+                console.log("currentPlayer.is_cpu:", currentPlayer.is_cpu)
+                console.log("currentPlayer.name !== yourPlayer.name:", currentPlayer.name !== yourPlayer.name)
+                console.log("loadingStates.discarding:", loadingStates.discarding)
+                console.log(
+                  "Final disabled status:",
+                  !state.has_drawn ||
+                    currentPlayer.is_cpu ||
+                    currentPlayer.name !== yourPlayer.name ||
+                    loadingStates.discarding,
+                )
+                console.log("--- END Card Disabled Check ---")
+              }}
               className={loadingStates.discarding ? "card-discarding" : ""}
               highlight={isWinner(yourPlayer)}
               selected={selectedCardIndex === i}
@@ -640,18 +655,26 @@ function App() {
   useEffect(() => {
     if (!state || state.game_over || !backendAvailable) return
 
-    const currentPlayer = state.players[state.current_player]
-    const yourPlayer = state.players.find((p) => p?.name === playerName)
+    const currentPlayerIndex = state.current_player
+    const currentPlayer = state.players[currentPlayerIndex]
+    const yourPlayerIndex = state.players.findIndex((p) => p?.name === playerName)
 
-    // Ensure both current player and your player are valid before proceeding
-    if (!currentPlayer || !yourPlayer) {
-      // This case should ideally not happen if state is consistent, but added for robustness.
-      // You might want to log this if it occurs frequently.
+    // If your player isn't found, or current player is invalid, exit
+    if (yourPlayerIndex === -1 || !currentPlayer) {
       return
     }
 
-    // Only trigger CPU move if it's a CPU's turn AND it's not the human player's turn
-    if (currentPlayer.is_cpu && currentPlayer.name !== yourPlayer.name) {
+    // --- START DEBUG LOGS ---
+    console.log("--- CPU Turn Check ---")
+    console.log("Current Player Name:", currentPlayer.name)
+    console.log("Current Player is CPU:", currentPlayer.is_cpu)
+    console.log("Your Player Name (frontend state):", playerName)
+    console.log("Your Player Index in state.players:", yourPlayerIndex)
+    console.log("Is it your turn (by index)?", currentPlayerIndex === yourPlayerIndex)
+    console.log("--- END DEBUG LOGS ---")
+
+    // Condition: current player is a CPU AND it's not your turn
+    if (currentPlayer.is_cpu && currentPlayerIndex !== yourPlayerIndex) {
       setLoadingStates((prev) => ({ ...prev, cpuMoving: true }))
 
       const makeCpuMove = async () => {
