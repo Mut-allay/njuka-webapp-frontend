@@ -2,7 +2,7 @@
 
 import type React from "react"
 import { useState, useEffect, useCallback } from "react" // Import useCallback
-import "./app/App.css"
+import "./App.css" // Corrected import path
 
 const API = "https://njuka-webapp-backend.onrender.com"
 
