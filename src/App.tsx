@@ -2,7 +2,7 @@
 
 import type React from "react"
 import { useState, useEffect, useCallback } from "react" // Import useCallback
-import "./App.css"
+import "./app/App.css"
 
 const API = "https://njuka-webapp-backend.onrender.com"
 
