@@ -319,12 +319,12 @@ function Table({
     }
   }
 
-  const timer = setTimeout(() => {
-    setShowDeckHighlight(true)
-    setHasShownPrompt(true)
-  }, 3000)
-
   useEffect(() => {
+    const timer = setTimeout(() => {
+      setShowDeckHighlight(true)
+      setHasShownPrompt(true)
+    }, 3000)
+
     return () => clearTimeout(timer)
   }, [])
 
@@ -455,21 +455,6 @@ function Table({
                 currentPlayer.name !== yourPlayer.name ||
                 loadingStates.discarding
               }
-              onMouseEnter={() => {
-                console.log("--- Card Disabled Check ---")
-                console.log("!state.has_drawn:", !state.has_drawn)
-                console.log("currentPlayer.is_cpu:", currentPlayer.is_cpu)
-                console.log("currentPlayer.name !== yourPlayer.name:", currentPlayer.name !== yourPlayer.name)
-                console.log("loadingStates.discarding:", loadingStates.discarding)
-                console.log(
-                  "Final disabled status:",
-                  !state.has_drawn ||
-                    currentPlayer.is_cpu ||
-                    currentPlayer.name !== yourPlayer.name ||
-                    loadingStates.discarding,
-                )
-                console.log("--- END Card Disabled Check ---")
-              }}
               className={loadingStates.discarding ? "card-discarding" : ""}
               highlight={isWinner(yourPlayer)}
               selected={selectedCardIndex === i}
