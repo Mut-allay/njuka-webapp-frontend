@@ -302,10 +302,6 @@ function Table({
 
   const isWinner = (player: Player) => isGameOver && state.winner === player.name
 
-  const shouldShowFaceDown = (player: Player) => {
-    return player.name !== playerName && !isGameOver
-  }
-
   const shouldShowPrompt = () => {
     const playerId = state.players[state.current_player]?.name
     if (!playerId || playerId !== playerName || hasShownPrompt) return false
@@ -357,9 +353,9 @@ function Table({
             {Array.from({ length: getPlayerSafe(1).hand.length }).map((_, i) => (
               <Card
                 key={`top-${i}`}
-                facedown={shouldShowFaceDown(getPlayerSafe(1))}
-                value={isGameOver ? getPlayerSafe(1).hand[i]?.value : ""}
-                suit={isGameOver ? getPlayerSafe(1).hand[i]?.suit : ""}
+                facedown={state.mode === "multiplayer" && !isGameOver} // Face down in multiplayer unless game over
+                value={isGameOver ? getPlayerSafe(1).hand[i]?.value || "" : ""}
+                suit={isGameOver ? getPlayerSafe(1).hand[i]?.suit || "" : ""}
                 small={true}
                 highlight={isWinner(getPlayerSafe(1))}
               />
@@ -379,9 +375,9 @@ function Table({
             {Array.from({ length: getPlayerSafe(2).hand.length }).map((_, i) => (
               <Card
                 key={`left-${i}`}
-                facedown={shouldShowFaceDown(getPlayerSafe(2))}
-                value={isGameOver ? getPlayerSafe(2).hand[i]?.value : ""}
-                suit={isGameOver ? getPlayerSafe(2).hand[i]?.suit : ""}
+                facedown={state.mode === "multiplayer" && !isGameOver} // Face down in multiplayer unless game over
+                value={isGameOver ? getPlayerSafe(2).hand[i]?.value || "" : ""}
+                suit={isGameOver ? getPlayerSafe(2).hand[i]?.suit || "" : ""}
                 small={true}
                 highlight={isWinner(getPlayerSafe(2))}
               />
@@ -401,9 +397,9 @@ function Table({
             {Array.from({ length: getPlayerSafe(3).hand.length }).map((_, i) => (
               <Card
                 key={`right-${i}`}
-                facedown={shouldShowFaceDown(getPlayerSafe(3))}
-                value={isGameOver ? getPlayerSafe(3).hand[i]?.value : ""}
-                suit={isGameOver ? getPlayerSafe(3).hand[i]?.suit : ""}
+                facedown={state.mode === "multiplayer" && !isGameOver} // Face down in multiplayer unless game over
+                value={isGameOver ? getPlayerSafe(3).hand[i]?.value || "" : ""}
+                suit={isGameOver ? getPlayerSafe(3).hand[i]?.suit || "" : ""}
                 small={true}
                 highlight={isWinner(getPlayerSafe(3))}
               />
@@ -654,7 +650,6 @@ function App() {
           setState(updatedStateAfterDraw)
 
           await new Promise((resolve) => setTimeout(resolve, 1000))
-
           const cpuPlayerAfterDraw = updatedStateAfterDraw.players.find((p) => p.name === currentPlayer.name)
           if (cpuPlayerAfterDraw && cpuPlayerAfterDraw.hand.length > 0) {
             const randomIndex = Math.floor(Math.random() * cpuPlayerAfterDraw.hand.length)
