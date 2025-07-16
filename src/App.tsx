@@ -934,42 +934,41 @@ function App() {
       ) : (
         <div className="new-game-form">
           {currentMenu === "main" && (
-  <>
-    <h2>Start or Join a Game</h2>
-    <label>
-      Your Name:
-      <input
-        type="text"
-        value={playerName}
-        onChange={(e) => {
-          const name = e.target.value.trim();
-          if (name.length <= 20) {
-            setPlayerName(name);
-          }
-        }}
-        placeholder="Enter your name (2-20 chars)"
-        minLength={2}
-        maxLength={20}
-        required
-        style={{ marginTop: '5px' }} // Inline style for spacing
-      />
-    </label>
-    <button
-      onClick={() => setCurrentMenu("multiplayer")}
-      disabled={!playerName.trim()}
-      className={!playerName.trim() ? "disabled-btn" : ""}
-    >
-      Multiplayer
-    </button>
-    <button
-      onClick={() => setCurrentMenu("cpu")}
-      disabled={!playerName.trim()}
-      className={!playerName.trim() ? "disabled-btn" : ""}
-    >
-      Play vs CPU
-    </button>
-  </>
-)}
+            <>
+              <h2>Start or Join a Game</h2>
+              <label>
+                Your Name:
+                <input
+                  type="text"
+                  value={playerName}
+                  onChange={(e) => {
+                    const name = e.target.value.trim()
+                    if (name.length <= 20) {
+                      setPlayerName(name)
+                    }
+                  }}
+                  placeholder="Enter your name (2-20 chars)"
+                  minLength={2}
+                  maxLength={20}
+                  required
+                />
+              </label>
+              <button
+                onClick={() => setCurrentMenu("multiplayer")}
+                disabled={!playerName.trim()}
+                className={!playerName.trim() ? "disabled-btn" : ""}
+              >
+                Multiplayer
+              </button>
+              <button
+                onClick={() => setCurrentMenu("cpu")}
+                disabled={!playerName.trim()}
+                className={!playerName.trim() ? "disabled-btn" : ""}
+              >
+                Play vs CPU
+              </button>
+            </>
+          )}
 
           {currentMenu === "multiplayer" && (
             <>
