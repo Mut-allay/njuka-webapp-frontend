@@ -154,7 +154,7 @@ button:disabled {
 }
 
 .card.facedown {
-  background: url("https://github.com/Mut-allay/njuka-webapp-frontend/tree/new-guideck/src/assets/card-back.png") no-repeat center center;
+  background: url('https://raw.githubusercontent.com/Mut-allay/njuka-webapp-frontend/new-guideck/src/assets/card-back.png') no-repeat center;
   border: 1px solid #f8d56b;
   color: #f8d56b;
 }
@@ -162,7 +162,7 @@ button:disabled {
 .card.facedown .card-back {
   width: 100%;
   height: 100%;
-  background: url("https://github.com/Mut-allay/njuka-webapp-frontend/tree/new-guideck/src/assets/card-back.png") no-repeat center center;
+  background: url('https://raw.githubusercontent.com/Mut-allay/njuka-webapp-frontend/new-guideck/src/assets/card-back.png') no-repeat center;
   background-size: cover;
   border-radius: 6px;
   position: absolute;
