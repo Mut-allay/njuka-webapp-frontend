@@ -315,13 +315,8 @@ button:disabled {
   transition: all 0.3s ease;
 }
 
-.player-seat .card {
-  box-shadow: none !important;
-}
-
 .player-seat.active {
   background: rgba(248, 213, 107, 0.1);
-  box-shadow: 0 0 15px rgba(248, 213, 107, 0.5); /* Keep glow for active player */
 }
 
 .player-seat h2,
@@ -767,6 +762,40 @@ button:disabled {
     overflow-x: visible;
   }
 
+  /* Update these styles in App.css */
+
+.left .hand, 
+.right .hand {
+  flex-direction: column;
+  align-items: center;
+  margin: 5px 0;
+  padding: 0;
+}
+
+.left .card + .card,
+.right .card + .card {
+  margin-left: 0;
+  margin-top: -30px; /* Adjust this value to control overlap */
+}
+
+.left .card,
+.right .card {
+  margin: 0;
+}
+
+/* Adjust for mobile */
+@media (max-width: 768px) {
+  .left .hand,
+  .right .hand {
+    margin: 2px 0;
+  }
+  
+  .left .card + .card,
+  .right .card + .card {
+    margin-top: -20px;
+  }
+}
+
   /* Adjust deck and discard areas */
   .deck-area,
   .discard-area {
@@ -899,3 +928,4 @@ lobby-item {
   font-weight: bold;
   color: #f8d56b;
 }
+
