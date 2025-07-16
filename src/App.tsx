@@ -239,8 +239,11 @@ function Card({
   if (facedown) {
     return (
       <div
-        className={`card facedown ${className} ${small ? "small-card" : ""}`}
-        style={style}
+        className={`card facedown ${className} ${small ? "small-card" : ""} ${highlight ? "highlight-card" : ""} ${
+          isHovered ? "card-hover" : ""
+        }`}
+        onClick={!disabled ? onClick : undefined}
+        style={disabled ? { opacity: 0.7, cursor: "not-allowed", ...style } : style}
         onMouseEnter={() => setIsHovered(true)}
         onMouseLeave={() => setIsHovered(false)}
       >
@@ -252,7 +255,9 @@ function Card({
   const suitColor = suit === "♥" || suit === "♦" ? "red" : "black"
   return (
     <div
-      className={`card ${suitColor} ${className} ${highlight ? "highlight-card" : ""} ${small ? "small-card" : ""} ${isHovered ? "card-hover" : ""} ${selected ? "card-selected" : ""}`}
+      className={`card ${suitColor} ${className} ${highlight ? "highlight-card" : ""} ${small ? "small-card" : ""} ${
+        isHovered ? "card-hover" : ""
+      } ${selected ? "card-selected" : ""}`}
       onClick={!disabled ? onClick : undefined}
       style={disabled ? { opacity: 0.7, cursor: "not-allowed", ...style } : style}
       onMouseEnter={() => setIsHovered(true)}
