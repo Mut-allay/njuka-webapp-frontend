@@ -236,24 +236,37 @@ function Card({
 }) {
   const [isHovered, setIsHovered] = useState(false)
 
+  if (facedown) {
+    return (
+      <div
+        className={`card facedown ${className} ${small ? "small-card" : ""} ${highlight ? "highlight-card" : ""} ${
+          isHovered ? "card-hover" : ""
+        }`}
+        onClick={!disabled ? onClick : undefined}
+        style={disabled ? { opacity: 0.7, cursor: "not-allowed", ...style } : style}
+        onMouseEnter={() => setIsHovered(true)}
+        onMouseLeave={() => setIsHovered(false)}
+      >
+        <div className="card-back"></div>
+      </div>
+    )
+  }
+
+  const suitColor = suit === "♥" || suit === "♦" ? "red" : "black"
   return (
     <div
-      className={`card ${facedown ? "facedown" : suit === "♥" || suit === "♦" ? "red" : "black"} ${className} ${
-        small ? "small-card" : ""
-      } ${highlight ? "highlight-card" : ""} ${isHovered ? "card-hover" : ""} ${selected ? "card-selected" : ""}`}
+      className={`card ${suitColor} ${className} ${highlight ? "highlight-card" : ""} ${small ? "small-card" : ""} ${
+        isHovered ? "card-hover" : ""
+      } ${selected ? "card-selected" : ""}`}
       onClick={!disabled ? onClick : undefined}
       style={disabled ? { opacity: 0.7, cursor: "not-allowed", ...style } : style}
       onMouseEnter={() => setIsHovered(true)}
       onMouseLeave={() => setIsHovered(false)}
     >
-      {facedown ? (
-        <div className="card-back"></div>
-      ) : (
-        <div className="card-inner">
-          <span className="card-value">{value}</span>
-          <span className="card-suit">{suit}</span>
-        </div>
-      )}
+      <div className="card-inner">
+        <span className="card-value">{value}</span>
+        <span className="card-suit">{suit}</span>
+      </div>
     </div>
   )
 }
@@ -358,7 +371,7 @@ function Table({
               small={true}
               highlight={isWinner(getPlayerSafe((yourPlayerIndex + 1) % state.players.length))}
             />
-          ))}
+            ))}
         </div>
       </div>
 
