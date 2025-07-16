@@ -1,8 +1,8 @@
 "use client"
 
 import type React from "react"
-import { useState, useEffect, useCallback } from "react" // Import useCallback
-import "./App.css"
+import { useState, useEffect, useCallback } from "react"
+import "./App.css" // Ensure this path is correct after file moves
 
 const API = "https://njuka-webapp-backend.onrender.com"
 
@@ -38,7 +38,7 @@ type LobbyGame = {
   max_players: number
   created_at: string
   started?: boolean
-  game_id?: string // Add game_id to LobbyGame type
+  game_id?: string
 }
 
 const tutorialPromptsShown = new Map<string, number>()
@@ -143,7 +143,7 @@ const apiService = {
       if (!response.ok) {
         if (response.status === 404) {
           console.log("Lobby endpoint not found - returning empty list")
-          return [] // Return empty array instead of error
+          return []
         }
         throw new Error("Failed to fetch lobbies")
       }
@@ -151,7 +151,7 @@ const apiService = {
       return data.lobbies || []
     } catch (err) {
       console.error("API Error:", err)
-      return [] // Return empty array on error
+      return []
     }
   },
 
@@ -187,7 +187,7 @@ const apiService = {
     try {
       const response = await fetch(`${API}/lobby/${lobbyId}`)
       if (response.status === 404) {
-        return null // Return null if lobby not found (game started or lobby expired)
+        return null
       }
       if (!response.ok) throw new Error("Failed to fetch lobby details")
       return response.json()
@@ -219,7 +219,7 @@ function Card({
   facedown = false,
   className = "",
   highlight = false,
-  small = false,
+  small = true,
   style = {},
   selected = false,
 }: {
@@ -239,8 +239,11 @@ function Card({
   if (facedown) {
     return (
       <div
-        className={`card facedown ${className} ${small ? "small-card" : ""}`}
-        style={style}
+        className={`card facedown ${className} ${small ? "small-card" : ""} ${highlight ? "highlight-card" : ""} ${
+          isHovered ? "card-hover" : ""
+        }`}
+        onClick={!disabled ? onClick : undefined}
+        style={disabled ? { opacity: 0.7, cursor: "not-allowed", ...style } : style}
         onMouseEnter={() => setIsHovered(true)}
         onMouseLeave={() => setIsHovered(false)}
       >
@@ -252,7 +255,9 @@ function Card({
   const suitColor = suit === "♥" || suit === "♦" ? "red" : "black"
   return (
     <div
-      className={`card ${suitColor} ${className} ${highlight ? "highlight-card" : ""} ${small ? "small-card" : ""} ${isHovered ? "card-hover" : ""} ${selected ? "card-selected" : ""}`}
+      className={`card ${suitColor} ${className} ${highlight ? "highlight-card" : ""} ${small ? "small-card" : ""} ${
+        isHovered ? "card-hover" : ""
+      } ${selected ? "card-selected" : ""}`}
       onClick={!disabled ? onClick : undefined}
       style={disabled ? { opacity: 0.7, cursor: "not-allowed", ...style } : style}
       onMouseEnter={() => setIsHovered(true)}
@@ -284,20 +289,21 @@ function Table({
   }
 }) {
   const [selectedCardIndex, setSelectedCardIndex] = useState<number | null>(null)
+  const [discardingCardIndex, setDiscardingCardIndex] = useState<number | null>(null)
   const [showDeckHighlight, setShowDeckHighlight] = useState(false)
   const [hasShownPrompt, setHasShownPrompt] = useState(false)
 
-  const yourPlayer = state.players.find((p) => p?.name === playerName)
+  const yourPlayerIndex = state.players.findIndex((p) => p?.name === playerName)
   const currentPlayerIndex = state.current_player ?? 0
   const currentPlayer = state.players[currentPlayerIndex]
   const isGameOver = state.game_over
 
-  if (!yourPlayer || !currentPlayer) {
+  if (yourPlayerIndex === -1 || !currentPlayer) {
     return <div className="error">Player data not available</div>
   }
 
   const getPlayerSafe = (index: number) => {
-    return state.players[index] ?? { name: "Player", hand: [], is_cpu: false }
+    return state.players[index % state.players.length] ?? { name: "Opponent", hand: [], is_cpu: false }
   }
 
   const isWinner = (player: Player) => isGameOver && state.winner === player.name
@@ -316,6 +322,7 @@ function Table({
 
   const handleCardClick = (index: number) => {
     if (selectedCardIndex === index) {
+      setDiscardingCardIndex(index) // Track the card being discarded
       onDiscard(index)
       setSelectedCardIndex(null)
     } else {
@@ -323,85 +330,111 @@ function Table({
     }
   }
 
-  const timer = setTimeout(() => {
-    setShowDeckHighlight(true)
-    setHasShownPrompt(true)
-  }, 3000)
-
   useEffect(() => {
+    const timer = setTimeout(() => {
+      setShowDeckHighlight(true)
+      setHasShownPrompt(true)
+    }, 3000)
+
     return () => clearTimeout(timer)
   }, [])
 
   useEffect(() => {
-    if (state?.current_player !== state?.players.findIndex((p) => p?.name === playerName)) {
+    if (state?.current_player !== yourPlayerIndex) {
       setShowDeckHighlight(false)
       setHasShownPrompt(false)
       setSelectedCardIndex(null)
     }
-  }, [state])
+  }, [state, yourPlayerIndex])
 
   return (
     <div className="poker-table">
-      {/* Top Player (opponent across the table) */}
-      {state.players.length > 1 && (
-        <div className={`player-seat top ${currentPlayerIndex === 1 ? "active" : ""}`}>
-          <h3>
-            {getPlayerSafe(1).name}
-            {getPlayerSafe(1).is_cpu && " (CPU)"}
-          </h3>
-          <div className="hand horizontal">
-            {getPlayerSafe(1).hand.map((card, i) => (
+      {/* Top Player (opponent across the table) - Next player after current player */}
+      <div
+        className={`player-seat top ${currentPlayerIndex === (yourPlayerIndex + 1) % state.players.length ? "active" : ""}`}
+      >
+        <h3>
+          {getPlayerSafe((yourPlayerIndex + 1) % state.players.length).name}
+          {getPlayerSafe((yourPlayerIndex + 1) % state.players.length).is_cpu && " (CPU)"}
+        </h3>
+        <div className="hand horizontal">
+          {Array.from({ length: getPlayerSafe((yourPlayerIndex + 1) % state.players.length).hand.length }).map(
+            (_, i) => (
               <Card
                 key={`top-${i}`}
-                facedown={!isGameOver}
-                value={card.value}
-                suit={card.suit}
+                facedown={state.mode === "multiplayer" && !isGameOver}
+                value={
+                  isGameOver ? getPlayerSafe((yourPlayerIndex + 1) % state.players.length).hand[i]?.value || "" : ""
+                }
+                suit={isGameOver ? getPlayerSafe((yourPlayerIndex + 1) % state.players.length).hand[i]?.suit || "" : ""}
                 small={true}
-                highlight={isWinner(getPlayerSafe(1))}
+                highlight={isWinner(getPlayerSafe((yourPlayerIndex + 1) % state.players.length))}
               />
-            ))}
-          </div>
+            ),
+          )}
         </div>
-      )}
+      </div>
 
-      {/* Left Player (to the left in portrait) */}
+      {/* Left Player (to the left in portrait) - Player two positions ahead */}
       {state.players.length > 2 && (
-        <div className={`player-seat left ${currentPlayerIndex === 2 ? "active" : ""}`}>
+        <div
+          className={`player-seat left ${currentPlayerIndex === (yourPlayerIndex + 2) % state.players.length ? "active" : ""}`}
+        >
           <h3>
-            {getPlayerSafe(2).name}
-            {getPlayerSafe(2).is_cpu && " (CPU)"}
+            {getPlayerSafe((yourPlayerIndex + 2) % state.players.length).name}
+            {getPlayerSafe((yourPlayerIndex + 2) % state.players.length).is_cpu && " (CPU)"}
           </h3>
           <div className="hand horizontal">
-            {getPlayerSafe(2).hand.map((card, i) => (
-              <Card
-                key={`left-${i}`}
-                facedown={!isGameOver}
-                value={card.value}
-                suit={card.suit}
-                small={true}
-                highlight={isWinner(getPlayerSafe(2))}
-              />
-            ))}
+            {Array.from({ length: getPlayerSafe((yourPlayerIndex + 2) % state.players.length).hand.length }).map(
+              (_, i) => (
+                <Card
+                  key={`left-${i}`}
+                  facedown={state.mode === "multiplayer" && !isGameOver}
+                  value={
+                    isGameOver ? getPlayerSafe((yourPlayerIndex + 2) % state.players.length).hand[i]?.value || "" : ""
+                  }
+                  suit={
+                    isGameOver ? getPlayerSafe((yourPlayerIndex + 2) % state.players.length).hand[i]?.suit || "" : ""
+                  }
+                  small={true}
+                  highlight={isWinner(getPlayerSafe((yourPlayerIndex + 2) % state.players.length))}
+                />
+              ),
+            )}
           </div>
         </div>
       )}
 
-      {/* Right Player (to the right in portrait) */}
+      {/* Right Player (to the right in portrait) - Player one position behind */}
       {state.players.length > 3 && (
-        <div className={`player-seat right ${currentPlayerIndex === 3 ? "active" : ""}`}>
+        <div
+          className={`player-seat right ${currentPlayerIndex === (yourPlayerIndex - 1 + state.players.length) % state.players.length ? "active" : ""}`}
+        >
           <h3>
-            {getPlayerSafe(3).name}
-            {getPlayerSafe(3).is_cpu && " (CPU)"}
+            {getPlayerSafe((yourPlayerIndex - 1 + state.players.length) % state.players.length).name}
+            {getPlayerSafe((yourPlayerIndex - 1 + state.players.length) % state.players.length).is_cpu && " (CPU)"}
           </h3>
           <div className="hand horizontal">
-            {getPlayerSafe(3).hand.map((card, i) => (
+            {Array.from({
+              length: getPlayerSafe((yourPlayerIndex - 1 + state.players.length) % state.players.length).hand.length,
+            }).map((_, i) => (
               <Card
                 key={`right-${i}`}
-                facedown={!isGameOver}
-                value={card.value}
-                suit={card.suit}
+                facedown={state.mode === "multiplayer" && !isGameOver}
+                value={
+                  isGameOver
+                    ? getPlayerSafe((yourPlayerIndex - 1 + state.players.length) % state.players.length).hand[i]
+                        ?.value || ""
+                    : ""
+                }
+                suit={
+                  isGameOver
+                    ? getPlayerSafe((yourPlayerIndex - 1 + state.players.length) % state.players.length).hand[i]
+                        ?.suit || ""
+                    : ""
+                }
                 small={true}
-                highlight={isWinner(getPlayerSafe(3))}
+                highlight={isWinner(getPlayerSafe((yourPlayerIndex - 1 + state.players.length) % state.players.length))}
               />
             ))}
           </div>
@@ -443,27 +476,26 @@ function Table({
       </div>
 
       {/* Bottom Player (current player) */}
-      <div
-        className={`player-seat bottom ${currentPlayerIndex === state.players.findIndex((p) => p?.name === playerName) ? "active" : ""}`}
-      >
-        <h2>Your Hand ({yourPlayer.name})</h2>
+      <div className={`player-seat bottom ${currentPlayerIndex === yourPlayerIndex ? "active" : ""}`}>
+        <h2>Your Hand ({yourPlayerIndex !== -1 ? state.players[yourPlayerIndex].name : "You"})</h2>
         <div className="hand">
-          {yourPlayer.hand?.map((card, i) => (
-            <Card
-              key={`you-${i}`}
-              {...card}
-              onClick={() => handleCardClick(i)}
-              disabled={
-                !state.has_drawn ||
-                currentPlayer.is_cpu ||
-                currentPlayer.name !== yourPlayer.name ||
-                loadingStates.discarding
-              }
-              className={loadingStates.discarding ? "card-discarding" : ""}
-              highlight={isWinner(yourPlayer)}
-              selected={selectedCardIndex === i}
-            />
-          ))}
+          {yourPlayerIndex !== -1 &&
+            state.players[yourPlayerIndex].hand?.map((card, i) => (
+              <Card
+                key={`you-${i}`}
+                {...card}
+                onClick={() => handleCardClick(i)}
+                disabled={
+                  !state.has_drawn ||
+                  currentPlayer.is_cpu ||
+                  currentPlayer.name !== state.players[yourPlayerIndex].name ||
+                  loadingStates.discarding
+                }
+                className={discardingCardIndex === i ? "card-discarding" : ""}
+                highlight={isWinner(state.players[yourPlayerIndex])}
+                selected={selectedCardIndex === i}
+              />
+            ))}
         </div>
       </div>
     </div>
@@ -532,7 +564,7 @@ function App() {
   })
   const [error, setError] = useState<string | null>(null)
   const [currentMenu, setCurrentMenu] = useState<"main" | "multiplayer" | "cpu">("main")
-  const [numPlayersSetting, setNumPlayersSetting] = useState(1) // Used for CPU count or max players
+  const [numPlayersSetting, setNumPlayersSetting] = useState(1)
   const [playerName, setPlayerName] = useState("Player")
   const [backendAvailable, setBackendAvailable] = useState(true)
   const [lobby, setLobby] = useState<LobbyGame | null>(null)
@@ -567,7 +599,6 @@ function App() {
     }
   }, [state, playerName])
 
-  // checkConnection is now a useCallback at the top level
   const checkConnection = useCallback(async () => {
     setLoadingStates((prev) => ({ ...prev, starting: true, joining: true }))
     try {
@@ -584,60 +615,56 @@ function App() {
     }
   }, [setBackendAvailable, setError, setLoadingStates])
 
-  // Initial connection check on mount
   useEffect(() => {
     checkConnection()
-  }, [checkConnection]) // Dependency on checkConnection
+  }, [checkConnection])
 
   useEffect(() => {
     if (!gameId || !backendAvailable) return
 
     let intervalId: NodeJS.Timeout
-    let currentRetries = 3 // Use a local variable for retries within this effect closure
+    let currentRetries = 3
 
     const fetchGameState = async () => {
       try {
         const res = await fetch(`${API}/game/${gameId}`)
         if (!res.ok) {
-          // Handle 404 specifically: game not found on backend
           if (res.status === 404) {
             console.error(`Game ${gameId} not found on backend. Returning to menu.`)
             setError("Game not found or expired. Returning to main menu.")
             setState(null)
             setGameId(null)
-            clearInterval(intervalId) // Stop polling
+            clearInterval(intervalId)
             return
           }
           throw new Error("Network response was not ok")
         }
         const latestState = await res.json()
         setState(latestState)
-        currentRetries = 3 // Reset retries on success
+        currentRetries = 3
       } catch (err) {
         console.error("Failed to fetch game state:", err)
         currentRetries--
         if (currentRetries <= 0) {
           setError("Connection lost. Trying to reconnect...")
-          clearInterval(intervalId) // Stop current polling
+          clearInterval(intervalId)
           setTimeout(async () => {
-            await checkConnection() // Call the global checkConnection
+            await checkConnection()
             if (backendAvailable) {
-              // If connection is restored, restart polling
               intervalId = setInterval(fetchGameState, 2000)
               fetchGameState()
             }
-            currentRetries = 3 // Reset retries after attempting reconnection
+            currentRetries = 3
           }, 5000)
         }
       }
     }
 
-    // Initial fetch and start polling
     intervalId = setInterval(fetchGameState, 2000)
     fetchGameState()
 
-    return () => clearInterval(intervalId) // Cleanup
-  }, [gameId, backendAvailable, checkConnection, setState, setGameId, setError]) // Add all dependencies
+    return () => clearInterval(intervalId)
+  }, [gameId, backendAvailable, checkConnection, setState, setGameId, setError])
 
   useEffect(() => {
     if (!state || state.game_over || !backendAvailable) return
@@ -645,38 +672,27 @@ function App() {
     const currentPlayer = state.players[state.current_player]
     const isMyTurn = currentPlayer.name === playerName
 
-    // Only proceed if it's a CPU's turn, it's not the human player's turn, and a CPU move isn't already in progress
     if (currentPlayer?.is_cpu && !isMyTurn && !loadingStates.cpuMoving) {
-      setLoadingStates((prev) => ({ ...prev, cpuMoving: true })) // Indicate CPU move is starting
+      setLoadingStates((prev) => ({ ...prev, cpuMoving: true }))
 
       const makeCpuMove = async () => {
         try {
-          // Simulate CPU thinking before drawing
           await new Promise((resolve) => setTimeout(resolve, 1000))
-
-          // Step 1: CPU draws a card
           const updatedStateAfterDraw = await apiService.drawCard(state.id)
-          setState(updatedStateAfterDraw) // Update state immediately after draw
+          setState(updatedStateAfterDraw)
 
-          // Simulate CPU thinking before discarding
           await new Promise((resolve) => setTimeout(resolve, 1000))
-
-          // Step 2: CPU discards a card
-          // Find the CPU player in the *latest* state after draw to get its current hand
           const cpuPlayerAfterDraw = updatedStateAfterDraw.players.find((p) => p.name === currentPlayer.name)
           if (cpuPlayerAfterDraw && cpuPlayerAfterDraw.hand.length > 0) {
             const randomIndex = Math.floor(Math.random() * cpuPlayerAfterDraw.hand.length)
             const finalState = await apiService.discardCard(updatedStateAfterDraw.id, randomIndex)
-            setState(finalState) // Update state after discard, which should pass the turn
+            setState(finalState)
           } else {
-            // Fallback: if for some reason CPU has no cards after drawing, just fetch latest state
-            // This should ideally not happen if draw always adds a card
             const latestState = await fetch(`${API}/game/${state.id}`).then((res) => res.json())
             setState(latestState)
           }
         } catch (err) {
           console.error("CPU move failed:", err)
-          // Attempt to fetch latest state even on error to recover
           try {
             const latestState = await fetch(`${API}/game/${state.id}`).then((res) => res.json())
             setState(latestState)
@@ -684,16 +700,14 @@ function App() {
             console.error("Failed to fetch game state after CPU move error:", fetchErr)
           }
         } finally {
-          setLoadingStates((prev) => ({ ...prev, cpuMoving: false })) // Reset CPU moving state
+          setLoadingStates((prev) => ({ ...prev, cpuMoving: false }))
         }
       }
 
-      // Execute the CPU move sequence
       makeCpuMove()
     }
   }, [state, playerName, backendAvailable, loadingStates.cpuMoving])
 
-  // Poll lobbies when in multiplayer menu
   useEffect(() => {
     if (currentMenu !== "multiplayer" || !backendAvailable) return
 
@@ -707,7 +721,6 @@ function App() {
     return () => clearInterval(interval)
   }, [currentMenu, backendAvailable])
 
-  // New useEffect for polling lobby details when in a lobby
   useEffect(() => {
     if (!lobby || !backendAvailable) return
 
@@ -718,19 +731,19 @@ function App() {
           console.log("Lobby no longer exists. Checking if game started...")
           setLobby(null)
           setError("Lobby disappeared. It might have started or expired. Please check available games.")
-          setCurrentMenu("main") // Return to main menu
+          setCurrentMenu("main")
         } else if (updatedLobby.started && updatedLobby.game_id) {
           console.log(`Lobby started. Joining game with ID: ${updatedLobby.game_id}`)
           try {
             const game = await apiService.joinGame(updatedLobby.game_id, playerName)
-            setLobby(null) // Exit lobby view
+            setLobby(null)
             setGameId(game.id)
-            setState(game) // Transition to game view
+            setState(game)
           } catch (joinErr: any) {
             setError(joinErr.message || "Failed to join game after lobby started.")
             console.error("Failed to join game after lobby started:", joinErr)
-            setLobby(null) // Ensure we exit the lobby view even if game join fails
-            setCurrentMenu("main") // Return to main menu
+            setLobby(null)
+            setCurrentMenu("main")
           }
         } else {
           setLobby(updatedLobby)
@@ -741,9 +754,9 @@ function App() {
       }
     }
 
-    const intervalId = setInterval(fetchLobbyDetails, 3000) // Poll every 3 seconds
+    const intervalId = setInterval(fetchLobbyDetails, 3000)
 
-    return () => clearInterval(intervalId) // Clean up on unmount or lobby change
+    return () => clearInterval(intervalId)
   }, [lobby, backendAvailable, playerName])
 
   const discard = async (cardIdx: number) => {
@@ -777,7 +790,6 @@ function App() {
   if (!backendAvailable) {
     return (
       <div className="App">
-        <h1>Njuka King</h1>
         <div className="error-notice">
           <h3>Service Unavailable</h3>
           <p>We're having trouble connecting to the game server.</p>
@@ -793,7 +805,7 @@ function App() {
     setLoadingStates((prev) => ({ ...prev, starting: true }))
     setError(null)
     try {
-      const newLobby = await apiService.createLobby(playerName, numPlayersSetting) // Use numPlayersSetting for max_players
+      const newLobby = await apiService.createLobby(playerName, numPlayersSetting)
       setLobby(newLobby)
     } catch (err: any) {
       setError(err.message || "Failed to create lobby")
@@ -823,7 +835,7 @@ function App() {
     setError(null)
 
     try {
-      const gameState = await apiService.startLobbyGame(lobby.id, playerName) // Pass playerName as host_name
+      const gameState = await apiService.startLobbyGame(lobby.id, playerName)
       setLobby(null)
       setGameId(gameState.id)
       setState(gameState)
@@ -851,19 +863,17 @@ function App() {
 
   const leaveLobby = () => {
     setLobby(null)
-    setCurrentMenu("main") // Go back to main menu
+    setCurrentMenu("main")
   }
 
   const quitGameToMenu = () => {
     setState(null)
     setGameId(null)
-    setCurrentMenu("main") // Go back to main menu
+    setCurrentMenu("main")
   }
 
   return (
     <div className="App">
-      <h1>Njuka King</h1>
-
       {error && (
         <div className="error-modal">
           <div className="error-content">
@@ -935,8 +945,8 @@ function App() {
         <div className="new-game-form">
           {currentMenu === "main" && (
             <>
-              <h2>Start or Join a Game</h2>
-              <label>
+              {/* Removed h1 "Njuka King" as it's part of the background image */}
+              <label className="sr-only">
                 Your Name:
                 <input
                   type="text"
@@ -947,7 +957,7 @@ function App() {
                       setPlayerName(name)
                     }
                   }}
-                  placeholder="Enter your name (2-20 chars)"
+                  placeholder="Name......"
                   minLength={2}
                   maxLength={20}
                   required
@@ -965,7 +975,7 @@ function App() {
                 disabled={!playerName.trim()}
                 className={!playerName.trim() ? "disabled-btn" : ""}
               >
-                Play vs CPU
+                Play Vs CPU
               </button>
             </>
           )}
