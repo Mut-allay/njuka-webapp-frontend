@@ -154,7 +154,7 @@ button:disabled {
 }
 
 .card.facedown {
-  background: url('https://i.ibb.co/d49LvQ2d/Background-Red.png') no-repeat center;
+  background: none;
   border: 1px solid #f8d56b;
   color: #f8d56b;
 }
