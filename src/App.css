@@ -164,7 +164,7 @@ button:disabled {
   height: 100%;
   background: url('https://i.ibb.co/d49LvQ2d/Background-Red.png') no-repeat center;
   background-size: cover;
-  border-radius: 6px;
+  border-radius: 3px;
   position: absolute;
   top: 0;
   left: 0;
