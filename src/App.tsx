@@ -350,64 +350,58 @@ function Table({
         </h3>
         <div className="hand horizontal">
           {Array.from({ length: getPlayerSafe((yourPlayerIndex + 1) % state.players.length).hand.length }).map((_, i) => (
-  <Card
-    key={`top-${i}`}
-    facedown={state.mode === "multiplayer" && !isGameOver}
-    value={isGameOver ? getPlayerSafe((yourPlayerIndex + 1) % state.players.length).hand[i]?.value || "" : ""}
-    suit={isGameOver ? getPlayerSafe((yourPlayerIndex + 1) % state.players.length).hand[i]?.suit || "" : ""}
-    small={true}
-    highlight={isWinner(getPlayerSafe((yourPlayerIndex + 1) % state.players.length))}
-    style={{ boxShadow: 'none' }}
-  />
-))}
+            <Card
+              key={`top-${i}`}
+              facedown={state.mode === "multiplayer" && !isGameOver}
+              value={isGameOver ? getPlayerSafe((yourPlayerIndex + 1) % state.players.length).hand[i]?.value || "" : ""}
+              suit={isGameOver ? getPlayerSafe((yourPlayerIndex + 1) % state.players.length).hand[i]?.suit || "" : ""}
+              small={true}
+              highlight={isWinner(getPlayerSafe((yourPlayerIndex + 1) % state.players.length))}
+            />
+          ))}
         </div>
       </div>
 
       {/* Left Player (to the left in portrait) - Player two positions ahead */}
-      {state.players.length > 2 && (
-        <div className={`player-seat left ${currentPlayerIndex === (yourPlayerIndex + 2) % state.players.length ? "active" : ""}`}>
-          <h3>
-            {getPlayerSafe((yourPlayerIndex + 2) % state.players.length).name}
-            {getPlayerSafe((yourPlayerIndex + 2) % state.players.length).is_cpu && " (CPU)"}
-          </h3>
-          <div className="hand horizontal">
-            {Array.from({ length: getPlayerSafe((yourPlayerIndex + 1) % state.players.length).hand.length }).map((_, i) => (
-  <Card
-    key={`top-${i}`}
-    facedown={state.mode === "multiplayer" && !isGameOver}
-    value={isGameOver ? getPlayerSafe((yourPlayerIndex + 1) % state.players.length).hand[i]?.value || "" : ""}
-    suit={isGameOver ? getPlayerSafe((yourPlayerIndex + 1) % state.players.length).hand[i]?.suit || "" : ""}
-    small={true}
-    highlight={isWinner(getPlayerSafe((yourPlayerIndex + 1) % state.players.length))}
-    style={{ boxShadow: 'none' }}
-  />
-))}
-          </div>
-        </div>
-      )}
+      <div className={`player-seat left ${currentPlayerIndex === (yourPlayerIndex + 2) % state.players.length ? "active" : ""}`}>
+  <h3>
+    {getPlayerSafe((yourPlayerIndex + 2) % state.players.length).name}
+    {getPlayerSafe((yourPlayerIndex + 2) % state.players.length).is_cpu && " (CPU)"}
+  </h3>
+  <div className="hand">
+    {Array.from({ length: getPlayerSafe((yourPlayerIndex + 2) % state.players.length).hand.length }).map((_, i) => (
+      <Card
+        key={`left-${i}`}
+        facedown={state.mode === "multiplayer" && !isGameOver}
+        value={isGameOver ? getPlayerSafe((yourPlayerIndex + 2) % state.players.length).hand[i]?.value || "" : ""}
+        suit={isGameOver ? getPlayerSafe((yourPlayerIndex + 2) % state.players.length).hand[i]?.suit || "" : ""}
+        small={true}
+        highlight={isWinner(getPlayerSafe((yourPlayerIndex + 2) % state.players.length))}
+      />
+    ))}
+  </div>
+</div>
 
       {/* Right Player (to the right in portrait) - Player one position behind */}
-      {state.players.length > 3 && (
-        <div className={`player-seat right ${currentPlayerIndex === (yourPlayerIndex - 1 + state.players.length) % state.players.length ? "active" : ""}`}>
-          <h3>
-            {getPlayerSafe((yourPlayerIndex - 1 + state.players.length) % state.players.length).name}
-            {getPlayerSafe((yourPlayerIndex - 1 + state.players.length) % state.players.length).is_cpu && " (CPU)"}
-          </h3>
-          <div className="hand horizontal">
-            {Array.from({ length: getPlayerSafe((yourPlayerIndex + 1) % state.players.length).hand.length }).map((_, i) => (
-  <Card
-    key={`top-${i}`}
-    facedown={state.mode === "multiplayer" && !isGameOver}
-    value={isGameOver ? getPlayerSafe((yourPlayerIndex + 1) % state.players.length).hand[i]?.value || "" : ""}
-    suit={isGameOver ? getPlayerSafe((yourPlayerIndex + 1) % state.players.length).hand[i]?.suit || "" : ""}
-    small={true}
-    highlight={isWinner(getPlayerSafe((yourPlayerIndex + 1) % state.players.length))}
-    style={{ boxShadow: 'none' }}
-  />
-))}
-          </div>
-        </div>
-      )}
+      {/* Right Player */}
+<div className={`player-seat right ${currentPlayerIndex === (yourPlayerIndex - 1 + state.players.length) % state.players.length ? "active" : ""}`}>
+  <h3>
+    {getPlayerSafe((yourPlayerIndex - 1 + state.players.length) % state.players.length).name}
+    {getPlayerSafe((yourPlayerIndex - 1 + state.players.length) % state.players.length).is_cpu && " (CPU)"}
+  </h3>
+  <div className="hand">
+    {Array.from({ length: getPlayerSafe((yourPlayerIndex - 1 + state.players.length) % state.players.length).hand.length }).map((_, i) => (
+      <Card
+        key={`right-${i}`}
+        facedown={state.mode === "multiplayer" && !isGameOver}
+        value={isGameOver ? getPlayerSafe((yourPlayerIndex - 1 + state.players.length) % state.players.length).hand[i]?.value || "" : ""}
+        suit={isGameOver ? getPlayerSafe((yourPlayerIndex - 1 + state.players.length) % state.players.length).hand[i]?.suit || "" : ""}
+        small={true}
+        highlight={isWinner(getPlayerSafe((yourPlayerIndex - 1 + state.players.length) % state.players.length))}
+      />
+    ))}
+  </div>
+</div>
 
       <div className="table-center">
         <div
