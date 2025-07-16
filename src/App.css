@@ -154,7 +154,7 @@ button:disabled {
 }
 
 .card.facedown {
-  background: linear-gradient(135deg, #1a3a5a, #2a4a6a);
+  background: url("https://github.com/Mut-allay/njuka-webapp-frontend/tree/new-guideck/src/assets/card-back.png") no-repeat center center;
   border: 1px solid #f8d56b;
   color: #f8d56b;
 }
