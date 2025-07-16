@@ -253,7 +253,7 @@ function Card({
     )
   }
 
-  const suitColor = suit === "♥" || suit === "♦" ? "red" : "black"
+  const suitColor = (suit === "♥" || suit === "♦") && value ? "red" : "black"; // Only apply color if value exists
   return (
     <div
       className={`card ${suitColor} ${className} ${highlight ? "highlight-card" : ""} ${small ? "small-card" : ""} ${
