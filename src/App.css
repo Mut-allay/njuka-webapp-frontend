@@ -36,7 +36,6 @@
   border-bottom: 1px solid rgba(255, 255, 255, 0.1);
 }
 
-/* Existing styles in App.css remain, but update or add this block */
 .App {
   text-align: center;
   background: linear-gradient(135deg, #0a2e38, #123d4a, #1a4a5c);
@@ -48,9 +47,6 @@
   justify-content: flex-start;
   padding: 20px;
   font-family: "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
-  background-image: url('https://i.ibb.co/WWF0GX3F/Whats-App-Image-2025-07-04-at-14-02-47-286ad1ed.jpg');
-  background-size: cover;
-  background-position: center;
 }
 
 h1 {
@@ -323,6 +319,7 @@ button:disabled {
 /* Player Positions */
 .player-seat {
   position: absolute;
+  background: rgba(10, 30, 40, 0.85);
   border-radius: 15px;
   padding: 10px 15px;
   text-align: center;
