@@ -376,7 +376,8 @@ button:disabled {
   position: absolute;
   top: 50%;
   left: 50%;
-  transform: translate(-50%, -50%);
+  transform-origin: center;
+  transition: transform 0.3s ease;
   display: flex;
   gap: 60px;
   z-index: 2;
