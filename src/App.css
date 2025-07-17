@@ -696,9 +696,9 @@ button:disabled {
   }
 
   .poker-table {
-    width: 95vw;
-    height: 70vh;
-    border-radius: 50% / 30%;
+    width: 100vw;
+    height: 80vh;
+    border-radius: 10px;
     position: relative;
   }
 
