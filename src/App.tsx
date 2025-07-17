@@ -884,7 +884,6 @@ function App() {
       {state ? (
         <div className="game-container">
           <div className="game-info">
-            <p>Game ID: {state.id}</p>
             <p className="turn-indicator">
               Current Turn: <strong>{state.players[state.current_player]?.name}</strong>
               {state.players[state.current_player]?.is_cpu && " (CPU)"}

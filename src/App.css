@@ -53,7 +53,7 @@ h1 {
   color: #f8d56b;
   margin-bottom: 20px;
   text-shadow: 0 2px 4px rgba(0, 0, 0, 0.5);
-  font-size: 1.5em; /* Reduced for mobile */
+  font-size: 3em; /* Reduced for mobile */
 }
 
 h2,
@@ -92,8 +92,8 @@ button:disabled {
 /* Card styles */
 .card {
   display: inline-block;
-  width: 60px;
-  height: 90px;
+  width: 65px;
+  height: 95px;
   min-width: 48px;
   min-height: 72px;
   background: linear-gradient(135deg, #ffffff, #f5f5f5);
@@ -319,7 +319,6 @@ button:disabled {
 /* Player Positions */
 .player-seat {
   position: absolute;
-  background: rgba(10, 30, 40, 0.85);
   border-radius: 15px;
   padding: 10px 15px;
   text-align: center;
@@ -558,14 +557,17 @@ button:disabled {
 }
 
 .quit-btn {
-  background: #d32f2f !important;
-  color: white !important;
-  position: absolute;
-  top: 20px;
-  right: 20px;
-  padding: 8px 15px !important;
+  position: fixed;
+  bottom: 20px;
+  left: 50%;
+  transform: translateX(-50%);
+  color: rgb(255, 255, 255) !important;
   font-size: 0.8em !important;
+  background: rgb(211, 47, 47) !important;
+  padding: 8px 15px !important;
+  z-index: 1000; /* keeps it visible above other content */
 }
+
 
 .quit-btn:hover {
   background: #ff4444 !important;
@@ -742,8 +744,8 @@ button:disabled {
 
   /* Adjust card sizes for mobile */
   .card {
-    width: 40px;
-    height: 60px;
+    width: 45px;
+    height: 65px;
     min-width: 48px;
     min-height: 72px;
     margin: 0 -8px;
@@ -754,8 +756,8 @@ button:disabled {
   }
 
   .card.small-card {
-    width: 30px;
-    height: 45px;
+    width: 35px;
+    height: 50px;
     min-width: 40px;
     min-height: 60px;
     margin: 0 -6px;
