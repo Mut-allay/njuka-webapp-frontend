@@ -92,14 +92,14 @@ button:disabled {
 /* Card styles */
 .card {
   display: inline-block;
-  width: 65px;
-  height: 95px;
-  min-width: 48px;
-  min-height: 72px;
+  width: 70px;
+  height: 100px;
+  min-width: 60px;
+  min-height: 88px;
   background: linear-gradient(135deg, #ffffff, #f5f5f5);
   border-radius: 6px;
   border: 1px solid rgba(0, 0, 0, 0.1);
-  margin: 0 -15px;
+  margin: 0 -10px;
   position: relative;
   font-size: 1em;
   cursor: pointer;
@@ -113,12 +113,12 @@ button:disabled {
 }
 
 .card.small-card {
-  width: 40px;
-  height: 60px;
-  min-width: 40px;
-  min-height: 60px;
+  width: 50px;
+  height: 75px;
+  min-width: 48px;
+  min-height: 72px;
   font-size: 0.8em;
-  margin: 0 -10px;
+  margin: 0 -8px;
 }
 
 .card.highlight-card {
