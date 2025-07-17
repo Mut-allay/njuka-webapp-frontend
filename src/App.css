@@ -685,11 +685,16 @@ button:disabled {
 /* Mobile Portrait Layout */
 @media (max-width: 768px) {
   h1 {
-    font-size: 1.2em;
+    font-size: 1.8em;
   }
   h2,
   h3 {
-    font-size: 0.9em;
+    font-size: 1.2em;
+  }
+  button {
+    padding: 12px 24px;
+    font-size: 1em;
+    min-height: 48px; /* Accessible touch target */
   }
   .card-value,
   .card-suit {
