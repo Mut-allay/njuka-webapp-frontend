@@ -451,9 +451,11 @@ button:disabled {
 }
 
 .turn-indicator {
-  font-size: 1.1em;
-  color: #f8d56b;
-  text-shadow: 0 0 10px rgba(248, 213, 107, 0.5);
+  font-size: 1.4em;
+  background: rgba(248, 213, 107, 0.2);
+  padding: 10px;
+  border-radius: 10px;
+  animation: pulse 2s infinite;
 }
 
 /* Game Over Styles */
