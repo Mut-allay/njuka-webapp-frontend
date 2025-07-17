@@ -222,6 +222,9 @@ function Card({
   small = false,
   style = {},
   selected = false,
+  cardIndex, // New prop for staggered animation
+  playerIndex, // New prop for staggered animation
+  gameId, // New prop to trigger animation on new game
 }: {
   value: string
   suit: string
@@ -233,13 +236,30 @@ function Card({
   small?: boolean
   style?: React.CSSProperties
   selected?: boolean
+  cardIndex: number
+  playerIndex: number
+  gameId: string
 }) {
   const [isHovered, setIsHovered] = useState(false)
+  const [isDealt, setIsDealt] = useState(false)
+
+  useEffect(() => {
+    // Reset animation state when gameId changes (new game)
+    setIsDealt(false)
+    // Trigger animation with a delay based on card and player index
+    const delay = playerIndex * 100 + cardIndex * 50 // Adjust delay as needed
+    const timer = setTimeout(() => {
+      setIsDealt(true)
+    }, delay)
+    return () => clearTimeout(timer)
+  }, [cardIndex, playerIndex, gameId]) // Re-run effect if card/player index or gameId changes
+
+  const animationClass = isDealt ? "card-deal-animation" : "card-initial-hidden"
 
   if (facedown) {
     return (
       <div
-        className={`card facedown ${className} ${small ? "small-card" : ""}`}
+        className={`card facedown ${className} ${small ? "small-card" : ""} ${animationClass}`}
         style={style}
         onMouseEnter={() => setIsHovered(true)}
         onMouseLeave={() => setIsHovered(false)}
@@ -252,7 +272,7 @@ function Card({
   const suitColor = suit === "♥" || suit === "♦" ? "red" : "black"
   return (
     <div
-      className={`card ${suitColor} ${className} ${highlight ? "highlight-card" : ""} ${small ? "small-card" : ""} ${isHovered ? "card-hover" : ""} ${selected ? "card-selected" : ""}`}
+      className={`card ${suitColor} ${className} ${highlight ? "highlight-card" : ""} ${small ? "small-card" : ""} ${isHovered ? "card-hover" : ""} ${selected ? "card-selected" : ""} ${animationClass}`}
       onClick={!disabled ? onClick : undefined}
       style={disabled ? { opacity: 0.7, cursor: "not-allowed", ...style } : style}
       onMouseEnter={() => setIsHovered(true)}
@@ -284,20 +304,21 @@ function Table({
   }
 }) {
   const [selectedCardIndex, setSelectedCardIndex] = useState<number | null>(null)
+  const [discardingCardIndex, setDiscardingCardIndex] = useState<number | null>(null)
   const [showDeckHighlight, setShowDeckHighlight] = useState(false)
   const [hasShownPrompt, setHasShownPrompt] = useState(false)
 
-  const yourPlayer = state.players.find((p) => p?.name === playerName)
+  const yourPlayerIndex = state.players.findIndex((p) => p?.name === playerName)
   const currentPlayerIndex = state.current_player ?? 0
   const currentPlayer = state.players[currentPlayerIndex]
   const isGameOver = state.game_over
 
-  if (!yourPlayer || !currentPlayer) {
+  if (yourPlayerIndex === -1 || !currentPlayer) {
     return <div className="error">Player data not available</div>
   }
 
   const getPlayerSafe = (index: number) => {
-    return state.players[index] ?? { name: "Player", hand: [], is_cpu: false }
+    return state.players[index % state.players.length] ?? { name: "Opponent", hand: [], is_cpu: false }
   }
 
   const isWinner = (player: Player) => isGameOver && state.winner === player.name
@@ -316,6 +337,7 @@ function Table({
 
   const handleCardClick = (index: number) => {
     if (selectedCardIndex === index) {
+      setDiscardingCardIndex(index) // Track the card being discarded
       onDiscard(index)
       setSelectedCardIndex(null)
     } else {
@@ -323,85 +345,125 @@ function Table({
     }
   }
 
-  const timer = setTimeout(() => {
-    setShowDeckHighlight(true)
-    setHasShownPrompt(true)
-  }, 3000)
+  const timer = useCallback(() => {
+    const timer = setTimeout(() => {
+      setShowDeckHighlight(true)
+      setHasShownPrompt(true)
+    }, 3000)
 
-  useEffect(() => {
     return () => clearTimeout(timer)
   }, [])
 
   useEffect(() => {
-    if (state?.current_player !== state?.players.findIndex((p) => p?.name === playerName)) {
+    const cleanup = timer()
+    return cleanup
+  }, [timer])
+
+  useEffect(() => {
+    if (state?.current_player !== yourPlayerIndex) {
       setShowDeckHighlight(false)
       setHasShownPrompt(false)
       setSelectedCardIndex(null)
     }
-  }, [state])
+  }, [state, yourPlayerIndex])
 
   return (
     <div className="poker-table">
-      {/* Top Player (opponent across the table) */}
-      {state.players.length > 1 && (
-        <div className={`player-seat top ${currentPlayerIndex === 1 ? "active" : ""}`}>
-          <h3>
-            {getPlayerSafe(1).name}
-            {getPlayerSafe(1).is_cpu && " (CPU)"}
-          </h3>
-          <div className="hand horizontal">
-            {getPlayerSafe(1).hand.map((card, i) => (
+      {/* Top Player (opponent across the table) - Next player after current player */}
+      <div
+        className={`player-seat top ${currentPlayerIndex === (yourPlayerIndex + 1) % state.players.length ? "active" : ""}`}
+      >
+        <h3>
+          {getPlayerSafe((yourPlayerIndex + 1) % state.players.length).name}
+          {getPlayerSafe((yourPlayerIndex + 1) % state.players.length).is_cpu && " (CPU)"}
+        </h3>
+        <div className="hand horizontal">
+          {Array.from({ length: getPlayerSafe((yourPlayerIndex + 1) % state.players.length).hand.length }).map(
+            (_, i) => (
               <Card
-                key={`top-${i}`}
-                facedown={!isGameOver}
-                value={card.value}
-                suit={card.suit}
+                key={`top-${state.id}-${i}`} // Unique key for animation re-trigger
+                facedown={state.mode === "multiplayer" && !isGameOver}
+                value={
+                  isGameOver ? getPlayerSafe((yourPlayerIndex + 1) % state.players.length).hand[i]?.value || "" : ""
+                }
+                suit={isGameOver ? getPlayerSafe((yourPlayerIndex + 1) % state.players.length).hand[i]?.suit || "" : ""}
                 small={true}
-                highlight={isWinner(getPlayerSafe(1))}
+                highlight={isWinner(getPlayerSafe((yourPlayerIndex + 1) % state.players.length))}
+                cardIndex={i}
+                playerIndex={(yourPlayerIndex + 1) % state.players.length}
+                gameId={state.id}
               />
-            ))}
-          </div>
+            ),
+          )}
         </div>
-      )}
+      </div>
 
-      {/* Left Player (to the left in portrait) */}
+      {/* Left Player (to the left in portrait) - Player two positions ahead */}
       {state.players.length > 2 && (
-        <div className={`player-seat left ${currentPlayerIndex === 2 ? "active" : ""}`}>
+        <div
+          className={`player-seat left ${currentPlayerIndex === (yourPlayerIndex + 2) % state.players.length ? "active" : ""}`}
+        >
           <h3>
-            {getPlayerSafe(2).name}
-            {getPlayerSafe(2).is_cpu && " (CPU)"}
+            {getPlayerSafe((yourPlayerIndex + 2) % state.players.length).name}
+            {getPlayerSafe((yourPlayerIndex + 2) % state.players.length).is_cpu && " (CPU)"}
           </h3>
           <div className="hand horizontal">
-            {getPlayerSafe(2).hand.map((card, i) => (
-              <Card
-                key={`left-${i}`}
-                facedown={!isGameOver}
-                value={card.value}
-                suit={card.suit}
-                small={true}
-                highlight={isWinner(getPlayerSafe(2))}
-              />
-            ))}
+            {Array.from({ length: getPlayerSafe((yourPlayerIndex + 2) % state.players.length).hand.length }).map(
+              (_, i) => (
+                <Card
+                  key={`left-${state.id}-${i}`} // Unique key for animation re-trigger
+                  facedown={state.mode === "multiplayer" && !isGameOver}
+                  value={
+                    isGameOver ? getPlayerSafe((yourPlayerIndex + 2) % state.players.length).hand[i]?.value || "" : ""
+                  }
+                  suit={
+                    isGameOver ? getPlayerSafe((yourPlayerIndex + 2) % state.players.length).hand[i]?.suit || "" : ""
+                  }
+                  small={true}
+                  highlight={isWinner(getPlayerSafe((yourPlayerIndex + 2) % state.players.length))}
+                  cardIndex={i}
+                  playerIndex={(yourPlayerIndex + 2) % state.players.length}
+                  gameId={state.id}
+                />
+              ),
+            )}
           </div>
         </div>
       )}
 
-      {/* Right Player (to the right in portrait) */}
+      {/* Right Player (to the right in portrait) - Player one position behind */}
       {state.players.length > 3 && (
-        <div className={`player-seat right ${currentPlayerIndex === 3 ? "active" : ""}`}>
+        <div
+          className={`player-seat right ${currentPlayerIndex === (yourPlayerIndex - 1 + state.players.length) % state.players.length ? "active" : ""}`}
+        >
           <h3>
-            {getPlayerSafe(3).name}
-            {getPlayerSafe(3).is_cpu && " (CPU)"}
+            {getPlayerSafe((yourPlayerIndex - 1 + state.players.length) % state.players.length).name}
+            {getPlayerSafe((yourPlayerIndex - 1 + state.players.length) % state.players.length).is_cpu && " (CPU)"}
           </h3>
           <div className="hand horizontal">
-            {getPlayerSafe(3).hand.map((card, i) => (
+            {Array.from({
+              length: getPlayerSafe((yourPlayerIndex - 1 + state.players.length) % state.players.length).hand.length,
+            }).map((_, i) => (
               <Card
-                key={`right-${i}`}
-                facedown={!isGameOver}
-                value={card.value}
-                suit={card.suit}
+                key={`right-${state.id}-${i}`} // Unique key for animation re-trigger
+                facedown={state.mode === "multiplayer" && !isGameOver}
+                value={
+                  isGameOver
+                    ? getPlayerSafe((yourPlayerIndex - 1 + state.players.length) % state.players.length).hand[i]
+                        ?.value || ""
+                    : ""
+                }
+                suit={
+                  isGameOver
+                    ? getPlayerSafe((yourPlayerIndex - 1 + state.players.length) % state.players.length).hand[i]
+                        ?.suit || ""
+                    : ""
+                }
                 small={true}
-                highlight={isWinner(getPlayerSafe(3))}
+                highlight={isWinner(getPlayerSafe((yourPlayerIndex - 1 + state.players.length) % state.players.length))}
+                cardIndex={i}
+                playerIndex={(yourPlayerIndex - 1 + state.players.length) % state.players.length}
+                gameId={state.id}
               />
             ))}
           </div>
@@ -430,12 +492,21 @@ function Table({
                   ? "pointer"
                   : "default",
             }}
+            cardIndex={0} // Dummy index for deck card
+            playerIndex={-1} // Dummy index for deck card
+            gameId={state.id}
           />
         </div>
 
         <div className="discard-area">
           {state.pot?.length > 0 ? (
-            <Card {...state.pot[state.pot.length - 1]} className="discard-top" />
+            <Card
+              {...state.pot[state.pot.length - 1]}
+              className="discard-top"
+              cardIndex={0} // Dummy index for discard card
+              playerIndex={-2} // Dummy index for discard card
+              gameId={state.id}
+            />
           ) : (
             <div className="discard-empty">Empty</div>
           )}
@@ -443,27 +514,29 @@ function Table({
       </div>
 
       {/* Bottom Player (current player) */}
-      <div
-        className={`player-seat bottom ${currentPlayerIndex === state.players.findIndex((p) => p?.name === playerName) ? "active" : ""}`}
-      >
-        <h2>Your Hand ({yourPlayer.name})</h2>
+      <div className={`player-seat bottom ${currentPlayerIndex === yourPlayerIndex ? "active" : ""}`}>
+        <h2>Your Hand ({yourPlayerIndex !== -1 ? state.players[yourPlayerIndex].name : "You"})</h2>
         <div className="hand">
-          {yourPlayer.hand?.map((card, i) => (
-            <Card
-              key={`you-${i}`}
-              {...card}
-              onClick={() => handleCardClick(i)}
-              disabled={
-                !state.has_drawn ||
-                currentPlayer.is_cpu ||
-                currentPlayer.name !== yourPlayer.name ||
-                loadingStates.discarding
-              }
-              className={loadingStates.discarding ? "card-discarding" : ""}
-              highlight={isWinner(yourPlayer)}
-              selected={selectedCardIndex === i}
-            />
-          ))}
+          {yourPlayerIndex !== -1 &&
+            state.players[yourPlayerIndex].hand?.map((card, i) => (
+              <Card
+                key={`you-${state.id}-${i}`} // Unique key for animation re-trigger
+                {...card}
+                onClick={() => handleCardClick(i)}
+                disabled={
+                  !state.has_drawn ||
+                  currentPlayer.is_cpu ||
+                  currentPlayer.name !== state.players[yourPlayerIndex].name ||
+                  loadingStates.discarding
+                }
+                className={discardingCardIndex === i ? "card-discarding" : ""}
+                highlight={isWinner(state.players[yourPlayerIndex])}
+                selected={selectedCardIndex === i}
+                cardIndex={i}
+                playerIndex={yourPlayerIndex}
+                gameId={state.id}
+              />
+            ))}
         </div>
       </div>
     </div>
@@ -777,7 +850,6 @@ function App() {
   if (!backendAvailable) {
     return (
       <div className="App">
-        <h1>Njuka King</h1>
         <div className="error-notice">
           <h3>Service Unavailable</h3>
           <p>We're having trouble connecting to the game server.</p>
@@ -862,8 +934,6 @@ function App() {
 
   return (
     <div className="App">
-      <h1>Njuka King</h1>
-
       {error && (
         <div className="error-modal">
           <div className="error-content">
@@ -912,7 +982,15 @@ function App() {
                     <p>Winning Hand:</p>
                     <div className="hand">
                       {state.winner_hand.map((card, i) => (
-                        <Card key={`winner-${i}`} value={card.value} suit={card.suit} highlight={true} />
+                        <Card
+                          key={`winner-${i}`}
+                          value={card.value}
+                          suit={card.suit}
+                          highlight={true}
+                          cardIndex={i}
+                          playerIndex={-3} // Dummy index for winner hand
+                          gameId={state.id}
+                        />
                       ))}
                     </div>
                   </div>
@@ -934,8 +1012,8 @@ function App() {
         <div className="new-game-form">
           {currentMenu === "main" && (
             <>
-              <h2>Start or Join a Game</h2>
-              <label>
+              {/* Removed h1 "Njuka King" as it's part of the background image */}
+              <label className="sr-only">
                 Your Name:
                 <input
                   type="text"
@@ -946,7 +1024,7 @@ function App() {
                       setPlayerName(name)
                     }
                   }}
-                  placeholder="Enter your name (2-20 chars)"
+                  placeholder="Name......"
                   minLength={2}
                   maxLength={20}
                   required
@@ -964,7 +1042,7 @@ function App() {
                 disabled={!playerName.trim()}
                 className={!playerName.trim() ? "disabled-btn" : ""}
               >
-                Play vs CPU
+                Play Vs CPU
               </button>
             </>
           )}
