@@ -358,7 +358,6 @@ function Table({
   }, [state])
 
   const canDraw = !loadingStates.drawing && currentPlayer.name === playerName && !isGameOver && !state.has_drawn
-  const canDiscard = !loadingStates.discarding && currentPlayer.name === playerName && state.has_drawn && selectedCardIndex !== null
 
   return (
     <div className="poker-table">
@@ -478,24 +477,6 @@ function Table({
             />
           ))}
         </div>
-      </div>
-
-      {/* Mobile Action Buttons */}
-      <div className="action-bar">
-        <button 
-          className="action-btn draw-btn"
-          onClick={onDraw}
-          disabled={!canDraw || loadingStates.drawing}
-        >
-          {loadingStates.drawing ? "Drawing..." : "Draw"}
-        </button>
-        <button 
-          className="action-btn discard-btn"
-          onClick={() => selectedCardIndex !== null && onDiscard(selectedCardIndex)}
-          disabled={!canDiscard || loadingStates.discarding}
-        >
-          {loadingStates.discarding ? "Discarding..." : "Discard"}
-        </button>
       </div>
     </div>
   )
