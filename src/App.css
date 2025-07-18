@@ -576,9 +576,9 @@ button:disabled {
 }
 
 .quit-btn {
-  position: fixed;
-  bottom: 20px;
-  left: 50%;
+  position: sticky;
+  bottom: 15px;
+  left: 30%;
   transform: translateX(-50%);
   color: rgb(255, 255, 255) !important;
   font-size: 0.8em !important;
@@ -721,7 +721,7 @@ button:disabled {
   .poker-table {
     width: 100vw;
     height: 80vh;
-    border-radius: 10px;
+    border-radius: 50% / 30%;
     position: relative;
   }
 
