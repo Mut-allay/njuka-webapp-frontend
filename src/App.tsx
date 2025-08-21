@@ -532,6 +532,18 @@ function LobbyView({
   )
 }
 
+// ⬇️ ADDED NEW COMPONENT HERE ⬇️
+function BottomMenu({ quitGameToMenu }: { quitGameToMenu: () => void }) {
+  return (
+    <footer className="bottom-menu">
+      <button onClick={() => console.log("Settings clicked")}>Settings</button>
+      <button onClick={() => console.log("Info clicked")}>Info</button>
+      <button onClick={quitGameToMenu}>Quit</button>
+    </footer>
+  );
+}
+
+
 function App() {
   const [state, setState] = useState<GameState | null>(null)
   const [gameId, setGameId] = useState<string | null>(null)
@@ -881,9 +893,7 @@ function App() {
               {state.players[state.current_player]?.is_cpu && " (CPU)"}
               {loadingStates.cpuMoving && " - Thinking..."}
             </p>
-            <button onClick={quitGameToMenu} className="quit-btn">
-              Quit to Menu
-            </button>
+            {/* ⬇️ REMOVED QUIT BUTTON FROM HERE ⬇️ */}
           </div>
           <Table
             state={state}
@@ -892,6 +902,8 @@ function App() {
             onDraw={draw}
             loadingStates={loadingStates}
           />
+          {/* ⬇️ RENDERED NEW COMPONENT HERE ⬇️ */}
+          <BottomMenu quitGameToMenu={quitGameToMenu} />
           {state.game_over && (
             <div className="game-over">
               <div>

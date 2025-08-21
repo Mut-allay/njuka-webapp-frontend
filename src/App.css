@@ -303,16 +303,16 @@ button:disabled {
   align-items: center;
 }
 
-/* Poker Table Styles */
+/* ⬇️ UPDATED POKER TABLE STYLES ⬇️ */
 .poker-table {
   position: relative;
   width: 95vw;
-  height: 70vh;
+  height: 65vh; /* <-- Reduced height */
   max-width: 900px;
-  max-height: 650px;
+  max-height: 600px; /* <-- Reduced max-height */
   margin: 20px auto;
   background: radial-gradient(ellipse at center, #0d4a24 0%, #0d4a24 100%);
-  border-radius: 50%;
+  border-radius: 50% / 40%; /* <-- Adjusted for a shorter oval */
   border: 15px solid #5d4037;
   box-shadow: 0 0 40px rgba(0, 0, 0, 0.8), inset 0 0 30px rgba(0, 0, 0, 0.6);
   display: flex;
@@ -336,16 +336,28 @@ button:disabled {
 .player-seat {
   position: absolute;
   border-radius: 15px;
-  padding: 10px 15px;
+  padding: 5px 10px; /* <-- Reduced padding to make background smaller */
   text-align: center;
   min-width: 120px;
   backdrop-filter: blur(5px);
   transition: all 0.3s ease;
 }
 
-.player-seat.active {
-  background: rgba(248, 213, 107, 0.1);
+/* ⬇️ ADDED NEW KEYFRAMES FOR GLOW ⬇️ */
+@keyframes pulsating-glow {
+  0% {
+    box-shadow: 0 0 10px 2px rgba(248, 213, 107, 0.4);
+  }
+  100% {
+    box-shadow: 0 0 25px 8px rgba(248, 213, 107, 0.8);
+  }
 }
+
+/* ⬇️ UPDATED .active TO USE GLOW ANIMATION ⬇️ */
+.player-seat.active {
+  animation: pulsating-glow 1.5s infinite alternate;
+}
+
 
 .player-seat h2,
 .player-seat h3 {
@@ -699,6 +711,34 @@ button:disabled {
   margin-top: 15px;
 }
 
+/* ⬇️ ADDED NEW STYLES FOR BOTTOM MENU ⬇️ */
+.bottom-menu {
+  position: fixed;
+  bottom: 0;
+  left: 0;
+  width: 100%;
+  background: rgba(0, 0, 0, 0.7);
+  backdrop-filter: blur(5px);
+  display: flex;
+  justify-content: space-around;
+  padding: 10px 0;
+  z-index: 1100;
+  border-top: 1px solid rgba(248, 213, 107, 0.3);
+}
+
+.bottom-menu button {
+  background: transparent;
+  color: #f8d56b;
+  border: 1px solid #f8d56b;
+  font-size: 1em;
+}
+
+.bottom-menu button:hover {
+  background: rgba(248, 213, 107, 0.2);
+  transform: none;
+}
+
+
 /* Mobile Portrait Layout */
 @media (max-width: 768px) {
   h1 {
@@ -720,7 +760,7 @@ button:disabled {
 
   .poker-table {
     width: 100vw;
-    height: 80vh;
+    height: 75vh; /* <-- Adjusted height for mobile */
     border-radius: 50% / 30%;
     position: relative;
   }
@@ -858,7 +898,7 @@ button:disabled {
 /* Landscape and Desktop Layout */
 @media (min-width: 769px), (orientation: landscape) {
   .poker-table {
-    border-radius: 50%;
+    border-radius: 50% / 40%; /* <-- Adjusted for a shorter oval */
   }
 
   .player-seat {
