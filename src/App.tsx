@@ -237,6 +237,16 @@ const Card = React.memo(function Card({
   const [isHovered, setIsHovered] = useState(false)
   const [touchStart, setTouchStart] = useState(0)
 
+  // ⬇️ UPDATED LOGIC FOR ALL ACES ⬇️
+  const isAce = value === 'A';
+  let aceImageUrl = '';
+  if (isAce) {
+    if (suit === '♠') aceImageUrl = 'https://i.ibb.co/5XK6Q3C/Pngtree-ace-of-spades-playing-card-7953252.png';
+    if (suit === '♥') aceImageUrl = 'https://i.ibb.co/V02h2T3/ace-of-hearts-playing-card-png-7953251.png';
+    if (suit === '♦') aceImageUrl = 'https://i.ibb.co/ds4F5y1/ace-of-diamonds-playing-card-png-7953249.png';
+    if (suit === '♣') aceImageUrl = 'https://i.ibb.co/gM5CYg9/ace-of-clubs-playing-card-png-7953250.png';
+  }
+
   const handleTouchStart = (e: React.TouchEvent) => {
     setTouchStart(e.touches[0].clientX)
   }
@@ -276,8 +286,19 @@ const Card = React.memo(function Card({
       onMouseLeave={() => setIsHovered(false)}
     >
       <div className="card-inner">
-        <span className="card-value">{value}</span>
-        <span className="card-suit">{suit}</span>
+        {/* ⬇️ RENDER IMAGE IF IT'S AN ACE, OTHERWISE RENDER TEXT ⬇️ */}
+        {isAce && aceImageUrl ? (
+          <img 
+            src={aceImageUrl}
+            alt={`Ace of ${suit}`}
+            className="card-face-image"
+          />
+        ) : (
+          <>
+            <span className="card-value">{value}</span>
+            <span className="card-suit">{suit}</span>
+          </>
+        )}
       </div>
     </div>
   )
@@ -455,10 +476,11 @@ function Table({
       </div>
 
       {/* Bottom Player (current player) */}
+      <h4>{yourPlayer.name}</h4>
       <div
         className={`player-seat bottom ${currentPlayerIndex === state.players.findIndex((p) => p?.name === playerName) ? "active" : ""}`}
       >
-        <h2>Your Hand ({yourPlayer.name})</h2>
+        
         <div className="hand">
           {yourPlayer.hand?.map((card, i) => (
             <Card
@@ -532,7 +554,6 @@ function LobbyView({
   )
 }
 
-// ⬇️ ADDED NEW COMPONENT HERE ⬇️
 function BottomMenu({ quitGameToMenu }: { quitGameToMenu: () => void }) {
   return (
     <footer className="bottom-menu">
@@ -887,13 +908,8 @@ function App() {
 
       {state ? (
         <div className="game-container">
-          <div className="game-info">
-            <p className={`turn-indicator ${state.players[state.current_player]?.name === playerName ? "current-turn" : ""}`}>
-              Current Turn: <strong>{state.players[state.current_player]?.name}</strong>
-              {state.players[state.current_player]?.is_cpu && " (CPU)"}
-              {loadingStates.cpuMoving && " - Thinking..."}
-            </p>
-            {/* ⬇️ REMOVED QUIT BUTTON FROM HERE ⬇️ */}
+          <div>
+            
           </div>
           <Table
             state={state}
@@ -902,7 +918,6 @@ function App() {
             onDraw={draw}
             loadingStates={loadingStates}
           />
-          {/* ⬇️ RENDERED NEW COMPONENT HERE ⬇️ */}
           <BottomMenu quitGameToMenu={quitGameToMenu} />
           {state.game_over && (
             <div className="game-over">

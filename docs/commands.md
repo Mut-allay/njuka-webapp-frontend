@@ -57,7 +57,6 @@ git push origin Backend/Direct-Messaging
 
 # Step 5: Deploy your updated functions
 
-firebase deploy --only functions
 📦 STAGING & COMMITTING
 git status # Show file changes
 git add . # Stage all changes
@@ -93,6 +92,10 @@ firebase login
 firebase init
 firebase init functions # In your project directory
 firebase emulators:start --only functions
+taskkill /F /IM java.exe #to kill the emulators
+netstat -aon | findstr "8080" #To Listen to Which Ports Are in Use
+firebase use project_id
+firebase projects:list
 
 ☁️ GOOGLE CLOUD
 gcloud auth login
@@ -105,6 +108,7 @@ pnpm exec firebase deploy --only hosting
 pnpm run build:staging
 pnpm run server
 npm run dev:emulator
+firebase deploy --only functions
 
 Blog Functions
 Bash
@@ -113,4 +117,4 @@ cd functions
 npm run build
 npm run serve
 npm test
-firebase deploy --only functions
+npm run type-check

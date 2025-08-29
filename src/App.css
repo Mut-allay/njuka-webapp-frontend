@@ -1,7 +1,24 @@
 /* Add these at the end of App.css */
 @import url("https://fonts.googleapis.com/css2?family=Bebas+Neue&display=swap");
-h1, h2, h3, button {
+
+/* ⬇️ ADDED TO FIX BACKGROUND COVERAGE ⬇️ */
+html, body {
+  margin: 0;
+  padding: 0;
+  width: 100%;
+  overflow-x: hidden;
+}
+
+h1, h2, h4, button { /* <-- Added h4 back to this rule */
   font-family: "Bebas Neue", sans-serif;
+}
+
+/* ⬇️ KEPT H4 STYLING AS REQUESTED ⬇️ */
+h4 {
+  font-size: 1.7em;
+  position: absolute;
+  top: 333px;
+  left: 185px;
 }
 
 .lobby-list {
@@ -43,22 +60,29 @@ h1, h2, h3, button {
 
 .App {
   text-align: center;
-  background: linear-gradient(135deg, #0a2e38, #123d4a, #1a4a5c);
+  background-image: url('https://i.ibb.co/6csxbFY3/10013144.jpg');
+  background-size: cover;
+  background-position: center;
+  background-repeat: no-repeat;
   color: #fff;
   min-height: 100vh;
   display: flex;
   flex-direction: column;
   align-items: center;
   justify-content: flex-start;
-  padding: 20px;
+  padding: 10px 0;
   font-family: "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
+  font-size: clamp(1rem, 4vw, 1.25rem);
+  line-height: 1.4;
+  width: 100%;
+  overflow-x: hidden;
 }
 
 h1 {
   color: #f8d56b;
   margin-bottom: 20px;
   text-shadow: 0 2px 4px rgba(0, 0, 0, 0.5);
-  font-size: 3em; /* Reduced for mobile */
+  font-size: 3em;
 }
 
 h2,
@@ -162,14 +186,14 @@ button:disabled {
   background: url("https://i.ibb.co/d49LvQ2d/Background-Red.png") no-repeat center center;
   background-size: cover;
   border: 1px solid #f8d56b;
-  border-radius: 6px; /* Ensure consistent border-radius with other cards */
+  border-radius: 6px;
 }
 
 .card.facedown .card-back {
   width: 100%;
   height: 100%;
-  background: none !important; /* Ensure no background from this inner div */
-  background-color: transparent !important; /* Ensure no background color from this inner div */
+  background: none !important;
+  background-color: transparent !important;
   border-radius: 4px;
   position: absolute !important;
   top: 0 !important;
@@ -189,8 +213,8 @@ button:disabled {
 
 .card-value,
 .card-suit {
-  font-size: 0.9em; /* Ensure readability */
-  text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.5); /* Enhanced contrast */
+  font-size: 0.9em;
+  text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.5);
 }
 
 .card:active {
@@ -198,7 +222,15 @@ button:disabled {
   transition: transform 0.1s;
 }
 
-/* Ensure proper touch targets on mobile */
+/* ⬇️ ADDED THIS NEW STYLE ⬇️ */
+.card-face-image {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  padding: 5px;
+  box-sizing: border-box;
+}
+
 @media (pointer: coarse) {
   .card {
     min-width: 48px;
@@ -210,7 +242,6 @@ button:disabled {
   }
 }
 
-/* Deck highlight styles */
 .deck-highlight .card {
   box-shadow: 0 0 20px 5px rgba(248, 213, 107, 0.8);
   animation: pulse-glow 1.5s infinite alternate;
@@ -225,7 +256,6 @@ button:disabled {
   }
 }
 
-/* Animation styles */
 .card-drawing {
   animation: cardDraw 0.5s ease-out;
 }
@@ -263,7 +293,6 @@ button:disabled {
   }
 }
 
-/* Tutorial prompt */
 .tutorial-prompt {
   position: absolute;
   top: -40px;
@@ -290,12 +319,13 @@ button:disabled {
   }
 }
 
-/* Hand styles */
 .hand {
   display: flex;
   justify-content: center;
   margin: 8px 0;
-  padding: 0 20px;
+  padding: 10px;
+  border-radius: 12px;
+  transition: all 0.3s ease;
 }
 
 .hand.horizontal {
@@ -303,16 +333,15 @@ button:disabled {
   align-items: center;
 }
 
-/* ⬇️ UPDATED POKER TABLE STYLES ⬇️ */
 .poker-table {
   position: relative;
   width: 95vw;
-  height: 65vh; /* <-- Reduced height */
+  height: 65vh;
   max-width: 900px;
-  max-height: 600px; /* <-- Reduced max-height */
+  max-height: 600px;
   margin: 20px auto;
   background: radial-gradient(ellipse at center, #0d4a24 0%, #0d4a24 100%);
-  border-radius: 50% / 40%; /* <-- Adjusted for a shorter oval */
+  border-radius: 50% / 40%;
   border: 15px solid #5d4037;
   box-shadow: 0 0 40px rgba(0, 0, 0, 0.8), inset 0 0 30px rgba(0, 0, 0, 0.6);
   display: flex;
@@ -332,18 +361,16 @@ button:disabled {
   pointer-events: none;
 }
 
-/* Player Positions */
 .player-seat {
   position: absolute;
   border-radius: 15px;
-  padding: 5px 10px; /* <-- Reduced padding to make background smaller */
+  padding: 5px 10px;
   text-align: center;
   min-width: 120px;
   backdrop-filter: blur(5px);
   transition: all 0.3s ease;
 }
 
-/* ⬇️ ADDED NEW KEYFRAMES FOR GLOW ⬇️ */
 @keyframes pulsating-glow {
   0% {
     box-shadow: 0 0 10px 2px rgba(248, 213, 107, 0.4);
@@ -353,11 +380,9 @@ button:disabled {
   }
 }
 
-/* ⬇️ UPDATED .active TO USE GLOW ANIMATION ⬇️ */
-.player-seat.active {
+.player-seat.active .hand {
   animation: pulsating-glow 1.5s infinite alternate;
 }
-
 
 .player-seat h2,
 .player-seat h3 {
@@ -398,13 +423,11 @@ button:disabled {
   width: 120px;
 }
 
-/* Table Center */
 .table-center {
   position: absolute;
   top: 50%;
   left: 50%;
-  transform-origin: center;
-  transition: transform 0.3s ease;
+  transform: translate(-50%, -50%);
   display: flex;
   gap: 60px;
   z-index: 2;
@@ -427,10 +450,6 @@ button:disabled {
   color: rgba(248, 213, 107, 0.7);
   font-size: 0.8em;
   font-weight: bold;
-}
-
-.deck-area::before {
-  content: "DECK";
 }
 
 .discard-area::before {
@@ -470,22 +489,6 @@ button:disabled {
   color: rgba(255, 255, 255, 0.5);
 }
 
-/* Game Info */
-.game-info {
-  margin-bottom: 15px;
-  color: #f8d56b;
-  position: relative;
-}
-
-.turn-indicator {
-  font-size: 1.4em;
-  background: rgba(248, 213, 107, 0.2);
-  padding: 10px;
-  border-radius: 10px;
-  animation: pulse 2s infinite;
-}
-
-/* Game Over Styles */
 .game-over {
   position: fixed;
   top: 0;
@@ -530,7 +533,6 @@ button:disabled {
   margin-top: 10px;
 }
 
-/* New Game Form */
 .new-game-form {
   background: rgba(10, 30, 40, 0.9);
   border: 2px solid #f8d56b;
@@ -596,7 +598,7 @@ button:disabled {
   font-size: 0.8em !important;
   background: rgb(211, 47, 47) !important;
   padding: 8px 15px !important;
-  z-index: 1000; /* keeps it visible above other content */
+  z-index: 1000;
 }
 
 .quit-btn:hover {
@@ -613,7 +615,6 @@ button:disabled {
   margin-top: 10px;
 }
 
-/* Connection Error Styling */
 .error-notice {
   background: rgba(0, 0, 0, 0.7);
   border: 2px solid #ff4444;
@@ -638,7 +639,6 @@ button:disabled {
   padding: 10px 25px;
 }
 
-/* Loading Overlay */
 .loading-overlay {
   position: fixed;
   top: 0;
@@ -677,7 +677,6 @@ button:disabled {
   }
 }
 
-/* Error Modal */
 .error-modal {
   position: fixed;
   top: 0;
@@ -711,7 +710,6 @@ button:disabled {
   margin-top: 15px;
 }
 
-/* ⬇️ ADDED NEW STYLES FOR BOTTOM MENU ⬇️ */
 .bottom-menu {
   position: fixed;
   bottom: 0;
@@ -738,11 +736,9 @@ button:disabled {
   transform: none;
 }
 
-
-/* Mobile Portrait Layout */
 @media (max-width: 768px) {
   h1 {
-    font-size: 1.8em;
+    font-size: 4em;
   }
   h2,
   h3 {
@@ -751,7 +747,7 @@ button:disabled {
   button {
     padding: 12px 24px;
     font-size: 1em;
-    min-height: 48px; /* Accessible touch target */
+    min-height: 48px;
   }
   .card-value,
   .card-suit {
@@ -759,8 +755,8 @@ button:disabled {
   }
 
   .poker-table {
-    width: 100vw;
-    height: 75vh; /* <-- Adjusted height for mobile */
+    width: 95vw;
+    height: 55vh;
     border-radius: 50% / 30%;
     position: relative;
   }
@@ -771,7 +767,6 @@ button:disabled {
     backdrop-filter: blur(3px);
   }
 
-  /* Position players around the oval */
   .top {
     top: 10px;
     left: 50%;
@@ -805,7 +800,6 @@ button:disabled {
     gap: 20px;
   }
 
-  /* Adjust card sizes for mobile */
   .card {
     width: 45px;
     height: 65px;
@@ -844,7 +838,6 @@ button:disabled {
   animation: cardFlip 0.5s ease forwards;
   }
   
-  /* Stack cards horizontally for all players */
   .hand {
     flex-direction: row;
     justify-content: center;
@@ -854,10 +847,9 @@ button:disabled {
     overflow-x: visible;
   }
 
-  /* Adjust deck and discard areas */
   .deck-area,
   .discard-area {
-    transform: scale(0.8);
+    transform: scale(1);
   }
 
   .deck-count {
@@ -872,7 +864,6 @@ button:disabled {
   }
 }
 
-/* Mobile Landscape Layout */
 @media (max-width: 768px) and (orientation: landscape) {
   .card {
     width: 40px;
@@ -895,10 +886,9 @@ button:disabled {
   }
 }
 
-/* Landscape and Desktop Layout */
 @media (min-width: 769px), (orientation: landscape) {
   .poker-table {
-    border-radius: 50% / 40%; /* <-- Adjusted for a shorter oval */
+    border-radius: 50% / 40%;
   }
 
   .player-seat {
@@ -987,7 +977,6 @@ button:disabled {
   color: #f8d56b;
 }
 
-/* New styles for card dealing animation */
 .card-initial-hidden {
   opacity: 0;
   transform: translateY(-50px) scale(0.5);
