@@ -7,6 +7,7 @@ html, body {
   padding: 0;
   width: 100%;
   overflow-x: hidden;
+  height: 100%; /* Ensure body takes full height */
 }
 
 h1, h2, h4, button { /* <-- Added h4 back to this rule */
@@ -61,6 +62,7 @@ h1, h2, h4, button { /* <-- Added h4 back to this rule */
   border-bottom: 1px solid rgba(255, 255, 255, 0.1);
 }
 
+/* --- ⬇️ STEP 1: Main App Container Changes ⬇️ --- */
 .App {
   text-align: center;
   background-image: url('https://i.ibb.co/6csxbFY3/10013144.jpg');
@@ -68,24 +70,37 @@ h1, h2, h4, button { /* <-- Added h4 back to this rule */
   background-position: center;
   background-repeat: no-repeat;
   color: #fff;
-  min-height: 100vh;
+  height: 100vh; /* Changed from min-height to height for exact screen fit */
   display: flex;
   flex-direction: column;
   align-items: center;
   justify-content: flex-start;
-  padding: 10px 0;
+  padding: 0; /* Removed vertical padding to use all space */
   font-family: "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
   font-size: clamp(1rem, 4vw, 1.25rem);
   line-height: 1.4;
   width: 100%;
-  overflow-x: hidden;
+  overflow: hidden; /* Changed from overflow-x to prevent all overflow */
 }
 
+/* --- ⬇️ STEP 2: Header Spacing Change ⬇️ --- */
 h1 {
   color: #f8d56b;
-  margin-bottom: 20px;
+  margin: 0; /* Removed margin */
+  padding: 10px 0; /* Added padding for internal spacing */
   text-shadow: 0 2px 4px rgba(0, 0, 0, 0.5);
-  font-size: 3em;
+  font-size: 2.5em; /* Slightly reduced size for mobile */
+  flex-shrink: 0; /* Prevent the header from shrinking */
+}
+
+/* --- ⬇️ STEP 3: ADDED rule to make game container flexible ⬇️ --- */
+.game-container {
+  display: flex; /* Make this a flex container */
+  flex-direction: column; /* Stack its children vertically */
+  flex-grow: 1;  /* This is the magic: it grows to fill all available space */
+  width: 100%;
+  min-height: 0; /* A flexbox fix to prevent overflow issues */
+  justify-content: center; /* Center the table within the available space */
 }
 
 h2,
@@ -337,13 +352,14 @@ button:disabled {
   align-items: center;
 }
 
+/* --- ⬇️ STEP 4: Poker Table Changes ⬇️ --- */
 .poker-table {
   position: relative;
-  width: 95vw;
-  height: 65vh;
-  max-width: 900px;
-  max-height: 600px;
-  margin: 20px auto;
+  width: 95%; /* Changed from vw to % to be safer */
+  height: 100%; /* Fills the parent (.game-container) */
+  max-width: 450px; /* Constrain width on larger mobile screens */
+  max-height: 800px; /* Constrain height */
+  margin: 0 auto; /* Removed top/bottom margin */
   background: radial-gradient(ellipse at center, #0d4a24 0%, #0d4a24 100%);
   border-radius: 50% / 40%;
   border: 15px solid #5d4037;
@@ -723,9 +739,8 @@ button:disabled {
 }
 
 .bottom-menu {
-  position: fixed;
-  bottom: 0;
-  left: 0;
+  position: relative; /* Changed from fixed to relative */
+  flex-shrink: 0; /* Prevent the menu from shrinking */
   width: 100%;
   background: rgba(0, 0, 0, 0.7);
   backdrop-filter: blur(5px);
@@ -750,7 +765,7 @@ button:disabled {
 
 @media (max-width: 768px) {
   h1 {
-    font-size: 4em;
+    font-size: 2.5em; /* Adjusted size */
   }
   h2,
   h3 {
@@ -767,10 +782,9 @@ button:disabled {
   }
 
   .poker-table {
-    width: 95vw;
-    height: 55vh;
-    border-radius: 50% / 30%;
-    position: relative;
+    max-width: 450px;
+    border-radius: 50% / 35%;
+    border-width: 10px;
   }
 
   .player-seat {
