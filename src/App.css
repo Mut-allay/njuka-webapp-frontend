@@ -438,14 +438,14 @@ button:disabled {
 }
 
 .left {
-  left: 5px;
+  left: 0px;
   top: 50%;
   transform: translateY(-50%);
   width: 120px;
 }
 
 .right {
-  right: 5px;
+  right: 0px;
   top: 50%;
   transform: translateY(-50%);
   width: 120px;
@@ -819,14 +819,14 @@ button:disabled {
   }
 
   .left {
-    left: 2px;
+    left: 0px;
     top: 50%;
     transform: translateY(-50%);
     width: 100px;
   }
 
   .right {
-    right: 2px;
+    right: 0px;
     top: 50%;
     transform: translateY(-50%);
     width: 100px;
