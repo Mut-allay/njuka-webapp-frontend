@@ -451,6 +451,17 @@ button:disabled {
   width: 120px;
 }
 
+/* Rotate left and right player hands vertically */
+.left .hand {
+  transform: rotate(-90deg);
+  transform-origin: center;
+}
+
+.right .hand {
+  transform: rotate(90deg);
+  transform-origin: center;
+}
+
 .table-center {
   position: absolute;
   top: 50%;
@@ -821,6 +832,17 @@ button:disabled {
     width: 100px;
   }
 
+  /* Rotate left and right player hands vertically on mobile */
+  .left .hand {
+    transform: rotate(-90deg);
+    transform-origin: center;
+  }
+
+  .right .hand {
+    transform: rotate(90deg);
+    transform-origin: center;
+  }
+
   .bottom {
     bottom: 10px;
     left: 50%;
@@ -952,6 +974,17 @@ button:disabled {
 
   .bottom .card.small-card + .card.small-card {
     margin-left: 2px;
+  }
+
+  /* Rotate left and right player hands vertically in landscape */
+  .left .hand {
+    transform: rotate(-90deg);
+    transform-origin: center;
+  }
+
+  .right .hand {
+    transform: rotate(90deg);
+    transform-origin: center;
   }
 }
 
