@@ -525,10 +525,11 @@ function Table({
       </div>
 
       {/* Bottom Player (current player) */}
+      <h4>{yourPlayer.name}</h4>
       <div
         className={`player-seat bottom ${currentPlayerIndex === state.players.findIndex((p) => p?.name === playerName) ? "active" : ""}`}
       >
-        <h4 className="player-name">{yourPlayer.name}</h4>
+        
         <div className="hand">
           {yourPlayer.hand?.map((card, i) => (
             <Card
