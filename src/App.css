@@ -430,7 +430,7 @@ button:disabled {
 }
 
 .top {
-  top: 5px;
+  top: -20px;
   left: 50%;
   transform: translateX(-50%);
   width: 50%;
@@ -438,14 +438,14 @@ button:disabled {
 }
 
 .left {
-  left: -15px;
+  left: -20px;
   top: 50%;
   transform: translateY(-50%);
   width: 120px;
 }
 
 .right {
-  right: -15px;
+  right: -20px;
   top: 50%;
   transform: translateY(-50%);
   width: 120px;
