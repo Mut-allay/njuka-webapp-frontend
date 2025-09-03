@@ -240,7 +240,6 @@ button:disabled {
   transition: transform 0.1s;
 }
 
-/* ⬇️ ADDED THIS NEW STYLE ⬇️ */
 .card-face-image {
   width: 100%;
   height: 100%;
@@ -369,6 +368,7 @@ button:disabled {
   align-items: center;
   overflow: hidden;
 }
+
 
 .poker-table::before {
   content: "";
