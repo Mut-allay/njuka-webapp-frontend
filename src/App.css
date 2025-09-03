@@ -100,7 +100,9 @@ h1 {
   flex-grow: 1;  /* This is the magic: it grows to fill all available space */
   width: 100%;
   min-height: 0; /* A flexbox fix to prevent overflow issues */
-  justify-content: center; /* Center the table within the available space */
+  justify-content: space-between; /* Distribute space between header, table, and menu */
+  align-items: center; /* Center everything horizontally */
+  padding: 10px 0; /* Add some padding for breathing room */
 }
 
 h2,
@@ -356,9 +358,9 @@ button:disabled {
 .poker-table {
   position: relative;
   width: 95%; /* Changed from vw to % to be safer */
-  height: 100%; /* Fills the parent (.game-container) */
+  height: 70vh; /* Reduced from 100% to leave room for header and menu */
   max-width: 450px; /* Constrain width on larger mobile screens */
-  max-height: 800px; /* Constrain height */
+  max-height: 500px; /* Reduced max height to ensure everything fits */
   margin: 0 auto; /* Removed top/bottom margin */
   background: radial-gradient(ellipse at center, #0d4a24 0%, #0d4a24 100%);
   border-radius: 50% / 40%;
@@ -782,7 +784,9 @@ button:disabled {
   }
 
   .poker-table {
-    max-width: 450px;
+    height: 60vh; /* Further reduced for mobile */
+    max-width: 400px;
+    max-height: 400px; /* Reduced max height for mobile */
     border-radius: 50% / 35%;
     border-width: 10px;
   }
