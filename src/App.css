@@ -131,7 +131,7 @@ button:disabled {
   background: linear-gradient(135deg, #ffffff, #f5f5f5);
   border-radius: 6px;
   border: 1px solid rgba(0, 0, 0, 0.1);
-  margin: 0 10px;
+  margin: 0 -10px;
   position: relative;
   font-size: 1em;
   cursor: pointer;
@@ -144,13 +144,30 @@ button:disabled {
   margin-left: 0;
 }
 
+/* Bottom player cards should not overlap (desktop) */
+.bottom .card {
+  margin: 0 10px;
+}
+
+.bottom .card + .card {
+  margin-left: 10px;
+}
+
+.bottom .card.small-card {
+  margin: 0 2px;
+}
+
+.bottom .card.small-card + .card.small-card {
+  margin-left: 2px;
+}
+
 .card.small-card {
   width: 50px;
   height: 75px;
   min-width: 48px;
   min-height: 72px;
   font-size: 0.8em;
-  margin: 0 1px;
+  margin: 0 -8px;
 }
 
 .card.highlight-card {
@@ -822,11 +839,11 @@ button:disabled {
     height: 65px;
     min-width: 48px;
     min-height: 72px;
-    margin: 0 2px;
+    margin: 0 -8px;
   }
 
   .card + .card {
-    margin-left: 5px;
+    margin-left: -12px;
   }
 
   .card.small-card {
@@ -834,10 +851,27 @@ button:disabled {
     height: 50px;
     min-width: 40px;
     min-height: 60px;
-    margin: 0 1px;
+    margin: 0 -6px;
   }
 
   .card.small-card + .card.small-card {
+    margin-left: -10px;
+  }
+
+  /* Bottom player cards should not overlap */
+  .bottom .card {
+    margin: 0 2px;
+  }
+
+  .bottom .card + .card {
+    margin-left: 5px;
+  }
+
+  .bottom .card.small-card {
+    margin: 0 1px;
+  }
+
+  .bottom .card.small-card + .card.small-card {
     margin-left: 3px;
   }
 
@@ -886,20 +920,37 @@ button:disabled {
   .card {
     width: 40px;
     height: 60px;
-    margin: 0 1px;
+    margin: 0 -6px;
   }
 
   .card + .card {
-    margin-left: 4px;
+    margin-left: -10px;
   }
 
   .card.small-card {
     width: 35px;
     height: 52px;
-    margin: 0 1px;
+    margin: 0 -5px;
   }
 
   .card.small-card + .card.small-card {
+    margin-left: -8px;
+  }
+
+  /* Bottom player cards should not overlap in landscape */
+  .bottom .card {
+    margin: 0 1px;
+  }
+
+  .bottom .card + .card {
+    margin-left: 4px;
+  }
+
+  .bottom .card.small-card {
+    margin: 0 1px;
+  }
+
+  .bottom .card.small-card + .card.small-card {
     margin-left: 2px;
   }
 }
