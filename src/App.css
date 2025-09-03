@@ -315,7 +315,7 @@ button:disabled {
 .tutorial-prompt {
   position: absolute;
   top: 50%;
-  left: -80px;
+  left: -120px;
   transform: translateY(-50%);
   background: rgba(248, 213, 107, 0.9);
   color: #2a3439;
@@ -948,7 +948,7 @@ button:disabled {
 
   .tutorial-prompt {
     font-size: 0.7em;
-    left: -70px;
+    left: -110px;
   }
 }
 
