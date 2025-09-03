@@ -98,7 +98,7 @@ type LobbyGame = {
   game_id?: string
 }
 
-const tutorialPromptsShown = new Map<string, number>()
+
 
 const apiService = {
   createNewGame: async (
@@ -372,7 +372,6 @@ function Table({
 }) {
   const [selectedCardIndex, setSelectedCardIndex] = useState<number | null>(null)
   const [showDeckHighlight, setShowDeckHighlight] = useState(false)
-  const [hasShownPrompt, setHasShownPrompt] = useState(false)
 
   const yourPlayer = state.players.find((p) => p?.name === playerName)
   const currentPlayerIndex = state.current_player ?? 0
@@ -391,14 +390,8 @@ function Table({
 
   const shouldShowPrompt = () => {
     const playerId = state.players[state.current_player]?.name
-    if (!playerId || playerId !== playerName || hasShownPrompt) return false
-
-    const count = tutorialPromptsShown.get(playerId) || 0
-    if (count < 2) {
-      tutorialPromptsShown.set(playerId, count + 1)
-      return true
-    }
-    return false
+    // Show prompt when it's the player's turn and they haven't drawn yet
+    return playerId === playerName && !state.has_drawn && !isGameOver
   }
 
   const handleCardClick = (index: number) => {
@@ -412,7 +405,6 @@ function Table({
 
   const timer = setTimeout(() => {
     setShowDeckHighlight(true)
-    setHasShownPrompt(true)
   }, 3000)
 
   useEffect(() => {
@@ -422,7 +414,6 @@ function Table({
   useEffect(() => {
     if (state?.current_player !== state?.players.findIndex((p) => p?.name === playerName)) {
       setShowDeckHighlight(false)
-      setHasShownPrompt(false)
       setSelectedCardIndex(null)
     }
   }, [state])
