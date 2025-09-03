@@ -131,7 +131,7 @@ button:disabled {
   background: linear-gradient(135deg, #ffffff, #f5f5f5);
   border-radius: 6px;
   border: 1px solid rgba(0, 0, 0, 0.1);
-  margin: 0 -10px;
+  margin: 0 2px;
   position: relative;
   font-size: 1em;
   cursor: pointer;
@@ -150,7 +150,7 @@ button:disabled {
   min-width: 48px;
   min-height: 72px;
   font-size: 0.8em;
-  margin: 0 -8px;
+  margin: 0 1px;
 }
 
 .card.highlight-card {
@@ -188,7 +188,6 @@ button:disabled {
 .card.facedown {
   background: url("https://i.ibb.co/d49LvQ2d/Background-Red.png") no-repeat center center;
   background-size: cover;
-  border: 1px solid #f8d56b;
   border-radius: 6px;
 }
 
@@ -405,7 +404,7 @@ button:disabled {
 }
 
 .bottom {
-  bottom: 20px;
+  bottom: 10px;
   left: 50%;
   transform: translateX(-50%);
   width: fit-content;
@@ -458,7 +457,7 @@ button:disabled {
 .discard-area::before {
   content: "";
   position: absolute;
-  top: -25px;
+  top: -15px;
   color: rgba(248, 213, 107, 0.7);
   font-size: 0.8em;
   font-weight: bold;
@@ -470,7 +469,7 @@ button:disabled {
 
 .deck-count {
   position: absolute;
-  top: -25px;
+  top: -15px;
   background: rgba(248, 213, 107, 0.9);
   color: #2a3439;
   border-radius: 20px;
@@ -823,7 +822,7 @@ button:disabled {
     height: 65px;
     min-width: 48px;
     min-height: 72px;
-    margin: 0 -8px;
+    margin: 0 1px;
   }
 
   .card + .card {
