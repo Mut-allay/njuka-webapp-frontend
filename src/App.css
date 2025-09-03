@@ -131,7 +131,7 @@ button:disabled {
   background: linear-gradient(135deg, #ffffff, #f5f5f5);
   border-radius: 6px;
   border: 1px solid rgba(0, 0, 0, 0.1);
-  margin: 0 2px;
+  margin: 0 5px;
   position: relative;
   font-size: 1em;
   cursor: pointer;
@@ -822,7 +822,7 @@ button:disabled {
     height: 65px;
     min-width: 48px;
     min-height: 72px;
-    margin: 0 1px;
+    margin: 0 2px;
   }
 
   .card + .card {
