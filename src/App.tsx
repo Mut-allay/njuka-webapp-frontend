@@ -52,8 +52,8 @@ const cardImageMap: { [key: string]: string } = {
   '4♥': 'https://i.ibb.co/3mYLwTcJ/4-of-hearts.png',
   '4♦': 'https://i.ibb.co/hxCkckC3/4-of-diamonds.png',
   '4♣': 'https://i.ibb.co/dZvG32N/4-of-clubs.png',
-  '3♠': 'https://i.ibb.co/6R0gW7Z/3-of-spades.png',
-  '3♥': 'https://i.ibb.co/6R0gW7Z7/3-of-spades.png',
+  '3♠': 'https://i.ibb.co/6R0gW7Z7/3-of-spades.png',
+  '3♥': 'https://i.ibb.co/dw5fs4kS/3-of-hearts.png',
   '3♦': 'https://i.ibb.co/RpdFmS3X/3-of-diamonds.png',
   '3♣': 'https://i.ibb.co/v604KYky/3-of-clubs.png',
   '2♠': 'https://i.ibb.co/wrJhGjjf/2-of-spades.png',
@@ -492,7 +492,7 @@ function Table({
         <div
           className={`deck-area ${showDeckHighlight ? "deck-highlight" : ""}`}
           onClick={canDraw ? onDraw : undefined}
-        >
+        >x
           <div className="deck-count">{state.deck?.length ?? 0}</div>
           {shouldShowPrompt() && <div className="tutorial-prompt">Pick a card</div>}
           <Card
