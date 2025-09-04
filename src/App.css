@@ -315,31 +315,67 @@ button:disabled {
 
 @keyframes cardDraw {
   0% {
-    transform: translateX(-100px) rotate(-15deg);
+    /* start approximately from the deck position (off-screen-ish)
+       using viewport units so it works across mobile screens */
+    transform: translateX(-50vw) translateY(-50vh) rotate(-15deg);
     opacity: 0;
   }
+  60% {
+    /* ease into the hand area with a slight overshoot for natural feel */
+    transform: translateX(6%) translateY(-2%) rotate(-5deg);
+    opacity: 1;
+  }
   100% {
-    transform: translateX(0) rotate(0);
+    /* land in the final hand position (no movement of the hand itself) */
+    transform: translateX(0) translateY(0) rotate(0);
     opacity: 1;
   }
 }
 
 @keyframes cardDiscard {
   0% {
-    transform: translateY(0) scale(1);
+    transform: translateY(0) scale(1) rotate(0);
+    opacity: 1;
+  }
+  60% {
+    /* move toward discard direction with a bit of lift */
+    transform: translateY(-15vh) translateX(20vw) scale(0.9) rotate(6deg);
     opacity: 1;
   }
   100% {
-    transform: translateY(100px) scale(0.5);
+    /* finish at discard pile center and fade/scale down */
+    transform: translateY(-30vh) translateX(40vw) scale(0.45) rotate(10deg);
     opacity: 0;
   }
 }
 
+.card-drawing {
+  /* draw animation: use forwards so the drawn card remains visible in hand */
+  animation: cardDraw 0.55s cubic-bezier(.2,.9,.2,1) forwards;
+}
+
+.card-discarding {
+  /* discard animation only applied to the selected card */
+  animation: cardDiscard 0.6s cubic-bezier(.2,.9,.2,1) forwards;
+}
+
+/* Respect user's reduced motion preference */
 @media (prefers-reduced-motion) {
   .card-drawing,
   .card-discarding {
     animation: none !important;
   }
+}
+
+/* Keep the bottom player's hand stationary while a card flies in/out. */
+.bottom .hand {
+  position: relative; /* anchor for incoming card final placement */
+  transition: none !important; /* avoid accidental shifting on mobile */
+}
+
+.bottom .card {
+  position: relative; /* so individual cards can animate independently */
+  transition: transform 0.25s ease-out; /* small transforms (hover/select) remain smooth */
 }
 
 .tutorial-prompt {
