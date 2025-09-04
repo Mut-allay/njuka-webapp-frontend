@@ -494,7 +494,7 @@ function Table({
           onClick={canDraw ? onDraw : undefined}
         >
           <div className="deck-count">{state.deck?.length ?? 0}</div>
-          {shouldShowPrompt() && <div className="tutorial-prompt">Pick a card from the deck</div>}
+          {shouldShowPrompt() && <div className="tutorial-prompt">Pick a card</div>}
           <Card
             facedown
             value=""
