@@ -279,6 +279,7 @@ const Card = React.memo(function Card({
   small = false,
   style = {},
   selected = false,
+  ...props
 }: {
   value: string
   suit: string
@@ -290,6 +291,7 @@ const Card = React.memo(function Card({
   small?: boolean
   style?: React.CSSProperties
   selected?: boolean
+  [key: string]: any
 }) {
   const [isHovered, setIsHovered] = useState(false)
   const [touchStart, setTouchStart] = useState(0)
@@ -318,6 +320,7 @@ const Card = React.memo(function Card({
         style={style}
         onMouseEnter={() => setIsHovered(true)}
         onMouseLeave={() => setIsHovered(false)}
+        {...props}
       >
         <div className="card-back"></div>
       </div>
@@ -334,6 +337,7 @@ const Card = React.memo(function Card({
       style={disabled ? { opacity: 0.7, cursor: "not-allowed", ...style } : style}
       onMouseEnter={() => setIsHovered(true)}
       onMouseLeave={() => setIsHovered(false)}
+      {...props}
     >
       <div className="card-inner">
         {imageUrl ? (
@@ -372,6 +376,8 @@ function Table({
 }) {
   const [selectedCardIndex, setSelectedCardIndex] = useState<number | null>(null)
   const [showDeckHighlight, setShowDeckHighlight] = useState(false)
+  const [discardingCardIndex, setDiscardingCardIndex] = useState<number | null>(null)
+  const [animatingCard, setAnimatingCard] = useState<{card: CardType, position: {x: number, y: number}} | null>(null)
 
   const yourPlayer = state.players.find((p) => p?.name === playerName)
   const currentPlayerIndex = state.current_player ?? 0
@@ -396,7 +402,28 @@ function Table({
 
   const handleCardClick = (index: number) => {
     if (selectedCardIndex === index) {
-      onDiscard(index)
+      const cardElement = document.querySelector(`[data-card-index="${index}"]`) as HTMLElement
+      if (cardElement && yourPlayer) {
+        const rect = cardElement.getBoundingClientRect()
+        const card = yourPlayer.hand[index]
+        
+        // Create animated overlay card
+        setAnimatingCard({
+          card,
+          position: { x: rect.left, y: rect.top }
+        })
+        
+        // Start discard animation for this specific card
+        setDiscardingCardIndex(index)
+        
+        // Delay the actual discard call to allow animation to play
+        const animationDuration = window.innerWidth <= 768 ? 700 : 800; // Match mobile/desktop duration
+        setTimeout(() => {
+          onDiscard(index)
+          setDiscardingCardIndex(null)
+          setAnimatingCard(null)
+        }, animationDuration)
+      }
       setSelectedCardIndex(null)
     } else {
       setSelectedCardIndex(index)
@@ -415,6 +442,8 @@ function Table({
     if (state?.current_player !== state?.players.findIndex((p) => p?.name === playerName)) {
       setShowDeckHighlight(false)
       setSelectedCardIndex(null)
+      setDiscardingCardIndex(null)
+      setAnimatingCard(null)
     }
   }, [state])
 
@@ -530,15 +559,32 @@ function Table({
                 !state.has_drawn ||
                 currentPlayer.is_cpu ||
                 currentPlayer.name !== yourPlayer.name ||
-                loadingStates.discarding
+                loadingStates.discarding ||
+                discardingCardIndex !== null
               }
-              className={loadingStates.discarding ? "card-discarding" : ""}
+              className={discardingCardIndex === i ? "card-discarding" : ""}
               highlight={isWinner(yourPlayer)}
               selected={selectedCardIndex === i}
+              style={{}}
+              data-card-index={i}
             />
           ))}
         </div>
       </div>
+      
+      {/* Animated overlay card for discard effect */}
+      {animatingCard && (
+        <Card
+          {...animatingCard.card}
+          className="discard-animation-overlay"
+          style={{
+            left: animatingCard.position.x,
+            top: animatingCard.position.y,
+            width: '70px', // Match card width
+            height: '100px', // Match card height
+          }}
+        />
+      )}
     </div>
   )
 }

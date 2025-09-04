@@ -315,19 +315,22 @@ button:disabled {
 
 @keyframes cardDraw {
   0% {
-    /* start approximately from the deck position (off-screen-ish)
-       using viewport units so it works across mobile screens */
-    transform: translateX(-50vw) translateY(-50vh) rotate(-15deg);
+    /* start from deck position (center-left of screen) */
+    transform: translateX(-30vw) translateY(-25vh) rotate(-15deg) scale(0.85);
     opacity: 0;
   }
-  60% {
+  30% {
+    /* become visible as it starts moving */
+    opacity: 1;
+  }
+  70% {
     /* ease into the hand area with a slight overshoot for natural feel */
-    transform: translateX(6%) translateY(-2%) rotate(-5deg);
+    transform: translateX(8%) translateY(-3%) rotate(-3deg) scale(1.05);
     opacity: 1;
   }
   100% {
     /* land in the final hand position (no movement of the hand itself) */
-    transform: translateX(0) translateY(0) rotate(0);
+    transform: translateX(0) translateY(0) rotate(0) scale(1);
     opacity: 1;
   }
 }
@@ -350,13 +353,23 @@ button:disabled {
 }
 
 .card-drawing {
-  /* draw animation: use forwards so the drawn card remains visible in hand */
-  animation: cardDraw 0.55s cubic-bezier(.2,.9,.2,1) forwards;
+  /* draw animation: slower for visible smooth movement */
+  animation: cardDraw 1.2s cubic-bezier(.2,.9,.2,1) forwards;
+  /* Optimize for mobile performance */
+  will-change: transform, opacity;
+  backface-visibility: hidden;
 }
 
 .card-discarding {
   /* discard animation only applied to the selected card */
-  animation: cardDiscard 0.6s cubic-bezier(.2,.9,.2,1) forwards;
+  animation: cardDiscard 0.8s cubic-bezier(.2,.9,.2,1) forwards;
+  /* Use absolute positioning to prevent layout shifts */
+  position: absolute !important;
+  z-index: 1000;
+  pointer-events: none;
+  /* Optimize for mobile performance */
+  will-change: transform, opacity;
+  backface-visibility: hidden;
 }
 
 /* Respect user's reduced motion preference */
@@ -371,11 +384,36 @@ button:disabled {
 .bottom .hand {
   position: relative; /* anchor for incoming card final placement */
   transition: none !important; /* avoid accidental shifting on mobile */
+  /* Maintain consistent spacing even when cards are removed */
+  min-height: 100px; /* Prevent height collapse */
 }
 
 .bottom .card {
   position: relative; /* so individual cards can animate independently */
   transition: transform 0.25s ease-out; /* small transforms (hover/select) remain smooth */
+}
+
+/* Prevent hand reflow during discard animation */
+.bottom .card.card-discarding {
+  /* Keep the card in place to maintain layout, but make it invisible */
+  opacity: 0.3 !important;
+  /* Maintain the space in the layout */
+  visibility: visible;
+  pointer-events: none;
+  /* Prevent any transforms on the placeholder */
+  transform: none !important;
+}
+
+/* Animated overlay card for discard effect */
+.discard-animation-overlay {
+  position: fixed;
+  z-index: 1001;
+  pointer-events: none;
+  animation: cardDiscard 0.8s cubic-bezier(.2,.9,.2,1) forwards;
+  /* Optimize for mobile performance */
+  will-change: transform, opacity;
+  backface-visibility: hidden;
+  transform-style: preserve-3d;
 }
 
 .tutorial-prompt {
@@ -1015,6 +1053,36 @@ button:disabled {
   .tutorial-prompt {
     font-size: 0.7em;
     left: -95px; /* ⬇️ UPDATED: Shifted further to the left for mobile */
+  }
+
+  /* Mobile-specific animation optimizations */
+  .card-drawing {
+    animation-duration: 1s; /* Slightly faster on mobile */
+  }
+
+  .card-discarding,
+  .discard-animation-overlay {
+    animation-duration: 0.7s; /* Slightly faster on mobile */
+  }
+
+  /* Adjust draw animation for mobile screens */
+  @keyframes cardDraw {
+    0% {
+      /* start from deck position (adjusted for mobile) */
+      transform: translateX(-25vw) translateY(-20vh) rotate(-12deg) scale(0.85);
+      opacity: 0;
+    }
+    30% {
+      opacity: 1;
+    }
+    70% {
+      transform: translateX(5%) translateY(-2%) rotate(-2deg) scale(1.02);
+      opacity: 1;
+    }
+    100% {
+      transform: translateX(0) translateY(0) rotate(0) scale(1);
+      opacity: 1;
+    }
   }
 }
 
