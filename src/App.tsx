@@ -415,7 +415,7 @@ function Table({
         const handSize = yourPlayer?.hand.length || 0
         if (handSize > 0) {
           setDealingCards(new Array(handSize).fill(true))
-          setTimeout(() => setDealingCards([]), handSize * 150 + 1100)
+          setTimeout(() => setDealingCards([]), handSize * 250 + 2200)
         }
       }, window.innerWidth <= 768 ? 2000 : 2000)
     }
