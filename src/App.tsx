@@ -415,9 +415,9 @@ function Table({
         const handSize = yourPlayer?.hand.length || 0
         if (handSize > 0) {
           setDealingCards(new Array(handSize).fill(true))
-          setTimeout(() => setDealingCards([]), handSize * 100 + 800)
+          setTimeout(() => setDealingCards([]), handSize * 150 + 1100)
         }
-      }, window.innerWidth <= 768 ? 1500 : 2000)
+      }, window.innerWidth <= 768 ? 2000 : 2000)
     }
   }, [state?.id, isGameOver, state, yourPlayer?.hand.length])
 
@@ -455,7 +455,7 @@ function Table({
         setDiscardingCardIndex(index)
         
         // Use enhanced animation duration (mobile vs desktop)
-        const animationDuration = window.innerWidth <= 768 ? 1000 : 1200; // Match enhanced durations
+        const animationDuration = window.innerWidth <= 768 ? 1500 : 1200; // Match enhanced durations
         setTimeout(() => {
           onDiscard(index)
           setDiscardingCardIndex(null)
@@ -475,7 +475,7 @@ function Table({
     // Reset drawing state after animation completes
     setTimeout(() => {
       setDrawingCard(false)
-    }, window.innerWidth <= 768 ? 1200 : 1400)
+    }, window.innerWidth <= 768 ? 1700 : 1400)
   }
 
   const canDraw = !loadingStates.drawing && currentPlayer.name === playerName && !isGameOver && !state.has_drawn
