@@ -305,79 +305,174 @@ button:disabled {
   }
 }
 
-.card-drawing {
-  animation: cardDraw 0.5s ease-out;
-}
+/* ===== ENHANCED CARD ANIMATIONS ===== */
 
-.card-discarding {
-  animation: cardDiscard 0.5s ease-out forwards;
-}
-
-@keyframes cardDraw {
+/* Shuffle Animation - Cards fan out and stack back */
+@keyframes shuffleDeck {
   0% {
-    /* start from deck position (center-left of screen) */
-    transform: translateX(-30vw) translateY(-25vh) rotate(-15deg) scale(0.85);
-    opacity: 0;
+    transform: translateX(0) translateY(0) rotate(0) scale(1);
+  }
+  15% {
+    transform: translateX(-15px) translateY(-10px) rotate(-8deg) scale(0.95);
   }
   30% {
-    /* become visible as it starts moving */
-    opacity: 1;
+    transform: translateX(20px) translateY(-15px) rotate(12deg) scale(0.9);
   }
-  70% {
-    /* ease into the hand area with a slight overshoot for natural feel */
-    transform: translateX(8%) translateY(-3%) rotate(-3deg) scale(1.05);
-    opacity: 1;
+  45% {
+    transform: translateX(-10px) translateY(-20px) rotate(-5deg) scale(0.95);
+  }
+  60% {
+    transform: translateX(25px) translateY(-8px) rotate(15deg) scale(0.85);
+  }
+  75% {
+    transform: translateX(-5px) translateY(-12px) rotate(-3deg) scale(0.95);
+  }
+  90% {
+    transform: translateX(8px) translateY(-5px) rotate(2deg) scale(0.98);
   }
   100% {
-    /* land in the final hand position (no movement of the hand itself) */
+    transform: translateX(0) translateY(0) rotate(0) scale(1);
+  }
+}
+
+/* Deal Animation - Cards fly from deck to hand positions */
+@keyframes dealCard {
+  0% {
+    transform: translateX(0) translateY(0) rotate(0) scale(0.85);
+    opacity: 0;
+  }
+  20% {
+    opacity: 1;
+    transform: translateX(-10vw) translateY(-5vh) rotate(-5deg) scale(0.9);
+  }
+  60% {
+    transform: translateX(-20vw) translateY(-15vh) rotate(-8deg) scale(0.95);
+  }
+  80% {
+    transform: translateX(-25vw) translateY(-20vh) rotate(-2deg) scale(1.02);
+  }
+  100% {
+    transform: translateX(-30vw) translateY(-25vh) rotate(0) scale(1);
+    opacity: 1;
+  }
+}
+
+/* Enhanced Draw Animation - Slower, smoother glide */
+@keyframes cardDraw {
+  0% {
+    /* start from deck position (center of table) */
+    transform: translateX(-30vw) translateY(-25vh) rotate(-12deg) scale(0.85);
+    opacity: 0;
+  }
+  15% {
+    /* become visible and start moving */
+    opacity: 1;
+    transform: translateX(-25vw) translateY(-20vh) rotate(-10deg) scale(0.9);
+  }
+  40% {
+    /* mid-flight with smooth arc */
+    transform: translateX(-15vw) translateY(-12vh) rotate(-5deg) scale(0.95);
+  }
+  70% {
+    /* approach hand with slight overshoot */
+    transform: translateX(-3vw) translateY(-3vh) rotate(-1deg) scale(1.03);
+  }
+  85% {
+    /* settle with small bounce */
+    transform: translateX(1vw) translateY(-1vh) rotate(1deg) scale(1.01);
+  }
+  100% {
+    /* final position in hand */
     transform: translateX(0) translateY(0) rotate(0) scale(1);
     opacity: 1;
   }
 }
 
+/* Enhanced Discard Animation - Smooth arc to discard pile */
 @keyframes cardDiscard {
   0% {
-    transform: translateY(0) scale(1) rotate(0);
+    transform: translateY(0) translateX(0) rotate(0) scale(1);
     opacity: 1;
   }
-  60% {
-    /* move toward discard direction with a bit of lift */
-    transform: translateY(-15vh) translateX(20vw) scale(0.9) rotate(6deg);
+  25% {
+    /* lift up with slight rotation */
+    transform: translateY(-8vh) translateX(5vw) rotate(3deg) scale(0.98);
     opacity: 1;
+  }
+  50% {
+    /* peak of arc */
+    transform: translateY(-18vh) translateX(15vw) rotate(8deg) scale(0.92);
+    opacity: 1;
+  }
+  75% {
+    /* descending toward discard pile */
+    transform: translateY(-25vh) translateX(30vw) rotate(12deg) scale(0.7);
+    opacity: 0.8;
+  }
+  90% {
+    /* almost at discard pile */
+    transform: translateY(-28vh) translateX(38vw) rotate(15deg) scale(0.5);
+    opacity: 0.4;
   }
   100% {
-    /* finish at discard pile center and fade/scale down */
-    transform: translateY(-30vh) translateX(40vw) scale(0.45) rotate(10deg);
+    /* land on discard pile and fade */
+    transform: translateY(-30vh) translateX(40vw) rotate(18deg) scale(0.45);
     opacity: 0;
   }
 }
 
+/* Animation Classes */
+.card-shuffling {
+  animation: shuffleDeck 2s ease-in-out;
+  will-change: transform;
+  backface-visibility: hidden;
+}
+
+.card-dealing {
+  animation: dealCard 0.8s cubic-bezier(0.25, 0.46, 0.45, 0.94) forwards;
+  will-change: transform, opacity;
+  backface-visibility: hidden;
+}
+
 .card-drawing {
-  /* draw animation: slower for visible smooth movement */
-  animation: cardDraw 1.2s cubic-bezier(.2,.9,.2,1) forwards;
-  /* Optimize for mobile performance */
+  /* Enhanced draw animation: 1.4s for smooth, visible movement */
+  animation: cardDraw 1.4s cubic-bezier(0.25, 0.46, 0.45, 0.94) forwards;
   will-change: transform, opacity;
   backface-visibility: hidden;
 }
 
 .card-discarding {
-  /* discard animation only applied to the selected card */
-  animation: cardDiscard 0.8s cubic-bezier(.2,.9,.2,1) forwards;
-  /* Use absolute positioning to prevent layout shifts */
+  /* Enhanced discard animation with smooth easing */
+  animation: cardDiscard 1.2s cubic-bezier(0.25, 0.46, 0.45, 0.94) forwards;
   position: absolute !important;
   z-index: 1000;
   pointer-events: none;
-  /* Optimize for mobile performance */
   will-change: transform, opacity;
   backface-visibility: hidden;
 }
 
 /* Respect user's reduced motion preference */
-@media (prefers-reduced-motion) {
+@media (prefers-reduced-motion: reduce) {
   .card-drawing,
-  .card-discarding {
+  .card-discarding,
+  .card-shuffling,
+  .card-dealing,
+  .discard-animation-overlay,
+  .deck-shuffling {
     animation: none !important;
+    transition: opacity 0.2s ease !important;
   }
+  
+  /* Provide simple fade for accessibility */
+  .card-drawing,
+  .card-dealing {
+    animation: simpleFade 0.3s ease forwards !important;
+  }
+}
+
+@keyframes simpleFade {
+  from { opacity: 0; }
+  to { opacity: 1; }
 }
 
 /* Keep the bottom player's hand stationary while a card flies in/out. */
@@ -409,11 +504,41 @@ button:disabled {
   position: fixed;
   z-index: 1001;
   pointer-events: none;
-  animation: cardDiscard 0.8s cubic-bezier(.2,.9,.2,1) forwards;
-  /* Optimize for mobile performance */
+  animation: cardDiscard 1.2s cubic-bezier(0.25, 0.46, 0.45, 0.94) forwards;
   will-change: transform, opacity;
   backface-visibility: hidden;
   transform-style: preserve-3d;
+}
+
+/* Deck shuffling state */
+.deck-shuffling {
+  animation: shuffleDeck 2s ease-in-out;
+}
+
+/* Sequential dealing delays for multiple cards */
+.deal-delay-1 { animation-delay: 0.1s; }
+.deal-delay-2 { animation-delay: 0.2s; }
+.deal-delay-3 { animation-delay: 0.3s; }
+.deal-delay-4 { animation-delay: 0.4s; }
+.deal-delay-5 { animation-delay: 0.5s; }
+.deal-delay-6 { animation-delay: 0.6s; }
+.deal-delay-7 { animation-delay: 0.7s; }
+
+/* Performance optimizations for all animated cards */
+.card-drawing,
+.card-discarding,
+.card-shuffling,
+.card-dealing,
+.discard-animation-overlay {
+  /* GPU acceleration for smooth animations */
+  transform: translateZ(0);
+  will-change: transform, opacity;
+  backface-visibility: hidden;
+  /* Prevent text selection during animation */
+  user-select: none;
+  -webkit-user-select: none;
+  /* Optimize rendering */
+  contain: layout style paint;
 }
 
 .tutorial-prompt {
@@ -1057,31 +1182,72 @@ button:disabled {
 
   /* Mobile-specific animation optimizations */
   .card-drawing {
-    animation-duration: 1s; /* Slightly faster on mobile */
+    animation-duration: 1.2s; /* Slightly faster but still smooth on mobile */
   }
 
   .card-discarding,
   .discard-animation-overlay {
-    animation-duration: 0.7s; /* Slightly faster on mobile */
+    animation-duration: 1s; /* Slightly faster on mobile */
   }
 
-  /* Adjust draw animation for mobile screens */
+  .card-shuffling {
+    animation-duration: 1.5s; /* Faster shuffle on mobile */
+  }
+
+  .card-dealing {
+    animation-duration: 0.6s; /* Faster dealing on mobile */
+  }
+
+  /* Mobile-optimized draw animation */
   @keyframes cardDraw {
     0% {
-      /* start from deck position (adjusted for mobile) */
-      transform: translateX(-25vw) translateY(-20vh) rotate(-12deg) scale(0.85);
+      transform: translateX(-25vw) translateY(-20vh) rotate(-10deg) scale(0.85);
       opacity: 0;
     }
-    30% {
+    15% {
       opacity: 1;
+      transform: translateX(-20vw) translateY(-16vh) rotate(-8deg) scale(0.9);
+    }
+    40% {
+      transform: translateX(-12vw) translateY(-10vh) rotate(-4deg) scale(0.95);
     }
     70% {
-      transform: translateX(5%) translateY(-2%) rotate(-2deg) scale(1.02);
-      opacity: 1;
+      transform: translateX(-2vw) translateY(-2vh) rotate(-1deg) scale(1.02);
+    }
+    85% {
+      transform: translateX(1vw) translateY(-1vh) rotate(1deg) scale(1.01);
     }
     100% {
       transform: translateX(0) translateY(0) rotate(0) scale(1);
       opacity: 1;
+    }
+  }
+
+  /* Mobile-optimized discard animation */
+  @keyframes cardDiscard {
+    0% {
+      transform: translateY(0) translateX(0) rotate(0) scale(1);
+      opacity: 1;
+    }
+    25% {
+      transform: translateY(-6vh) translateX(4vw) rotate(2deg) scale(0.98);
+      opacity: 1;
+    }
+    50% {
+      transform: translateY(-15vh) translateX(12vw) rotate(6deg) scale(0.92);
+      opacity: 1;
+    }
+    75% {
+      transform: translateY(-22vh) translateX(25vw) rotate(10deg) scale(0.7);
+      opacity: 0.8;
+    }
+    90% {
+      transform: translateY(-25vh) translateX(32vw) rotate(12deg) scale(0.5);
+      opacity: 0.4;
+    }
+    100% {
+      transform: translateY(-27vh) translateX(35vw) rotate(15deg) scale(0.45);
+      opacity: 0;
     }
   }
 }

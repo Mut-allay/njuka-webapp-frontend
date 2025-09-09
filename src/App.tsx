@@ -162,7 +162,7 @@ const apiService = {
         throw new Error(errorData.message || "Failed to draw card")
       }
       return response.json()
-    } catch (err) {
+    } catch {
       throw new Error("Failed to connect to server. Please try again.")
     }
   },
@@ -180,7 +180,7 @@ const apiService = {
         throw new Error(errorData.message || "Failed to discard card")
       }
       return response.json()
-    } catch (err) {
+    } catch {
       throw new Error("Failed to connect to server. Please try again.")
     }
   },
@@ -189,7 +189,7 @@ const apiService = {
     try {
       const response = await fetch(`${API}/health`)
       return response.ok
-    } catch (err) {
+    } catch {
       return false
     }
   },
@@ -206,8 +206,8 @@ const apiService = {
       }
       const data = await response.json()
       return data.lobbies || []
-    } catch (err) {
-      console.error("API Error:", err)
+    } catch (error) {
+      console.error("API Error:", error)
       return []
     }
   },
@@ -220,8 +220,8 @@ const apiService = {
       )
       if (!response.ok) throw new Error("Failed to create lobby")
       return response.json()
-    } catch (err) {
-      console.error("API Error:", err)
+    } catch (error) {
+      console.error("API Error:", error)
       throw new Error("Failed to create lobby")
     }
   },
@@ -234,8 +234,8 @@ const apiService = {
       )
       if (!response.ok) throw new Error("Failed to join lobby")
       return response.json()
-    } catch (err) {
-      console.error("API Error:", err)
+    } catch (error) {
+      console.error("API Error:", error)
       throw new Error("Failed to join lobby")
     }
   },
@@ -248,8 +248,8 @@ const apiService = {
       }
       if (!response.ok) throw new Error("Failed to fetch lobby details")
       return response.json()
-    } catch (err) {
-      console.error("API Error:", err)
+    } catch (error) {
+      console.error("API Error:", error)
       throw new Error("Failed to fetch lobby details")
     }
   },
@@ -261,8 +261,8 @@ const apiService = {
       })
       if (!response.ok) throw new Error("Failed to start game")
       return response.json()
-    } catch (err) {
-      console.error("API Error:", err)
+    } catch (error) {
+      console.error("API Error:", error)
       throw new Error("Failed to start game")
     }
   },
@@ -291,7 +291,7 @@ const Card = React.memo(function Card({
   small?: boolean
   style?: React.CSSProperties
   selected?: boolean
-  [key: string]: any
+  [key: string]: unknown
 }) {
   const [isHovered, setIsHovered] = useState(false)
   const [touchStart, setTouchStart] = useState(0)
@@ -378,12 +378,50 @@ function Table({
   const [showDeckHighlight, setShowDeckHighlight] = useState(false)
   const [discardingCardIndex, setDiscardingCardIndex] = useState<number | null>(null)
   const [animatingCard, setAnimatingCard] = useState<{card: CardType, position: {x: number, y: number}} | null>(null)
+  const [isShuffling, setIsShuffling] = useState(false)
+  const [dealingCards, setDealingCards] = useState<boolean[]>([])
+  const [drawingCard, setDrawingCard] = useState(false)
 
   const yourPlayer = state.players.find((p) => p?.name === playerName)
   const currentPlayerIndex = state.current_player ?? 0
   const currentPlayer = state.players[currentPlayerIndex]
   const isGameOver = state.game_over
 
+  // All useEffect hooks must be called before any early returns
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setShowDeckHighlight(true)
+    }, 3000)
+    return () => clearTimeout(timer)
+  }, [])
+
+  useEffect(() => {
+    if (state?.current_player !== state?.players.findIndex((p) => p?.name === playerName)) {
+      setShowDeckHighlight(false)
+      setSelectedCardIndex(null)
+      setDiscardingCardIndex(null)
+      setAnimatingCard(null)
+      setDrawingCard(false)
+    }
+  }, [state, playerName])
+
+  // Trigger shuffle animation at game start
+  useEffect(() => {
+    if (state && !isGameOver && state.deck.length > 0 && yourPlayer?.hand.length === 0) {
+      setIsShuffling(true)
+      setTimeout(() => {
+        setIsShuffling(false)
+        // Start dealing animation after shuffle
+        const handSize = yourPlayer?.hand.length || 0
+        if (handSize > 0) {
+          setDealingCards(new Array(handSize).fill(true))
+          setTimeout(() => setDealingCards([]), handSize * 100 + 800)
+        }
+      }, window.innerWidth <= 768 ? 1500 : 2000)
+    }
+  }, [state?.id, isGameOver, state, yourPlayer?.hand.length])
+
+  // Early return after all hooks
   if (!yourPlayer || !currentPlayer) {
     return <div className="error">Player data not available</div>
   }
@@ -407,17 +445,17 @@ function Table({
         const rect = cardElement.getBoundingClientRect()
         const card = yourPlayer.hand[index]
         
-        // Create animated overlay card
+        // Create animated overlay card positioned exactly where the original card is
         setAnimatingCard({
           card,
           position: { x: rect.left, y: rect.top }
         })
         
-        // Start discard animation for this specific card
+        // Mark this card as discarding to prevent layout shift
         setDiscardingCardIndex(index)
         
-        // Delay the actual discard call to allow animation to play
-        const animationDuration = window.innerWidth <= 768 ? 700 : 800; // Match mobile/desktop duration
+        // Use enhanced animation duration (mobile vs desktop)
+        const animationDuration = window.innerWidth <= 768 ? 1000 : 1200; // Match enhanced durations
         setTimeout(() => {
           onDiscard(index)
           setDiscardingCardIndex(null)
@@ -430,22 +468,15 @@ function Table({
     }
   }
 
-  const timer = setTimeout(() => {
-    setShowDeckHighlight(true)
-  }, 3000)
-
-  useEffect(() => {
-    return () => clearTimeout(timer)
-  }, [])
-
-  useEffect(() => {
-    if (state?.current_player !== state?.players.findIndex((p) => p?.name === playerName)) {
-      setShowDeckHighlight(false)
-      setSelectedCardIndex(null)
-      setDiscardingCardIndex(null)
-      setAnimatingCard(null)
-    }
-  }, [state])
+  // Enhanced draw animation handling
+  const handleDraw = () => {
+    setDrawingCard(true)
+    onDraw()
+    // Reset drawing state after animation completes
+    setTimeout(() => {
+      setDrawingCard(false)
+    }, window.innerWidth <= 768 ? 1200 : 1400)
+  }
 
   const canDraw = !loadingStates.drawing && currentPlayer.name === playerName && !isGameOver && !state.has_drawn
 
@@ -519,16 +550,16 @@ function Table({
 
       <div className="table-center">
         <div
-          className={`deck-area ${showDeckHighlight ? "deck-highlight" : ""}`}
-          onClick={canDraw ? onDraw : undefined}
-        >x
+          className={`deck-area ${showDeckHighlight ? "deck-highlight" : ""} ${isShuffling ? "deck-shuffling" : ""}`}
+          onClick={canDraw ? handleDraw : undefined}
+        >
           <div className="deck-count">{state.deck?.length ?? 0}</div>
           {shouldShowPrompt() && <div className="tutorial-prompt">Pick a card</div>}
           <Card
             facedown
             value=""
             suit=""
-            className={loadingStates.drawing ? "card-drawing" : ""}
+            className={`${drawingCard || loadingStates.drawing ? "card-drawing" : ""} ${isShuffling ? "card-shuffling" : ""}`}
             style={{
               cursor: canDraw ? "pointer" : "default",
             }}
@@ -550,25 +581,31 @@ function Table({
       >
         <h4 className="player-name">{yourPlayer.name}</h4>
         <div className="hand">
-          {yourPlayer.hand?.map((card, i) => (
-            <Card
-              key={`you-${i}`}
-              {...card}
-              onClick={() => handleCardClick(i)}
-              disabled={
-                !state.has_drawn ||
-                currentPlayer.is_cpu ||
-                currentPlayer.name !== yourPlayer.name ||
-                loadingStates.discarding ||
-                discardingCardIndex !== null
-              }
-              className={discardingCardIndex === i ? "card-discarding" : ""}
-              highlight={isWinner(yourPlayer)}
-              selected={selectedCardIndex === i}
-              style={{}}
-              data-card-index={i}
-            />
-          ))}
+          {yourPlayer.hand?.map((card, i) => {
+            const isDealing = dealingCards[i] || false
+            const delayClass = isDealing ? `deal-delay-${Math.min(i + 1, 7)}` : ""
+            
+            return (
+              <Card
+                key={`you-${i}`}
+                {...card}
+                onClick={() => handleCardClick(i)}
+                disabled={
+                  !state.has_drawn ||
+                  currentPlayer.is_cpu ||
+                  currentPlayer.name !== yourPlayer.name ||
+                  loadingStates.discarding ||
+                  discardingCardIndex !== null ||
+                  isDealing
+                }
+                className={`${discardingCardIndex === i ? "card-discarding" : ""} ${isDealing ? `card-dealing ${delayClass}` : ""}`}
+                highlight={isWinner(yourPlayer)}
+                selected={selectedCardIndex === i}
+                style={{}}
+                data-card-index={i}
+              />
+            )
+          })}
         </div>
       </div>
       
@@ -677,7 +714,7 @@ function App() {
           setGameId(id)
           setPlayerName(savedName)
         }
-      } catch (e) {
+      } catch {
         localStorage.removeItem("njukaGame")
       }
     }
@@ -705,7 +742,7 @@ function App() {
       if (!isHealthy) {
         setError("Backend service unavailable. Please try again later.")
       }
-    } catch (err) {
+    } catch {
       setBackendAvailable(false)
       setError("Cannot connect to game server. Please try again later.")
     } finally {
@@ -837,18 +874,20 @@ function App() {
             setLobby(null)
             setGameId(game.id)
             setState(game)
-          } catch (joinErr: any) {
-            setError(joinErr.message || "Failed to join game after lobby started.")
-            console.error("Failed to join game after lobby started:", joinErr)
+        } catch (joinError: unknown) {
+          const errorMessage = joinError instanceof Error ? joinError.message : "Failed to join game after lobby started."
+          setError(errorMessage)
+          console.error("Failed to join game after lobby started:", joinError)
             setLobby(null)
             setCurrentMenu("main")
           }
         } else {
           setLobby(updatedLobby)
         }
-      } catch (err: any) {
-        setError(err.message || "An unexpected error occurred while fetching lobby details.")
-        console.error("Error fetching lobby details:", err)
+      } catch (error: unknown) {
+        const errorMessage = error instanceof Error ? error.message : "An unexpected error occurred while fetching lobby details."
+        setError(errorMessage)
+        console.error("Error fetching lobby details:", error)
       }
     }
 
@@ -863,8 +902,9 @@ function App() {
       if (!state) return
       const newState = await apiService.discardCard(state.id, cardIdx)
       setState(newState)
-    } catch (err: any) {
-      setError(err.message || "Failed to discard card")
+    } catch (error: unknown) {
+      const errorMessage = error instanceof Error ? error.message : "Failed to discard card"
+      setError(errorMessage)
     } finally {
       setLoadingStates((prev) => ({ ...prev, discarding: false }))
     }
@@ -877,8 +917,9 @@ function App() {
       if (!state) return
       const newState = await apiService.drawCard(state.id)
       setState(newState)
-    } catch (err: any) {
-      setError(err.message || "Failed to draw card")
+    } catch (error: unknown) {
+      const errorMessage = error instanceof Error ? error.message : "Failed to draw card"
+      setError(errorMessage)
     } finally {
       setLoadingStates((prev) => ({ ...prev, drawing: false }))
     }
@@ -905,8 +946,9 @@ function App() {
     try {
       const newLobby = await apiService.createLobby(playerName, numPlayersSetting)
       setLobby(newLobby)
-    } catch (err: any) {
-      setError(err.message || "Failed to create lobby")
+    } catch (error: unknown) {
+      const errorMessage = error instanceof Error ? error.message : "Failed to create lobby"
+      setError(errorMessage)
     } finally {
       setLoadingStates((prev) => ({ ...prev, starting: false }))
     }
@@ -918,9 +960,10 @@ function App() {
     try {
       const joinedLobby = await apiService.joinLobby(lobbyId, playerName)
       setLobby(joinedLobby)
-    } catch (err: any) {
-      setError(err.message || "Failed to join lobby. Please try again.")
-      console.error("Join lobby error:", err)
+    } catch (error: unknown) {
+      const errorMessage = error instanceof Error ? error.message : "Failed to join lobby. Please try again."
+      setError(errorMessage)
+      console.error("Join lobby error:", error)
     } finally {
       setLoadingStates((prev) => ({ ...prev, joining: false }))
     }
@@ -937,9 +980,10 @@ function App() {
       setLobby(null)
       setGameId(gameState.id)
       setState(gameState)
-    } catch (err: any) {
-      setError(err.message || "Failed to start game. Please try again.")
-      console.error("Start game error:", err)
+    } catch (error: unknown) {
+      const errorMessage = error instanceof Error ? error.message : "Failed to start game. Please try again."
+      setError(errorMessage)
+      console.error("Start game error:", error)
     } finally {
       setLoadingStates((prev) => ({ ...prev, starting: false }))
     }
@@ -952,8 +996,9 @@ function App() {
       const game = await apiService.createNewGame("cpu", playerName, numPlayersSetting)
       setGameId(game.id)
       setState(game)
-    } catch (err: any) {
-      setError(err.message || "Failed to create game")
+    } catch (error: unknown) {
+      const errorMessage = error instanceof Error ? error.message : "Failed to create game"
+      setError(errorMessage)
     } finally {
       setLoadingStates((prev) => ({ ...prev, starting: false }))
     }
@@ -1083,7 +1128,10 @@ function App() {
                     apiService
                       .listLobbies()
                       .then(setLobbies)
-                      .catch((err) => setError(err.message))
+                      .catch((error) => {
+                      const errorMessage = error instanceof Error ? error.message : "Failed to refresh lobbies"
+                      setError(errorMessage)
+                    })
                   }}
                 >
                   Refresh Lobbies
