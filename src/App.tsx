@@ -454,8 +454,8 @@ function Table({
         // Mark this card as discarding to prevent layout shift
         setDiscardingCardIndex(index)
         
-        // Use enhanced animation duration (mobile vs desktop)
-        const animationDuration = window.innerWidth <= 768 ? 1500 : 1200; // Match enhanced durations
+        // Mobile-first optimized animation duration
+        const animationDuration = window.innerWidth <= 768 ? 1600 : 1200; // Match mobile portrait timing
         setTimeout(() => {
           onDiscard(index)
           setDiscardingCardIndex(null)
@@ -472,10 +472,10 @@ function Table({
   const handleDraw = () => {
     setDrawingCard(true)
     onDraw()
-    // Reset drawing state after animation completes
+    // Reset drawing state after mobile-optimized animation completes
     setTimeout(() => {
       setDrawingCard(false)
-    }, window.innerWidth <= 768 ? 1700 : 1400)
+    }, window.innerWidth <= 768 ? 1800 : 1400)
   }
 
   const canDraw = !loadingStates.drawing && currentPlayer.name === playerName && !isGameOver && !state.has_drawn

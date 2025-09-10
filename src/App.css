@@ -590,28 +590,41 @@ button:disabled {
   to { opacity: 1; }
 }
 
-/* Keep the bottom player's hand stationary while a card flies in/out. */
+/* Mobile-First Hand Stability - No Card Movement During Animations */
 .bottom .hand {
-  position: relative; /* anchor for incoming card final placement */
-  transition: none !important; /* avoid accidental shifting on mobile */
-  /* Maintain consistent spacing even when cards are removed */
-  min-height: 100px; /* Prevent height collapse */
+  position: relative;
+  transition: none !important; /* Prevent any hand movement */
+  /* Mobile-first height for portrait */
+  min-height: 65px; /* Mobile card height */
+  /* Ensure stable layout */
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  /* Prevent layout shifts */
+  contain: layout;
 }
 
 .bottom .card {
-  position: relative; /* so individual cards can animate independently */
-  transition: transform 0.25s ease-out; /* small transforms (hover/select) remain smooth */
+  position: relative;
+  /* Only allow hover/select transforms, no layout changes */
+  transition: transform 0.2s ease-out;
+  /* Ensure cards stay in place during animations */
+  flex-shrink: 0;
 }
 
-/* Prevent hand reflow during discard animation */
+/* Mobile-Optimized Discard Placeholder */
 .bottom .card.card-discarding {
-  /* Keep the card in place to maintain layout, but make it invisible */
-  opacity: 0.3 !important;
-  /* Maintain the space in the layout */
-  visibility: visible;
+  /* Keep exact space in layout - invisible placeholder */
+  opacity: 0 !important;
+  visibility: hidden !important; /* Completely invisible on mobile */
   pointer-events: none;
-  /* Prevent any transforms on the placeholder */
+  /* Maintain exact dimensions */
+  width: 45px; /* Mobile card width */
+  height: 65px; /* Mobile card height */
+  /* No transforms - keep layout stable */
   transform: none !important;
+  /* Prevent any movement */
+  position: static !important;
 }
 
 /* Animated overlay card for discard effect */
@@ -1420,14 +1433,16 @@ button:disabled {
     left: -95px; /* ⬇️ UPDATED: Shifted further to the left for mobile */
   }
 
-  /* Mobile-specific animation optimizations */
+  /* Mobile Portrait Animation Optimizations */
   .card-drawing {
-    animation-duration: 1.7s; /* Slower for better visibility on mobile */
+    animation-duration: 1.8s; /* Perfect timing for mobile portrait draw */
+    animation-timing-function: cubic-bezier(0.2, 0.1, 0.3, 1); /* Smooth easing */
   }
 
   .card-discarding,
   .discard-animation-overlay {
-    animation-duration: 2.5s; /* Slower on mobile */
+    animation-duration: 1.8s; /* Optimized for mobile portrait discard */
+    animation-timing-function: cubic-bezier(0.25, 0.1, 0.25, 1); /* Natural arc */
   }
 
   .card-shuffling {
@@ -1438,55 +1453,76 @@ button:disabled {
     animation-duration: 2.2s; /* Much slower dealing on mobile for visibility */
   }
 
-  /* Mobile-optimized draw animation */
+  /* Mobile Portrait Draw Animation - Deck to Hand */
   @keyframes cardDraw {
     0% {
-      transform: translateX(-25vw) translateY(-20vh) rotate(-10deg) scale(0.85);
+      /* Start from exact deck position (center-top of screen) */
+      transform: translateX(0) translateY(-15vh) rotate(0) scale(0.9);
       opacity: 0;
     }
-    15% {
+    10% {
+      /* Card becomes visible */
       opacity: 1;
-      transform: translateX(-20vw) translateY(-16vh) rotate(-8deg) scale(0.9);
+      transform: translateX(0) translateY(-12vh) rotate(-2deg) scale(0.95);
     }
-    40% {
-      transform: translateX(-12vw) translateY(-10vh) rotate(-4deg) scale(0.95);
+    30% {
+      /* Begin smooth descent to hand */
+      transform: translateX(0) translateY(-8vh) rotate(-3deg) scale(1);
     }
-    70% {
-      transform: translateX(-2vw) translateY(-2vh) rotate(-1deg) scale(1.02);
+    60% {
+      /* Midway to hand - steady movement */
+      transform: translateX(0) translateY(-4vh) rotate(-2deg) scale(1.02);
     }
-    85% {
-      transform: translateX(1vw) translateY(-1vh) rotate(1deg) scale(1.01);
+    80% {
+      /* Approaching hand position */
+      transform: translateX(0) translateY(-1vh) rotate(-1deg) scale(1.01);
+    }
+    95% {
+      /* Almost in hand */
+      transform: translateX(0) translateY(0.5vh) rotate(0) scale(1);
     }
     100% {
+      /* Final position in hand */
       transform: translateX(0) translateY(0) rotate(0) scale(1);
       opacity: 1;
     }
   }
 
-  /* Mobile-optimized discard animation */
+  /* Mobile Portrait Discard Animation - Hand to Discard Pile */
   @keyframes cardDiscard {
     0% {
+      /* Start from hand position */
       transform: translateY(0) translateX(0) rotate(0) scale(1);
       opacity: 1;
     }
-    25% {
-      transform: translateY(-6vh) translateX(4vw) rotate(2deg) scale(0.98);
+    15% {
+      /* Lift slightly */
+      transform: translateY(-2vh) translateX(0) rotate(1deg) scale(0.98);
       opacity: 1;
     }
-    50% {
-      transform: translateY(-15vh) translateX(12vw) rotate(6deg) scale(0.92);
+    35% {
+      /* Begin movement toward discard pile (center-top) */
+      transform: translateY(-6vh) translateX(0) rotate(3deg) scale(0.95);
       opacity: 1;
     }
-    75% {
-      transform: translateY(-22vh) translateX(25vw) rotate(10deg) scale(0.7);
-      opacity: 0.8;
+    60% {
+      /* Midway to discard pile */
+      transform: translateY(-10vh) translateX(0) rotate(5deg) scale(0.85);
+      opacity: 0.9;
     }
-    90% {
-      transform: translateY(-25vh) translateX(32vw) rotate(12deg) scale(0.5);
-      opacity: 0.4;
+    80% {
+      /* Approaching discard pile */
+      transform: translateY(-13vh) translateX(0) rotate(8deg) scale(0.7);
+      opacity: 0.6;
+    }
+    95% {
+      /* Almost at discard pile */
+      transform: translateY(-15vh) translateX(0) rotate(10deg) scale(0.5);
+      opacity: 0.2;
     }
     100% {
-      transform: translateY(-27vh) translateX(35vw) rotate(15deg) scale(0.45);
+      /* Land on discard pile */
+      transform: translateY(-16vh) translateX(0) rotate(12deg) scale(0.45);
       opacity: 0;
     }
   }
@@ -1609,6 +1645,17 @@ button:disabled {
     /* Desktop glow dimensions */
     border-radius: 6px;
     max-height: 100px;
+  }
+
+  /* Desktop hand stability overrides */
+  .bottom .hand {
+    min-height: 100px; /* Desktop card height */
+  }
+
+  .bottom .card.card-discarding {
+    /* Desktop card dimensions for placeholder */
+    width: 70px; /* Desktop card width */
+    height: 100px; /* Desktop card height */
   }
 }
 
