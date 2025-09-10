@@ -849,20 +849,28 @@ button:disabled {
   bottom: -3px;
 }
 
-/* Bottom player glow adjustments - exact card dimensions */
+/* Bottom player glow adjustments - mobile-first design */
 .bottom.active .hand {
-  /* No padding - glow should match exact card size */
+  /* Mobile-first: optimized for portrait view */
   padding: 0;
   margin: 0;
+  /* Mobile portrait card height (primary target) */
+  height: 65px;
+  align-items: center;
+  /* Ensure perfect fit on mobile */
+  box-sizing: border-box;
 }
 
 .bottom.active .hand::before {
-  /* Glow exactly matches the hand dimensions */
+  /* Mobile-first glow - exact card dimensions */
   top: 0;
   left: 0;
   right: 0;
   bottom: 0;
-  border-radius: 6px;
+  border-radius: 4px;
+  /* Constrain to mobile card height */
+  max-height: 65px;
+  box-sizing: border-box;
 }
 
 /* Top player glow adjustments */
@@ -1276,18 +1284,29 @@ button:disabled {
   }
 
   .bottom.active .hand {
-    /* No padding on mobile - exact card fit */
+    /* Mobile portrait - primary target optimization */
     padding: 0;
     margin: 0;
+    /* Exact mobile card height for perfect fit */
+    height: 65px;
+    align-items: center;
+    /* Mobile performance optimization */
+    box-sizing: border-box;
+    contain: layout style;
   }
 
   .bottom.active .hand::before {
-    /* Exact dimensions for mobile cards */
+    /* Mobile-optimized glow - exact card dimensions */
     top: 0;
     left: 0;
     right: 0;
     bottom: 0;
     border-radius: 4px;
+    /* Strict height constraint for mobile */
+    max-height: 65px;
+    box-sizing: border-box;
+    /* Mobile performance */
+    will-change: opacity, transform;
   }
 
   /* Smaller glow for mobile performance */
@@ -1539,6 +1558,9 @@ button:disabled {
   .bottom.active .hand {
     padding: 0;
     margin: 0;
+    /* Landscape card height */
+    height: 60px;
+    align-items: center;
   }
 
   .bottom.active .hand::before {
@@ -1547,6 +1569,8 @@ button:disabled {
     right: 0;
     bottom: 0;
     border-radius: 4px;
+    /* Ensure glow matches landscape card height */
+    max-height: 60px;
   }
 }
 
@@ -1573,6 +1597,18 @@ button:disabled {
   .discard-area .card {
     width: 60px;
     height: 90px;
+  }
+
+  /* Desktop override for bottom player glow */
+  .bottom.active .hand {
+    /* Desktop cards are taller */
+    height: 100px;
+  }
+
+  .bottom.active .hand::before {
+    /* Desktop glow dimensions */
+    border-radius: 6px;
+    max-height: 100px;
   }
 }
 
