@@ -849,18 +849,20 @@ button:disabled {
   bottom: -3px;
 }
 
-/* Bottom player glow adjustments */
+/* Bottom player glow adjustments - exact card dimensions */
 .bottom.active .hand {
-  /* Tighter fit for bottom player */
-  padding: 2px 4px;
+  /* No padding - glow should match exact card size */
+  padding: 0;
+  margin: 0;
 }
 
 .bottom.active .hand::before {
-  top: -1px;
-  left: -2px;
-  right: -2px;
-  bottom: -1px;
-  border-radius: 8px;
+  /* Glow exactly matches the hand dimensions */
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  border-radius: 6px;
 }
 
 /* Top player glow adjustments */
@@ -1274,11 +1276,18 @@ button:disabled {
   }
 
   .bottom.active .hand {
-    padding: 1px 3px;
+    /* No padding on mobile - exact card fit */
+    padding: 0;
+    margin: 0;
   }
 
   .bottom.active .hand::before {
-    border-radius: 6px;
+    /* Exact dimensions for mobile cards */
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    border-radius: 4px;
   }
 
   /* Smaller glow for mobile performance */
@@ -1524,6 +1533,20 @@ button:disabled {
     right: -1px;
     bottom: -1px;
     border-radius: 5px;
+  }
+
+  /* Bottom player exact fit in landscape */
+  .bottom.active .hand {
+    padding: 0;
+    margin: 0;
+  }
+
+  .bottom.active .hand::before {
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    border-radius: 4px;
   }
 }
 
