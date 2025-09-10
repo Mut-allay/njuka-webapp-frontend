@@ -455,7 +455,7 @@ function Table({
         setDiscardingCardIndex(index)
         
         // Mobile-first optimized animation duration
-        const animationDuration = window.innerWidth <= 768 ? 1600 : 1200; // Match mobile portrait timing
+        const animationDuration = window.innerWidth <= 768 ? 1800 : 1200; // Match updated mobile portrait timing
         setTimeout(() => {
           onDiscard(index)
           setDiscardingCardIndex(null)
