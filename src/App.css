@@ -454,66 +454,256 @@ button:disabled {
   }
 }
 
-/* Enhanced Draw Animation - Slower, smoother glide */
+/* Enhanced Draw Animation - Bottom Player (Default) */
 @keyframes cardDraw {
   0% {
-    /* start from deck position (center of table) */
-    transform: translateX(-30vw) translateY(-25vh) rotate(-12deg) scale(0.85);
+    /* Start from deck position (center of table) */
+    transform: translateX(0) translateY(-15vh) rotate(0) scale(0.9);
     opacity: 0;
   }
   15% {
-    /* become visible and start moving */
+    /* Card becomes visible */
     opacity: 1;
-    transform: translateX(-25vw) translateY(-20vh) rotate(-10deg) scale(0.9);
+    transform: translateX(0) translateY(-12vh) rotate(-2deg) scale(0.95);
   }
   40% {
-    /* mid-flight with smooth arc */
-    transform: translateX(-15vw) translateY(-12vh) rotate(-5deg) scale(0.95);
+    /* Mid-flight descent */
+    transform: translateX(0) translateY(-8vh) rotate(-3deg) scale(1);
   }
   70% {
-    /* approach hand with slight overshoot */
-    transform: translateX(-3vw) translateY(-3vh) rotate(-1deg) scale(1.03);
+    /* Approaching bottom hand */
+    transform: translateX(0) translateY(-4vh) rotate(-2deg) scale(1.02);
   }
   85% {
-    /* settle with small bounce */
-    transform: translateX(1vw) translateY(-1vh) rotate(1deg) scale(1.01);
+    /* Almost in hand */
+    transform: translateX(0) translateY(-1vh) rotate(-1deg) scale(1.01);
   }
   100% {
-    /* final position in hand */
+    /* Final position in bottom hand */
     transform: translateX(0) translateY(0) rotate(0) scale(1);
     opacity: 1;
   }
 }
 
-/* Enhanced Discard Animation - Smooth arc to discard pile */
+/* Draw Animation - Top Player */
+@keyframes cardDrawTop {
+  0% {
+    /* Start from deck position */
+    transform: translateX(0) translateY(0) rotate(0) scale(0.9);
+    opacity: 0;
+  }
+  15% {
+    opacity: 1;
+    transform: translateX(0) translateY(-3vh) rotate(2deg) scale(0.95);
+  }
+  40% {
+    /* Moving toward top */
+    transform: translateX(0) translateY(-8vh) rotate(3deg) scale(1);
+  }
+  70% {
+    /* Approaching top hand */
+    transform: translateX(0) translateY(-12vh) rotate(2deg) scale(1.02);
+  }
+  85% {
+    transform: translateX(0) translateY(-14vh) rotate(1deg) scale(1.01);
+  }
+  100% {
+    /* Final position in top hand */
+    transform: translateX(0) translateY(-16vh) rotate(0) scale(1);
+    opacity: 1;
+  }
+}
+
+/* Draw Animation - Left Player */
+@keyframes cardDrawLeft {
+  0% {
+    /* Start from deck position */
+    transform: translateX(0) translateY(0) rotate(0) scale(0.9);
+    opacity: 0;
+  }
+  15% {
+    opacity: 1;
+    transform: translateX(-2vw) translateY(0) rotate(-2deg) scale(0.95);
+  }
+  40% {
+    /* Moving toward left */
+    transform: translateX(-8vw) translateY(0) rotate(-3deg) scale(1);
+  }
+  70% {
+    /* Approaching left hand */
+    transform: translateX(-15vw) translateY(0) rotate(-2deg) scale(1.02);
+  }
+  85% {
+    transform: translateX(-18vw) translateY(0) rotate(-1deg) scale(1.01);
+  }
+  100% {
+    /* Final position in left hand */
+    transform: translateX(-20vw) translateY(0) rotate(0) scale(1);
+    opacity: 1;
+  }
+}
+
+/* Draw Animation - Right Player */
+@keyframes cardDrawRight {
+  0% {
+    /* Start from deck position */
+    transform: translateX(0) translateY(0) rotate(0) scale(0.9);
+    opacity: 0;
+  }
+  15% {
+    opacity: 1;
+    transform: translateX(2vw) translateY(0) rotate(2deg) scale(0.95);
+  }
+  40% {
+    /* Moving toward right */
+    transform: translateX(8vw) translateY(0) rotate(3deg) scale(1);
+  }
+  70% {
+    /* Approaching right hand */
+    transform: translateX(15vw) translateY(0) rotate(2deg) scale(1.02);
+  }
+  85% {
+    transform: translateX(18vw) translateY(0) rotate(1deg) scale(1.01);
+  }
+  100% {
+    /* Final position in right hand */
+    transform: translateX(20vw) translateY(0) rotate(0) scale(1);
+    opacity: 1;
+  }
+}
+
+/* Enhanced Discard Animation - Bottom Player (Default) */
 @keyframes cardDiscard {
   0% {
+    /* Start from bottom hand position */
     transform: translateY(0) translateX(0) rotate(0) scale(1);
     opacity: 1;
   }
   25% {
-    /* lift up with slight rotation */
-    transform: translateY(-8vh) translateX(5vw) rotate(3deg) scale(0.98);
+    /* Lift toward discard pile */
+    transform: translateY(-4vh) translateX(0) rotate(2deg) scale(0.98);
     opacity: 1;
   }
   50% {
-    /* peak of arc */
-    transform: translateY(-18vh) translateX(15vw) rotate(8deg) scale(0.92);
+    /* Midway to discard pile */
+    transform: translateY(-8vh) translateX(0) rotate(5deg) scale(0.92);
     opacity: 1;
   }
   75% {
-    /* descending toward discard pile */
-    transform: translateY(-25vh) translateX(30vw) rotate(12deg) scale(0.7);
+    /* Approaching discard pile */
+    transform: translateY(-12vh) translateX(0) rotate(8deg) scale(0.7);
     opacity: 0.8;
   }
   90% {
-    /* almost at discard pile */
-    transform: translateY(-28vh) translateX(38vw) rotate(15deg) scale(0.5);
+    /* Almost at discard pile */
+    transform: translateY(-14vh) translateX(0) rotate(10deg) scale(0.5);
     opacity: 0.4;
   }
   100% {
-    /* land on discard pile and fade */
-    transform: translateY(-30vh) translateX(40vw) rotate(18deg) scale(0.45);
+    /* Land on discard pile */
+    transform: translateY(-16vh) translateX(0) rotate(12deg) scale(0.45);
+    opacity: 0;
+  }
+}
+
+/* Discard Animation - Top Player */
+@keyframes cardDiscardTop {
+  0% {
+    /* Start from top hand position */
+    transform: translateY(-16vh) translateX(0) rotate(0) scale(1);
+    opacity: 1;
+  }
+  25% {
+    /* Move toward discard pile */
+    transform: translateY(-14vh) translateX(0) rotate(-2deg) scale(0.98);
+    opacity: 1;
+  }
+  50% {
+    /* Midway to discard pile */
+    transform: translateY(-12vh) translateX(0) rotate(-5deg) scale(0.92);
+    opacity: 1;
+  }
+  75% {
+    /* Approaching discard pile */
+    transform: translateY(-8vh) translateX(0) rotate(-8deg) scale(0.7);
+    opacity: 0.8;
+  }
+  90% {
+    /* Almost at discard pile */
+    transform: translateY(-6vh) translateX(0) rotate(-10deg) scale(0.5);
+    opacity: 0.4;
+  }
+  100% {
+    /* Land on discard pile */
+    transform: translateY(-4vh) translateX(0) rotate(-12deg) scale(0.45);
+    opacity: 0;
+  }
+}
+
+/* Discard Animation - Left Player */
+@keyframes cardDiscardLeft {
+  0% {
+    /* Start from left hand position */
+    transform: translateY(0) translateX(-20vw) rotate(0) scale(1);
+    opacity: 1;
+  }
+  25% {
+    /* Move toward discard pile */
+    transform: translateY(0) translateX(-15vw) rotate(2deg) scale(0.98);
+    opacity: 1;
+  }
+  50% {
+    /* Midway to discard pile */
+    transform: translateY(0) translateX(-10vw) rotate(5deg) scale(0.92);
+    opacity: 1;
+  }
+  75% {
+    /* Approaching discard pile */
+    transform: translateY(0) translateX(-5vw) rotate(8deg) scale(0.7);
+    opacity: 0.8;
+  }
+  90% {
+    /* Almost at discard pile */
+    transform: translateY(0) translateX(-2vw) rotate(10deg) scale(0.5);
+    opacity: 0.4;
+  }
+  100% {
+    /* Land on discard pile */
+    transform: translateY(0) translateX(0) rotate(12deg) scale(0.45);
+    opacity: 0;
+  }
+}
+
+/* Discard Animation - Right Player */
+@keyframes cardDiscardRight {
+  0% {
+    /* Start from right hand position */
+    transform: translateY(0) translateX(20vw) rotate(0) scale(1);
+    opacity: 1;
+  }
+  25% {
+    /* Move toward discard pile */
+    transform: translateY(0) translateX(15vw) rotate(-2deg) scale(0.98);
+    opacity: 1;
+  }
+  50% {
+    /* Midway to discard pile */
+    transform: translateY(0) translateX(10vw) rotate(-5deg) scale(0.92);
+    opacity: 1;
+  }
+  75% {
+    /* Approaching discard pile */
+    transform: translateY(0) translateX(5vw) rotate(-8deg) scale(0.7);
+    opacity: 0.8;
+  }
+  90% {
+    /* Almost at discard pile */
+    transform: translateY(0) translateX(2vw) rotate(-10deg) scale(0.5);
+    opacity: 0.4;
+  }
+  100% {
+    /* Land on discard pile */
+    transform: translateY(0) translateX(0) rotate(-12deg) scale(0.45);
     opacity: 0;
   }
 }
@@ -564,6 +754,44 @@ button:disabled {
   pointer-events: none;
   will-change: transform, opacity;
   backface-visibility: hidden;
+}
+
+/* Position-specific draw animations */
+.top .card-drawing {
+  animation-name: cardDrawTop;
+}
+
+.left .card-drawing {
+  animation-name: cardDrawLeft;
+}
+
+.right .card-drawing {
+  animation-name: cardDrawRight;
+}
+
+.bottom .card-drawing {
+  animation-name: cardDraw; /* Default bottom animation */
+}
+
+/* Position-specific discard animations */
+.top .card-discarding,
+.top .discard-animation-overlay {
+  animation-name: cardDiscardTop;
+}
+
+.left .card-discarding,
+.left .discard-animation-overlay {
+  animation-name: cardDiscardLeft;
+}
+
+.right .card-discarding,
+.right .discard-animation-overlay {
+  animation-name: cardDiscardRight;
+}
+
+.bottom .card-discarding,
+.bottom .discard-animation-overlay {
+  animation-name: cardDiscard; /* Default bottom animation */
 }
 
 /* Respect user's reduced motion preference */
@@ -1453,76 +1681,216 @@ button:disabled {
     animation-duration: 2.2s; /* Much slower dealing on mobile for visibility */
   }
 
-  /* Mobile Portrait Draw Animation - Deck to Hand */
+  /* Mobile Portrait Animations - All Players */
+  
+  /* Bottom Player Draw (Mobile) */
   @keyframes cardDraw {
     0% {
-      /* Start from exact deck position (center-top of screen) */
       transform: translateX(0) translateY(-15vh) rotate(0) scale(0.9);
       opacity: 0;
     }
-    10% {
-      /* Card becomes visible */
+    15% {
       opacity: 1;
       transform: translateX(0) translateY(-12vh) rotate(-2deg) scale(0.95);
     }
-    30% {
-      /* Begin smooth descent to hand */
+    40% {
       transform: translateX(0) translateY(-8vh) rotate(-3deg) scale(1);
     }
-    60% {
-      /* Midway to hand - steady movement */
+    70% {
       transform: translateX(0) translateY(-4vh) rotate(-2deg) scale(1.02);
     }
-    80% {
-      /* Approaching hand position */
+    85% {
       transform: translateX(0) translateY(-1vh) rotate(-1deg) scale(1.01);
     }
-    95% {
-      /* Almost in hand */
-      transform: translateX(0) translateY(0.5vh) rotate(0) scale(1);
-    }
     100% {
-      /* Final position in hand */
       transform: translateX(0) translateY(0) rotate(0) scale(1);
       opacity: 1;
     }
   }
 
-  /* Mobile Portrait Discard Animation - Hand to Discard Pile */
+  /* Top Player Draw (Mobile) */
+  @keyframes cardDrawTop {
+    0% {
+      transform: translateX(0) translateY(0) rotate(0) scale(0.9);
+      opacity: 0;
+    }
+    15% {
+      opacity: 1;
+      transform: translateX(0) translateY(-2vh) rotate(2deg) scale(0.95);
+    }
+    40% {
+      transform: translateX(0) translateY(-6vh) rotate(3deg) scale(1);
+    }
+    70% {
+      transform: translateX(0) translateY(-10vh) rotate(2deg) scale(1.02);
+    }
+    85% {
+      transform: translateX(0) translateY(-12vh) rotate(1deg) scale(1.01);
+    }
+    100% {
+      transform: translateX(0) translateY(-14vh) rotate(0) scale(1);
+      opacity: 1;
+    }
+  }
+
+  /* Left Player Draw (Mobile) */
+  @keyframes cardDrawLeft {
+    0% {
+      transform: translateX(0) translateY(0) rotate(0) scale(0.9);
+      opacity: 0;
+    }
+    15% {
+      opacity: 1;
+      transform: translateX(-2vw) translateY(0) rotate(-2deg) scale(0.95);
+    }
+    40% {
+      transform: translateX(-6vw) translateY(0) rotate(-3deg) scale(1);
+    }
+    70% {
+      transform: translateX(-12vw) translateY(0) rotate(-2deg) scale(1.02);
+    }
+    85% {
+      transform: translateX(-15vw) translateY(0) rotate(-1deg) scale(1.01);
+    }
+    100% {
+      transform: translateX(-18vw) translateY(0) rotate(0) scale(1);
+      opacity: 1;
+    }
+  }
+
+  /* Right Player Draw (Mobile) */
+  @keyframes cardDrawRight {
+    0% {
+      transform: translateX(0) translateY(0) rotate(0) scale(0.9);
+      opacity: 0;
+    }
+    15% {
+      opacity: 1;
+      transform: translateX(2vw) translateY(0) rotate(2deg) scale(0.95);
+    }
+    40% {
+      transform: translateX(6vw) translateY(0) rotate(3deg) scale(1);
+    }
+    70% {
+      transform: translateX(12vw) translateY(0) rotate(2deg) scale(1.02);
+    }
+    85% {
+      transform: translateX(15vw) translateY(0) rotate(1deg) scale(1.01);
+    }
+    100% {
+      transform: translateX(18vw) translateY(0) rotate(0) scale(1);
+      opacity: 1;
+    }
+  }
+
+  /* Bottom Player Discard (Mobile) */
   @keyframes cardDiscard {
     0% {
-      /* Start from hand position */
       transform: translateY(0) translateX(0) rotate(0) scale(1);
       opacity: 1;
     }
-    15% {
-      /* Lift slightly */
-      transform: translateY(-2vh) translateX(0) rotate(1deg) scale(0.98);
+    25% {
+      transform: translateY(-3vh) translateX(0) rotate(2deg) scale(0.98);
       opacity: 1;
     }
-    35% {
-      /* Begin movement toward discard pile (center-top) */
-      transform: translateY(-6vh) translateX(0) rotate(3deg) scale(0.95);
+    50% {
+      transform: translateY(-6vh) translateX(0) rotate(5deg) scale(0.92);
       opacity: 1;
     }
-    60% {
-      /* Midway to discard pile */
-      transform: translateY(-10vh) translateX(0) rotate(5deg) scale(0.85);
-      opacity: 0.9;
+    75% {
+      transform: translateY(-10vh) translateX(0) rotate(8deg) scale(0.7);
+      opacity: 0.8;
     }
-    80% {
-      /* Approaching discard pile */
-      transform: translateY(-13vh) translateX(0) rotate(8deg) scale(0.7);
-      opacity: 0.6;
-    }
-    95% {
-      /* Almost at discard pile */
-      transform: translateY(-15vh) translateX(0) rotate(10deg) scale(0.5);
-      opacity: 0.2;
+    90% {
+      transform: translateY(-12vh) translateX(0) rotate(10deg) scale(0.5);
+      opacity: 0.4;
     }
     100% {
-      /* Land on discard pile */
-      transform: translateY(-16vh) translateX(0) rotate(12deg) scale(0.45);
+      transform: translateY(-14vh) translateX(0) rotate(12deg) scale(0.45);
+      opacity: 0;
+    }
+  }
+
+  /* Top Player Discard (Mobile) */
+  @keyframes cardDiscardTop {
+    0% {
+      transform: translateY(-14vh) translateX(0) rotate(0) scale(1);
+      opacity: 1;
+    }
+    25% {
+      transform: translateY(-12vh) translateX(0) rotate(-2deg) scale(0.98);
+      opacity: 1;
+    }
+    50% {
+      transform: translateY(-10vh) translateX(0) rotate(-5deg) scale(0.92);
+      opacity: 1;
+    }
+    75% {
+      transform: translateY(-6vh) translateX(0) rotate(-8deg) scale(0.7);
+      opacity: 0.8;
+    }
+    90% {
+      transform: translateY(-4vh) translateX(0) rotate(-10deg) scale(0.5);
+      opacity: 0.4;
+    }
+    100% {
+      transform: translateY(-2vh) translateX(0) rotate(-12deg) scale(0.45);
+      opacity: 0;
+    }
+  }
+
+  /* Left Player Discard (Mobile) */
+  @keyframes cardDiscardLeft {
+    0% {
+      transform: translateY(0) translateX(-18vw) rotate(0) scale(1);
+      opacity: 1;
+    }
+    25% {
+      transform: translateY(0) translateX(-14vw) rotate(2deg) scale(0.98);
+      opacity: 1;
+    }
+    50% {
+      transform: translateY(0) translateX(-8vw) rotate(5deg) scale(0.92);
+      opacity: 1;
+    }
+    75% {
+      transform: translateY(0) translateX(-4vw) rotate(8deg) scale(0.7);
+      opacity: 0.8;
+    }
+    90% {
+      transform: translateY(0) translateX(-1vw) rotate(10deg) scale(0.5);
+      opacity: 0.4;
+    }
+    100% {
+      transform: translateY(0) translateX(0) rotate(12deg) scale(0.45);
+      opacity: 0;
+    }
+  }
+
+  /* Right Player Discard (Mobile) */
+  @keyframes cardDiscardRight {
+    0% {
+      transform: translateY(0) translateX(18vw) rotate(0) scale(1);
+      opacity: 1;
+    }
+    25% {
+      transform: translateY(0) translateX(14vw) rotate(-2deg) scale(0.98);
+      opacity: 1;
+    }
+    50% {
+      transform: translateY(0) translateX(8vw) rotate(-5deg) scale(0.92);
+      opacity: 1;
+    }
+    75% {
+      transform: translateY(0) translateX(4vw) rotate(-8deg) scale(0.7);
+      opacity: 0.8;
+    }
+    90% {
+      transform: translateY(0) translateX(1vw) rotate(-10deg) scale(0.5);
+      opacity: 0.4;
+    }
+    100% {
+      transform: translateY(0) translateX(0) rotate(-12deg) scale(0.45);
       opacity: 0;
     }
   }
