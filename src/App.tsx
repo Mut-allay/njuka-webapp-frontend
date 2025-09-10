@@ -1,10 +1,122 @@
 "use client"
 
 import React from "react"
-import { useState, useEffect, useCallback } from "react"
+import { useState, useEffect, useCallback, useMemo } from "react"
+import { Howl } from "howler"
 import "./App.css"
 
 const API = "https://njuka-webapp-backend.onrender.com"
+
+// 🎵 SOUND MANAGER HOOK - Handles all game audio
+const useSoundManager = () => {
+  const [soundsEnabled, setSoundsEnabled] = useState(true)
+  
+  // 🎵 Programmatic fallback sound generator
+  const createFallbackSound = useCallback((frequency: number, duration: number, type: OscillatorType = 'sine') => {
+    if (typeof window !== 'undefined' && window.AudioContext) {
+      try {
+        const audioContext = new (window.AudioContext || (window as unknown as { webkitAudioContext: typeof AudioContext }).webkitAudioContext)()
+        const oscillator = audioContext.createOscillator()
+        const gainNode = audioContext.createGain()
+        
+        oscillator.connect(gainNode)
+        gainNode.connect(audioContext.destination)
+        
+        oscillator.frequency.setValueAtTime(frequency, audioContext.currentTime)
+        oscillator.type = type
+        
+        gainNode.gain.setValueAtTime(0.1, audioContext.currentTime)
+        gainNode.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + duration)
+        
+        oscillator.start(audioContext.currentTime)
+        oscillator.stop(audioContext.currentTime + duration)
+      } catch (error) {
+        console.log('Fallback sound generation failed:', error)
+      }
+    }
+  }, [])
+  
+  // Sound effect instances - memoized to prevent recreation on every render
+  const sounds = useMemo(() => ({
+    draw: new Howl({
+      src: ['/sounds/draw.mp3', '/sounds/draw.wav'],
+      volume: 0.3,
+      html5: true,
+      onloaderror: () => {
+        console.log('Draw sound failed to load, using fallback')
+        // Create a simple beep sound programmatically as fallback
+      }
+    }),
+    discard: new Howl({
+      src: ['/sounds/discard.mp3', '/sounds/discard.wav'],
+      volume: 0.4,
+      html5: true,
+      onloaderror: () => console.log('Discard sound failed to load')
+    }),
+    win: new Howl({
+      src: ['/sounds/win.mp3', '/sounds/win.wav'],
+      volume: 0.5,
+      html5: true,
+      onloaderror: () => console.log('Win sound failed to load')
+    }),
+    button: new Howl({
+      src: ['/sounds/button.mp3', '/sounds/button.wav'],
+      volume: 0.2,
+      html5: true,
+      onloaderror: () => console.log('Button sound failed to load')
+    }),
+    shuffle: new Howl({
+      src: ['/sounds/shuffle.mp3', '/sounds/shuffle.wav'],
+      volume: 0.3,
+      html5: true,
+      onloaderror: () => console.log('Shuffle sound failed to load')
+    })
+  }), [])
+
+  const playSound = useCallback((soundType: keyof typeof sounds) => {
+    if (soundsEnabled) {
+      try {
+        const sound = sounds[soundType]
+        if (sound.state() === 'loaded') {
+          sound.play()
+        } else {
+          // Use programmatic fallback sounds
+          switch (soundType) {
+            case 'draw':
+              createFallbackSound(800, 0.2, 'sine') // High bell-like tone
+              break
+            case 'discard':
+              createFallbackSound(400, 0.3, 'sawtooth') // Swoosh-like sound
+              break
+            case 'shuffle':
+              // Multiple quick tones for shuffle effect
+              setTimeout(() => createFallbackSound(300, 0.1, 'square'), 0)
+              setTimeout(() => createFallbackSound(350, 0.1, 'square'), 100)
+              setTimeout(() => createFallbackSound(320, 0.1, 'square'), 200)
+              break
+            case 'win':
+              // Victory chord progression
+              createFallbackSound(523, 0.4, 'sine') // C
+              setTimeout(() => createFallbackSound(659, 0.4, 'sine'), 200) // E
+              setTimeout(() => createFallbackSound(784, 0.6, 'sine'), 400) // G
+              break
+            case 'button':
+              createFallbackSound(1000, 0.1, 'square') // Quick click
+              break
+          }
+        }
+      } catch (error) {
+        console.log(`Failed to play ${soundType} sound:`, error)
+      }
+    }
+  }, [soundsEnabled, sounds, createFallbackSound])
+
+  const toggleSounds = useCallback(() => {
+    setSoundsEnabled(prev => !prev)
+  }, [])
+
+  return { playSound, soundsEnabled, toggleSounds }
+}
 
 // ⬇️ ADDED A COMPLETE MAP OF ALL CARD IMAGES ⬇️
 const cardImageMap: { [key: string]: string } = {
@@ -363,6 +475,7 @@ function Table({
   onDiscard,
   onDraw,
   loadingStates,
+  playSound, // 🎵 NEW: Sound function passed from parent
 }: {
   state: GameState
   playerName: string
@@ -373,6 +486,7 @@ function Table({
     discarding: boolean
     cpuMoving: boolean
   }
+  playSound: (soundType: 'draw' | 'discard' | 'win' | 'button' | 'shuffle') => void // 🎵 NEW: Sound prop
 }) {
   const [selectedCardIndex, setSelectedCardIndex] = useState<number | null>(null)
   const [showDeckHighlight, setShowDeckHighlight] = useState(false)
@@ -409,6 +523,7 @@ function Table({
   useEffect(() => {
     if (state && !isGameOver && state.deck.length > 0 && yourPlayer?.hand.length === 0) {
       setIsShuffling(true)
+      playSound('shuffle') // 🎵 NEW: Play shuffle sound
       setTimeout(() => {
         setIsShuffling(false)
         // Start dealing animation after shuffle
@@ -419,7 +534,7 @@ function Table({
         }
       }, window.innerWidth <= 768 ? 2000 : 2000)
     }
-  }, [state?.id, isGameOver, state, yourPlayer?.hand.length])
+  }, [state?.id, isGameOver, state, yourPlayer?.hand.length, playSound]) // 🎵 NEW: Added playSound dependency
 
   // Early return after all hooks
   if (!yourPlayer || !currentPlayer) {
@@ -444,6 +559,9 @@ function Table({
       if (cardElement && yourPlayer) {
         const rect = cardElement.getBoundingClientRect()
         const card = yourPlayer.hand[index]
+        
+        // 🎵 NEW: Play discard sound
+        playSound('discard')
         
         // Create animated overlay card positioned exactly where the original card is
         setAnimatingCard({
@@ -470,6 +588,9 @@ function Table({
 
   // Enhanced draw animation handling
   const handleDraw = () => {
+    // 🎵 NEW: Play draw sound
+    playSound('draw')
+    
     setDrawingCard(true)
     onDraw()
     // Reset drawing state after mobile-optimized animation completes
@@ -676,12 +797,37 @@ function LobbyView({
   )
 }
 
-function BottomMenu({ quitGameToMenu }: { quitGameToMenu: () => void }) {
+function BottomMenu({ 
+  quitGameToMenu, 
+  soundsEnabled, 
+  toggleSounds, 
+  playSound 
+}: { 
+  quitGameToMenu: () => void
+  soundsEnabled: boolean
+  toggleSounds: () => void
+  playSound: (soundType: 'button') => void
+}) {
+  
+  const handleButtonClick = (action: () => void) => {
+    playSound('button') // 🎵 NEW: Play button sound
+    action()
+  }
+
   return (
     <footer className="bottom-menu">
-      <button onClick={() => console.log("Settings clicked")}>Settings</button>
-      <button onClick={() => console.log("Info clicked")}>Info</button>
-      <button onClick={quitGameToMenu}>Quit</button>
+      <button onClick={() => handleButtonClick(() => console.log("Settings clicked"))}>
+        Settings
+      </button>
+      <button onClick={() => handleButtonClick(toggleSounds)}>
+        🔊 {soundsEnabled ? 'ON' : 'OFF'} {/* 🎵 NEW: Sound toggle button */}
+      </button>
+      <button onClick={() => handleButtonClick(() => console.log("Info clicked"))}>
+        Info
+      </button>
+      <button onClick={() => handleButtonClick(quitGameToMenu)}>
+        Quit
+      </button>
     </footer>
   );
 }
@@ -704,6 +850,9 @@ function App() {
   const [backendAvailable, setBackendAvailable] = useState(true)
   const [lobby, setLobby] = useState<LobbyGame | null>(null)
   const [lobbies, setLobbies] = useState<LobbyGame[]>([])
+  
+  // 🎵 NEW: Initialize sound manager
+  const { playSound, soundsEnabled, toggleSounds } = useSoundManager()
 
   useEffect(() => {
     const savedGame = localStorage.getItem("njukaGame")
@@ -733,6 +882,13 @@ function App() {
       localStorage.removeItem("njukaGame")
     }
   }, [state, playerName])
+
+  // 🎵 NEW: Play win sound when game ends
+  useEffect(() => {
+    if (state?.game_over && state?.winner) {
+      playSound('win')
+    }
+  }, [state?.game_over, state?.winner, playSound])
 
   const checkConnection = useCallback(async () => {
     setLoadingStates((prev) => ({ ...prev, starting: true, joining: true }))
@@ -941,6 +1097,7 @@ function App() {
   }
 
   const handleCreateLobby = async () => {
+    playSound('button') // 🎵 NEW: Button sound
     setLoadingStates((prev) => ({ ...prev, starting: true }))
     setError(null)
     try {
@@ -990,6 +1147,7 @@ function App() {
   }
 
   const handleStartCpuGame = async () => {
+    playSound('button') // 🎵 NEW: Button sound
     setLoadingStates((prev) => ({ ...prev, starting: true }))
     setError(null)
     try {
@@ -1047,8 +1205,14 @@ function App() {
             onDiscard={discard}
             onDraw={draw}
             loadingStates={loadingStates}
+            playSound={playSound} // 🎵 NEW: Pass sound function to Table
           />
-          <BottomMenu quitGameToMenu={quitGameToMenu} />
+          <BottomMenu 
+            quitGameToMenu={quitGameToMenu} 
+            soundsEnabled={soundsEnabled}
+            toggleSounds={toggleSounds}
+            playSound={playSound} // 🎵 NEW: Pass sound props to BottomMenu
+          />
           {state.game_over && (
             <div className="game-over">
               <div>
