@@ -425,6 +425,14 @@ const Card = React.memo(function Card({
     }
   }
 
+  const handleKeyPress = (e: React.KeyboardEvent) => {
+    if (!onClick || disabled) return
+    if (e.key === 'Enter' || e.key === ' ') {
+      e.preventDefault()
+      onClick()
+    }
+  }
+
   if (facedown) {
     return (
       <div
@@ -432,6 +440,8 @@ const Card = React.memo(function Card({
         style={style}
         onMouseEnter={() => setIsHovered(true)}
         onMouseLeave={() => setIsHovered(false)}
+        role="img"
+        aria-label="Facedown card"
         {...props}
       >
         <div className="card-back"></div>
@@ -440,15 +450,23 @@ const Card = React.memo(function Card({
   }
 
   const suitColor = suit === "♥" || suit === "♦" ? "red" : "black"
+  const cardLabel = `${value} of ${suit}${selected ? ", selected" : ""}${highlight ? ", winning card" : ""}`
+  
   return (
     <div
       className={`card ${suitColor} ${className} ${highlight ? "highlight-card" : ""} ${small ? "small-card" : ""} ${isHovered ? "card-hover" : ""} ${selected ? "card-selected" : ""}`}
       onClick={!disabled ? onClick : undefined}
       onTouchStart={handleTouchStart}
       onTouchEnd={handleTouchEnd}
+      onKeyDown={handleKeyPress}
       style={disabled ? { opacity: 0.7, cursor: "not-allowed", ...style } : style}
       onMouseEnter={() => setIsHovered(true)}
       onMouseLeave={() => setIsHovered(false)}
+      role="button"
+      tabIndex={disabled ? -1 : 0}
+      aria-label={cardLabel}
+      aria-pressed={selected}
+      aria-disabled={disabled}
       {...props}
     >
       <div className="card-inner">
@@ -457,6 +475,8 @@ const Card = React.memo(function Card({
             src={imageUrl}
             alt={`${value} of ${suit}`}
             className="card-face-image"
+            loading="lazy"
+            decoding="async"
           />
         ) : (
           <>
@@ -495,6 +515,7 @@ function Table({
   const [isShuffling, setIsShuffling] = useState(false)
   const [dealingCards, setDealingCards] = useState<boolean[]>([])
   const [drawingCard, setDrawingCard] = useState(false)
+  const [showTutorial, setShowTutorial] = useState(false)
 
   const yourPlayer = state.players.find((p) => p?.name === playerName)
   const currentPlayerIndex = state.current_player ?? 0
@@ -508,6 +529,15 @@ function Table({
     }, 3000)
     return () => clearTimeout(timer)
   }, [])
+
+  // Show tutorial for first-time users
+  useEffect(() => {
+    const hasSeenTutorial = localStorage.getItem('njuka-tutorial-seen')
+    if (!hasSeenTutorial && yourPlayer?.hand && yourPlayer.hand.length > 0) {
+      setShowTutorial(true)
+      localStorage.setItem('njuka-tutorial-seen', 'true')
+    }
+  }, [yourPlayer?.hand?.length])
 
   useEffect(() => {
     if (state?.current_player !== state?.players.findIndex((p) => p?.name === playerName)) {
@@ -563,6 +593,11 @@ function Table({
         // 🎵 NEW: Play discard sound
         playSound('discard')
         
+        // 📱 NEW: Haptic feedback for mobile
+        if (navigator.vibrate) {
+          navigator.vibrate(50) // Short vibration for card discard
+        }
+        
         // Create animated overlay card positioned exactly where the original card is
         setAnimatingCard({
           card,
@@ -583,6 +618,11 @@ function Table({
       setSelectedCardIndex(null)
     } else {
       setSelectedCardIndex(index)
+      
+      // 📱 NEW: Haptic feedback for card selection
+      if (navigator.vibrate) {
+        navigator.vibrate(25) // Very short vibration for card selection
+      }
     }
   }
 
@@ -590,6 +630,11 @@ function Table({
   const handleDraw = () => {
     // 🎵 NEW: Play draw sound
     playSound('draw')
+    
+    // 📱 NEW: Haptic feedback for card draw
+    if (navigator.vibrate) {
+      navigator.vibrate(75) // Medium vibration for card draw
+    }
     
     setDrawingCard(true)
     onDraw()
@@ -603,14 +648,33 @@ function Table({
 
   return (
     <div className="poker-table">
+      {/* Screen reader announcements */}
+      <div 
+        id="game-announcements" 
+        role="status" 
+        aria-live="polite" 
+        aria-atomic="true"
+        className="sr-only"
+        style={{ position: 'absolute', left: '-10000px', width: '1px', height: '1px', overflow: 'hidden' }}
+      >
+        {isGameOver && state.winner && `Game over! ${state.winner} wins!`}
+        {!isGameOver && currentPlayer.name === playerName && !state.has_drawn && "It's your turn. Draw a card from the deck."}
+        {!isGameOver && currentPlayer.name === playerName && state.has_drawn && "Select a card to discard."}
+        {!isGameOver && currentPlayer.name !== playerName && `${currentPlayer.name} is playing.`}
+      </div>
+      
       {/* Top Player */}
       {state.players.length > 1 && (
-        <div className={`player-seat top ${currentPlayerIndex === 1 ? "active" : ""}`}>
+        <div 
+          className={`player-seat top ${currentPlayerIndex === 1 ? "active" : ""}`}
+          role="region"
+          aria-label={`Player ${getPlayerSafe(1).name}${getPlayerSafe(1).is_cpu ? " (CPU)" : ""}${currentPlayerIndex === 1 ? ", current turn" : ""}`}
+        >
           <h3>
             {getPlayerSafe(1).name}
             {getPlayerSafe(1).is_cpu && " (CPU)"}
           </h3>
-          <div className="hand horizontal">
+          <div className="hand horizontal" aria-label={`${getPlayerSafe(1).name}'s hand with ${getPlayerSafe(1).hand.length} cards`}>
             {getPlayerSafe(1).hand.map((card, i) => (
               <Card
                 key={`top-${i}`}
@@ -627,12 +691,16 @@ function Table({
 
       {/* Left Player */}
       {state.players.length > 2 && (
-        <div className={`player-seat left ${currentPlayerIndex === 2 ? "active" : ""}`}>
+        <div 
+          className={`player-seat left ${currentPlayerIndex === 2 ? "active" : ""}`}
+          role="region"
+          aria-label={`Player ${getPlayerSafe(2).name}${getPlayerSafe(2).is_cpu ? " (CPU)" : ""}${currentPlayerIndex === 2 ? ", current turn" : ""}`}
+        >
           <h3>
             {getPlayerSafe(2).name}
             {getPlayerSafe(2).is_cpu && " (CPU)"}
           </h3>
-          <div className="hand horizontal">
+          <div className="hand horizontal" aria-label={`${getPlayerSafe(2).name}'s hand with ${getPlayerSafe(2).hand.length} cards`}>
             {getPlayerSafe(2).hand.map((card, i) => (
               <Card
                 key={`left-${i}`}
@@ -649,12 +717,16 @@ function Table({
 
       {/* Right Player */}
       {state.players.length > 3 && (
-        <div className={`player-seat right ${currentPlayerIndex === 3 ? "active" : ""}`}>
+        <div 
+          className={`player-seat right ${currentPlayerIndex === 3 ? "active" : ""}`}
+          role="region"
+          aria-label={`Player ${getPlayerSafe(3).name}${getPlayerSafe(3).is_cpu ? " (CPU)" : ""}${currentPlayerIndex === 3 ? ", current turn" : ""}`}
+        >
           <h3>
             {getPlayerSafe(3).name}
             {getPlayerSafe(3).is_cpu && " (CPU)"}
           </h3>
-          <div className="hand horizontal">
+          <div className="hand horizontal" aria-label={`${getPlayerSafe(3).name}'s hand with ${getPlayerSafe(3).hand.length} cards`}>
             {getPlayerSafe(3).hand.map((card, i) => (
               <Card
                 key={`right-${i}`}
@@ -673,9 +745,18 @@ function Table({
         <div
           className={`deck-area ${showDeckHighlight ? "deck-highlight" : ""} ${isShuffling ? "deck-shuffling" : ""}`}
           onClick={canDraw ? handleDraw : undefined}
+          role="button"
+          tabIndex={canDraw ? 0 : -1}
+          aria-label={`Deck with ${state.deck?.length ?? 0} cards remaining${canDraw ? ", click to draw a card" : ""}`}
+          onKeyDown={(e) => {
+            if (canDraw && (e.key === 'Enter' || e.key === ' ')) {
+              e.preventDefault()
+              handleDraw()
+            }
+          }}
         >
-          <div className="deck-count">{state.deck?.length ?? 0}</div>
-          {shouldShowPrompt() && <div className="tutorial-prompt">Pick a card</div>}
+          <div className="deck-count" aria-hidden="true">{state.deck?.length ?? 0}</div>
+          {shouldShowPrompt() && <div className="tutorial-prompt" role="status" aria-live="polite">Pick a card</div>}
           <Card
             facedown
             value=""
@@ -687,11 +768,11 @@ function Table({
           />
         </div>
 
-        <div className="discard-area">
+        <div className="discard-area" role="region" aria-label="Discard pile">
           {state.pot?.length > 0 ? (
             <Card {...state.pot[state.pot.length - 1]} className="discard-top" />
           ) : (
-            <div className="discard-empty">Empty</div>
+            <div className="discard-empty" aria-label="Empty discard pile">Empty</div>
           )}
         </div>
       </div>
@@ -699,9 +780,11 @@ function Table({
       {/* Bottom Player (current player) */}
       <div
         className={`player-seat bottom ${currentPlayerIndex === state.players.findIndex((p) => p?.name === playerName) ? "active" : ""}`}
+        role="region"
+        aria-label={`Your hand${currentPlayerIndex === state.players.findIndex((p) => p?.name === playerName) ? ", current turn" : ""}`}
       >
         <h4 className="player-name">{yourPlayer.name}</h4>
-        <div className="hand">
+        <div className="hand" aria-label={`Your hand with ${yourPlayer.hand?.length || 0} cards`}>
           {yourPlayer.hand?.map((card, i) => {
             const isDealing = dealingCards[i] || false
             const delayClass = isDealing ? `deal-delay-${Math.min(i + 1, 7)}` : ""
@@ -742,6 +825,39 @@ function Table({
             height: '100px', // Match card height
           }}
         />
+      )}
+
+      {/* Tutorial overlay for first-time users */}
+      {showTutorial && (
+        <div className="tutorial-overlay">
+          <div className="tutorial-content">
+            <h3>How to Play</h3>
+            <div className="tutorial-steps">
+              <div className="tutorial-step">
+                <div className="tutorial-icon">👆</div>
+                <p><strong>Draw a card:</strong> Tap the deck to draw a card</p>
+              </div>
+              <div className="tutorial-step">
+                <div className="tutorial-icon">👆</div>
+                <p><strong>Select a card:</strong> Tap a card in your hand to select it</p>
+              </div>
+              <div className="tutorial-step">
+                <div className="tutorial-icon">👆</div>
+                <p><strong>Discard:</strong> Tap the selected card again to discard it</p>
+              </div>
+              <div className="tutorial-step">
+                <div className="tutorial-icon">📱</div>
+                <p><strong>Mobile:</strong> Swipe cards to discard them quickly</p>
+              </div>
+            </div>
+            <button 
+              onClick={() => setShowTutorial(false)}
+              className="tutorial-close"
+            >
+              Got it!
+            </button>
+          </div>
+        </div>
       )}
     </div>
   )
@@ -915,6 +1031,9 @@ function App() {
 
     let intervalId: NodeJS.Timeout
     let currentRetries = 3
+    let pollInterval = 2000 // Start with 2 seconds
+    const maxInterval = 10000 // Max 10 seconds
+    const backoffMultiplier = 1.5
 
     const fetchGameState = async () => {
       try {
@@ -933,25 +1052,35 @@ function App() {
         const latestState = await res.json()
         setState(latestState)
         currentRetries = 3
+        pollInterval = 2000 // Reset to normal interval on success
       } catch (err) {
         console.error("Failed to fetch game state:", err)
         currentRetries--
+        
+        // Exponential backoff
+        pollInterval = Math.min(pollInterval * backoffMultiplier, maxInterval)
+        
         if (currentRetries <= 0) {
           setError("Connection lost. Trying to reconnect...")
           clearInterval(intervalId)
           setTimeout(async () => {
             await checkConnection()
             if (backendAvailable) {
-              intervalId = setInterval(fetchGameState, 2000)
+              pollInterval = 2000 // Reset on reconnect
+              intervalId = setInterval(fetchGameState, pollInterval)
               fetchGameState()
             }
             currentRetries = 3
           }, 5000)
+        } else {
+          // Update interval with backoff
+          clearInterval(intervalId)
+          intervalId = setInterval(fetchGameState, pollInterval)
         }
       }
     }
 
-    intervalId = setInterval(fetchGameState, 2000)
+    intervalId = setInterval(fetchGameState, pollInterval)
     fetchGameState()
 
     return () => clearInterval(intervalId)

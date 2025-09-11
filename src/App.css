@@ -1,12 +1,133 @@
 /* Add these at the end of App.css */
 @import url("https://fonts.googleapis.com/css2?family=Bebas+Neue&display=swap");
 
+/* Screen reader only content */
+.sr-only {
+  position: absolute !important;
+  width: 1px !important;
+  height: 1px !important;
+  padding: 0 !important;
+  margin: -1px !important;
+  overflow: hidden !important;
+  clip: rect(0, 0, 0, 0) !important;
+  white-space: nowrap !important;
+  border: 0 !important;
+}
+
+/* Tutorial overlay */
+.tutorial-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100vw;
+  height: 100vh;
+  background: rgba(0, 0, 0, 0.8);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 2000;
+  backdrop-filter: blur(5px);
+}
+
+.tutorial-content {
+  background: linear-gradient(135deg, #1a4a5c, #0f2832);
+  border: 2px solid #f8d56b;
+  border-radius: 20px;
+  padding: 30px;
+  max-width: 90%;
+  max-width: 400px;
+  text-align: center;
+  color: white;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
+}
+
+.tutorial-content h3 {
+  color: #f8d56b;
+  font-size: 1.5em;
+  margin-bottom: 20px;
+}
+
+.tutorial-steps {
+  display: flex;
+  flex-direction: column;
+  gap: 15px;
+  margin-bottom: 25px;
+}
+
+.tutorial-step {
+  display: flex;
+  align-items: center;
+  gap: 15px;
+  text-align: left;
+}
+
+.tutorial-icon {
+  font-size: 1.5em;
+  min-width: 30px;
+}
+
+.tutorial-step p {
+  margin: 0;
+  font-size: 0.9em;
+  line-height: 1.4;
+}
+
+.tutorial-close {
+  background: linear-gradient(to bottom, #f8d56b, #e5b733);
+  color: #2a3439;
+  border: none;
+  border-radius: 25px;
+  padding: 12px 30px;
+  font-size: 1em;
+  font-weight: bold;
+  cursor: pointer;
+  transition: all 0.3s ease;
+}
+
+.tutorial-close:hover {
+  background: linear-gradient(to bottom, #ffeb99, #f8d56b);
+  transform: translateY(-2px);
+}
+
+@media (max-width: 768px) {
+  .tutorial-content {
+    padding: 20px;
+    margin: 20px;
+  }
+  
+  .tutorial-step {
+    flex-direction: column;
+    text-align: center;
+    gap: 8px;
+  }
+  
+  .tutorial-icon {
+    font-size: 2em;
+  }
+}
+
 /* ⬇️ ADDED TO FIX BACKGROUND COVERAGE ⬇️ */
 html, body {
   margin: 0;
   padding: 0;
   width: 100%;
   overflow-x: hidden;
+}
+
+/* Safe area handling for notched devices */
+@supports (padding: max(0px)) {
+  .App {
+    padding-left: max(10px, env(safe-area-inset-left));
+    padding-right: max(10px, env(safe-area-inset-right));
+    padding-top: max(10px, env(safe-area-inset-top));
+    padding-bottom: max(10px, env(safe-area-inset-bottom));
+  }
+
+  .bottom-menu {
+    padding-left: max(10px, env(safe-area-inset-left));
+    padding-right: max(10px, env(safe-area-inset-right));
+    padding-bottom: max(10px, env(safe-area-inset-bottom));
+  }
 }
 
 h1, h2, h4, button { /* <-- Added h4 back to this rule */
@@ -58,7 +179,8 @@ h1, h2, h4, button { /* <-- Added h4 back to this rule */
 
 .player-list li {
   padding: 5px 0;
-  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.2);
+  color: rgba(255, 255, 255, 0.9);
 }
 
 .App {
@@ -92,7 +214,7 @@ h2,
 h3 {
   color: #f8d56b;
   margin-bottom: 10px;
-  text-shadow: 0 1px 3px rgba(0, 0, 0, 0.3);
+  text-shadow: 0 1px 3px rgba(0, 0, 0, 0.5);
   font-size: 1em;
 }
 
@@ -116,7 +238,7 @@ button:hover {
 
 button:disabled {
   background: #666;
-  color: #999;
+  color: #ccc;
   cursor: not-allowed;
   transform: none;
 }
@@ -1187,13 +1309,13 @@ button:disabled {
   width: 50px;
   height: 70px;
   background: rgba(255, 255, 255, 0.1);
-  border: 2px dashed rgba(255, 255, 255, 0.3);
+  border: 2px dashed rgba(255, 255, 255, 0.5);
   border-radius: 6px;
   display: flex;
   align-items: center;
   justify-content: center;
   font-size: 0.7em;
-  color: rgba(255, 255, 255, 0.5);
+  color: rgba(255, 255, 255, 0.8);
 }
 
 .game-over {
@@ -1466,6 +1588,51 @@ button:disabled {
     height: 60vh;
     border-radius: 50% / 30%;
     position: relative;
+  }
+
+  /* 4+ player layout optimizations */
+  .poker-table:has(.player-seat.left) .poker-table:has(.player-seat.right) {
+    height: 70vh; /* More height for 4 players */
+  }
+
+  .player-seat {
+    min-width: 80px; /* Smaller for 4+ players */
+    padding: 6px;
+  }
+
+  .player-seat h3 {
+    font-size: 0.9em;
+  }
+
+  .player-name {
+    font-size: 1.2em;
+  }
+
+  /* Adjust card sizes for 4+ players */
+  .card.small-card {
+    width: 30px;
+    height: 45px;
+    min-width: 35px;
+    min-height: 55px;
+    margin: 0 -4px;
+  }
+
+  .card.small-card + .card.small-card {
+    margin-left: -8px;
+  }
+
+  /* Better spacing for side players */
+  .left, .right {
+    width: 80px;
+    padding: 4px;
+  }
+
+  .left {
+    left: -10px;
+  }
+
+  .right {
+    right: -10px;
   }
 
   .player-seat {
