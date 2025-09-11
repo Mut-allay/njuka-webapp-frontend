@@ -80,7 +80,7 @@ const useSoundManager = () => {
         if (sound.state() === 'loaded') {
           sound.play()
         } else {
-          // Use programmatic fallback sounds
+          // Use programmatic fallback sounds for better cross-device compatibility
           switch (soundType) {
             case 'draw':
               createFallbackSound(800, 0.2, 'sine') // High bell-like tone
@@ -107,6 +107,32 @@ const useSoundManager = () => {
         }
       } catch (error) {
         console.log(`Failed to play ${soundType} sound:`, error)
+        // Always try fallback even if main sound fails
+        try {
+          switch (soundType) {
+            case 'draw':
+              createFallbackSound(800, 0.2, 'sine')
+              break
+            case 'discard':
+              createFallbackSound(400, 0.3, 'sawtooth')
+              break
+            case 'shuffle':
+              setTimeout(() => createFallbackSound(300, 0.1, 'square'), 0)
+              setTimeout(() => createFallbackSound(350, 0.1, 'square'), 100)
+              setTimeout(() => createFallbackSound(320, 0.1, 'square'), 200)
+              break
+            case 'win':
+              createFallbackSound(523, 0.4, 'sine')
+              setTimeout(() => createFallbackSound(659, 0.4, 'sine'), 200)
+              setTimeout(() => createFallbackSound(784, 0.6, 'sine'), 400)
+              break
+            case 'button':
+              createFallbackSound(1000, 0.1, 'square')
+              break
+          }
+        } catch (fallbackError) {
+          console.log(`Fallback sound also failed for ${soundType}:`, fallbackError)
+        }
       }
     }
   }, [soundsEnabled, sounds, createFallbackSound])
@@ -496,6 +522,8 @@ function Table({
   onDraw,
   loadingStates,
   playSound, // 🎵 NEW: Sound function passed from parent
+  showTutorial,
+  onCloseTutorial
 }: {
   state: GameState
   playerName: string
@@ -507,6 +535,8 @@ function Table({
     cpuMoving: boolean
   }
   playSound: (soundType: 'draw' | 'discard' | 'win' | 'button' | 'shuffle') => void // 🎵 NEW: Sound prop
+  showTutorial: boolean
+  onCloseTutorial: () => void
 }) {
   const [selectedCardIndex, setSelectedCardIndex] = useState<number | null>(null)
   const [showDeckHighlight, setShowDeckHighlight] = useState(false)
@@ -515,7 +545,6 @@ function Table({
   const [isShuffling, setIsShuffling] = useState(false)
   const [dealingCards, setDealingCards] = useState<boolean[]>([])
   const [drawingCard, setDrawingCard] = useState(false)
-  const [showTutorial, setShowTutorial] = useState(false)
 
   const yourPlayer = state.players.find((p) => p?.name === playerName)
   const currentPlayerIndex = state.current_player ?? 0
@@ -530,14 +559,6 @@ function Table({
     return () => clearTimeout(timer)
   }, [])
 
-  // Show tutorial for first-time users
-  useEffect(() => {
-    const hasSeenTutorial = localStorage.getItem('njuka-tutorial-seen')
-    if (!hasSeenTutorial && yourPlayer?.hand && yourPlayer.hand.length > 0) {
-      setShowTutorial(true)
-      localStorage.setItem('njuka-tutorial-seen', 'true')
-    }
-  }, [yourPlayer?.hand?.length])
 
   useEffect(() => {
     if (state?.current_player !== state?.players.findIndex((p) => p?.name === playerName)) {
@@ -831,8 +852,16 @@ function Table({
       {showTutorial && (
         <div className="tutorial-overlay">
           <div className="tutorial-content">
-            <h3>How to Play</h3>
+            <h3>How to Play Njuka King</h3>
             <div className="tutorial-steps">
+              <div className="tutorial-step">
+                <div className="tutorial-icon">🎯</div>
+                <p><strong>Objective:</strong> Be the first to get a winning hand of 4 cards</p>
+              </div>
+              <div className="tutorial-step">
+                <div className="tutorial-icon">🃏</div>
+                <p><strong>Winning Hand:</strong> One pair + two cards in sequence (followers)</p>
+              </div>
               <div className="tutorial-step">
                 <div className="tutorial-icon">👆</div>
                 <p><strong>Draw a card:</strong> Tap the deck to draw a card</p>
@@ -849,9 +878,13 @@ function Table({
                 <div className="tutorial-icon">📱</div>
                 <p><strong>Mobile:</strong> Swipe cards to discard them quickly</p>
               </div>
+              <div className="tutorial-step">
+                <div className="tutorial-icon">💡</div>
+                <p><strong>Tip:</strong> You can win with 3 cards + the top discard pile card!</p>
+              </div>
             </div>
             <button 
-              onClick={() => setShowTutorial(false)}
+              onClick={onCloseTutorial}
               className="tutorial-close"
             >
               Got it!
@@ -917,12 +950,14 @@ function BottomMenu({
   quitGameToMenu, 
   soundsEnabled, 
   toggleSounds, 
-  playSound 
+  playSound,
+  onShowTutorial
 }: { 
   quitGameToMenu: () => void
   soundsEnabled: boolean
   toggleSounds: () => void
   playSound: (soundType: 'button') => void
+  onShowTutorial: () => void
 }) {
   
   const handleButtonClick = (action: () => void) => {
@@ -938,7 +973,7 @@ function BottomMenu({
       <button onClick={() => handleButtonClick(toggleSounds)}>
         🔊 {soundsEnabled ? 'ON' : 'OFF'} {/* 🎵 NEW: Sound toggle button */}
       </button>
-      <button onClick={() => handleButtonClick(() => console.log("Info clicked"))}>
+      <button onClick={() => handleButtonClick(onShowTutorial)}>
         Info
       </button>
       <button onClick={() => handleButtonClick(quitGameToMenu)}>
@@ -966,6 +1001,7 @@ function App() {
   const [backendAvailable, setBackendAvailable] = useState(true)
   const [lobby, setLobby] = useState<LobbyGame | null>(null)
   const [lobbies, setLobbies] = useState<LobbyGame[]>([])
+  const [showTutorial, setShowTutorial] = useState(false)
   
   // 🎵 NEW: Initialize sound manager
   const { playSound, soundsEnabled, toggleSounds } = useSoundManager()
@@ -1005,6 +1041,31 @@ function App() {
       playSound('win')
     }
   }, [state?.game_over, state?.winner, playSound])
+
+  // 🎵 NEW: Play sounds for other players' moves in multiplayer
+  useEffect(() => {
+    if (!state || state.game_over) return
+    
+    const currentPlayer = state.players[state.current_player]
+    const isMyTurn = currentPlayer.name === playerName
+    
+    // If it's not my turn and not a CPU, play sounds for other human players
+    if (!isMyTurn && !currentPlayer?.is_cpu) {
+      // Play draw sound when it becomes another player's turn
+      playSound('draw')
+    }
+  }, [state, playerName, playSound])
+
+  // Show tutorial for first-time users
+  useEffect(() => {
+    if (!state) return
+    const yourPlayer = state.players.find((p) => p?.name === playerName)
+    const hasSeenTutorial = localStorage.getItem('njuka-tutorial-seen')
+    if (!hasSeenTutorial && yourPlayer?.hand && yourPlayer.hand.length > 0) {
+      setShowTutorial(true)
+      localStorage.setItem('njuka-tutorial-seen', 'true')
+    }
+  }, [state, playerName])
 
   const checkConnection = useCallback(async () => {
     setLoadingStates((prev) => ({ ...prev, starting: true, joining: true }))
@@ -1098,6 +1159,8 @@ function App() {
       const makeCpuMove = async () => {
         try {
           await new Promise((resolve) => setTimeout(resolve, 1000))
+          // 🎵 NEW: Play draw sound for CPU move
+          playSound('draw')
           const updatedStateAfterDraw = await apiService.drawCard(state.id)
           setState(updatedStateAfterDraw)
 
@@ -1105,6 +1168,8 @@ function App() {
           const cpuPlayerAfterDraw = updatedStateAfterDraw.players.find((p) => p.name === currentPlayer.name)
           if (cpuPlayerAfterDraw && cpuPlayerAfterDraw.hand.length > 0) {
             const randomIndex = Math.floor(Math.random() * cpuPlayerAfterDraw.hand.length)
+            // 🎵 NEW: Play discard sound for CPU move
+            playSound('discard')
             const finalState = await apiService.discardCard(updatedStateAfterDraw.id, randomIndex)
             setState(finalState)
           } else {
@@ -1126,7 +1191,7 @@ function App() {
 
       makeCpuMove()
     }
-  }, [state, playerName, backendAvailable, loadingStates.cpuMoving])
+  }, [state, playerName, backendAvailable, loadingStates.cpuMoving, playSound])
 
   useEffect(() => {
     if (currentMenu !== "multiplayer" || !backendAvailable) return
@@ -1232,6 +1297,7 @@ function App() {
     try {
       const newLobby = await apiService.createLobby(playerName, numPlayersSetting)
       setLobby(newLobby)
+      playSound('shuffle') // 🎵 NEW: Lobby creation sound
     } catch (error: unknown) {
       const errorMessage = error instanceof Error ? error.message : "Failed to create lobby"
       setError(errorMessage)
@@ -1241,11 +1307,13 @@ function App() {
   }
 
   const handleJoinLobby = async (lobbyId: string) => {
+    playSound('button') // 🎵 NEW: Button sound
     setLoadingStates((prev) => ({ ...prev, joining: true }))
     setError(null)
     try {
       const joinedLobby = await apiService.joinLobby(lobbyId, playerName)
       setLobby(joinedLobby)
+      playSound('draw') // 🎵 NEW: Join lobby sound
     } catch (error: unknown) {
       const errorMessage = error instanceof Error ? error.message : "Failed to join lobby. Please try again."
       setError(errorMessage)
@@ -1258,6 +1326,7 @@ function App() {
   const startGameFromLobby = async () => {
     if (!lobby) return
 
+    playSound('button') // 🎵 NEW: Button sound
     setLoadingStates((prev) => ({ ...prev, starting: true }))
     setError(null)
 
@@ -1266,6 +1335,7 @@ function App() {
       setLobby(null)
       setGameId(gameState.id)
       setState(gameState)
+      playSound('shuffle') // 🎵 NEW: Game start sound
     } catch (error: unknown) {
       const errorMessage = error instanceof Error ? error.message : "Failed to start game. Please try again."
       setError(errorMessage)
@@ -1283,6 +1353,7 @@ function App() {
       const game = await apiService.createNewGame("cpu", playerName, numPlayersSetting)
       setGameId(game.id)
       setState(game)
+      playSound('shuffle') // 🎵 NEW: Game start sound
     } catch (error: unknown) {
       const errorMessage = error instanceof Error ? error.message : "Failed to create game"
       setError(errorMessage)
@@ -1300,6 +1371,14 @@ function App() {
     setState(null)
     setGameId(null)
     setCurrentMenu("main")
+  }
+
+  const handleShowTutorial = () => {
+    setShowTutorial(true)
+  }
+
+  const handleCloseTutorial = () => {
+    setShowTutorial(false)
   }
 
   return (
@@ -1335,12 +1414,15 @@ function App() {
             onDraw={draw}
             loadingStates={loadingStates}
             playSound={playSound} // 🎵 NEW: Pass sound function to Table
+            showTutorial={showTutorial}
+            onCloseTutorial={handleCloseTutorial}
           />
           <BottomMenu 
             quitGameToMenu={quitGameToMenu} 
             soundsEnabled={soundsEnabled}
             toggleSounds={toggleSounds}
             playSound={playSound} // 🎵 NEW: Pass sound props to BottomMenu
+            onShowTutorial={handleShowTutorial}
           />
           {state.game_over && (
             <div className="game-over">
