@@ -11,11 +11,18 @@ const API = "https://njuka-webapp-backend.onrender.com"
 const useSoundManager = () => {
   const [soundsEnabled, setSoundsEnabled] = useState(true)
   
-  // 🎵 Programmatic fallback sound generator
+  // 🎵 Programmatic fallback sound generator with mobile compatibility
   const createFallbackSound = useCallback((frequency: number, duration: number, type: OscillatorType = 'sine') => {
-    if (typeof window !== 'undefined' && window.AudioContext) {
+    if (typeof window !== 'undefined' && (window.AudioContext || (window as any).webkitAudioContext)) {
       try {
-        const audioContext = new (window.AudioContext || (window as unknown as { webkitAudioContext: typeof AudioContext }).webkitAudioContext)()
+        const AudioContextClass = window.AudioContext || (window as any).webkitAudioContext
+        const audioContext = new AudioContextClass()
+        
+        // Resume audio context if suspended (required for mobile)
+        if (audioContext.state === 'suspended') {
+          audioContext.resume()
+        }
+        
         const oscillator = audioContext.createOscillator()
         const gainNode = audioContext.createGain()
         
@@ -25,8 +32,9 @@ const useSoundManager = () => {
         oscillator.frequency.setValueAtTime(frequency, audioContext.currentTime)
         oscillator.type = type
         
-        gainNode.gain.setValueAtTime(0.1, audioContext.currentTime)
-        gainNode.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + duration)
+        // Lower volume for mobile
+        gainNode.gain.setValueAtTime(0.05, audioContext.currentTime)
+        gainNode.gain.exponentialRampToValueAtTime(0.001, audioContext.currentTime + duration)
         
         oscillator.start(audioContext.currentTime)
         oscillator.stop(audioContext.currentTime + duration)
@@ -78,70 +86,76 @@ const useSoundManager = () => {
       try {
         const sound = sounds[soundType]
         if (sound.state() === 'loaded') {
-          sound.play()
+          // Try to play the sound
+          try {
+            sound.play()
+          } catch (playError) {
+            console.log(`Howl sound failed for ${soundType}, using fallback:`, playError)
+            // Use fallback sound
+            createFallbackSoundForType(soundType)
+          }
         } else {
           // Use programmatic fallback sounds for better cross-device compatibility
-          switch (soundType) {
-            case 'draw':
-              createFallbackSound(800, 0.2, 'sine') // High bell-like tone
-              break
-            case 'discard':
-              createFallbackSound(400, 0.3, 'sawtooth') // Swoosh-like sound
-              break
-            case 'shuffle':
-              // Multiple quick tones for shuffle effect
-              setTimeout(() => createFallbackSound(300, 0.1, 'square'), 0)
-              setTimeout(() => createFallbackSound(350, 0.1, 'square'), 100)
-              setTimeout(() => createFallbackSound(320, 0.1, 'square'), 200)
-              break
-            case 'win':
-              // Victory chord progression
-              createFallbackSound(523, 0.4, 'sine') // C
-              setTimeout(() => createFallbackSound(659, 0.4, 'sine'), 200) // E
-              setTimeout(() => createFallbackSound(784, 0.6, 'sine'), 400) // G
-              break
-            case 'button':
-              createFallbackSound(1000, 0.1, 'square') // Quick click
-              break
-          }
+          createFallbackSoundForType(soundType)
         }
       } catch (error) {
         console.log(`Failed to play ${soundType} sound:`, error)
         // Always try fallback even if main sound fails
-        try {
-          switch (soundType) {
-            case 'draw':
-              createFallbackSound(800, 0.2, 'sine')
-              break
-            case 'discard':
-              createFallbackSound(400, 0.3, 'sawtooth')
-              break
-            case 'shuffle':
-              setTimeout(() => createFallbackSound(300, 0.1, 'square'), 0)
-              setTimeout(() => createFallbackSound(350, 0.1, 'square'), 100)
-              setTimeout(() => createFallbackSound(320, 0.1, 'square'), 200)
-              break
-            case 'win':
-              createFallbackSound(523, 0.4, 'sine')
-              setTimeout(() => createFallbackSound(659, 0.4, 'sine'), 200)
-              setTimeout(() => createFallbackSound(784, 0.6, 'sine'), 400)
-              break
-            case 'button':
-              createFallbackSound(1000, 0.1, 'square')
-              break
-          }
-        } catch (fallbackError) {
-          console.log(`Fallback sound also failed for ${soundType}:`, fallbackError)
-        }
+        createFallbackSoundForType(soundType)
       }
     }
   }, [soundsEnabled, sounds, createFallbackSound])
+
+  const createFallbackSoundForType = useCallback((soundType: keyof typeof sounds) => {
+    try {
+      switch (soundType) {
+        case 'draw':
+          createFallbackSound(800, 0.2, 'sine') // High bell-like tone
+          break
+        case 'discard':
+          createFallbackSound(400, 0.3, 'sawtooth') // Swoosh-like sound
+          break
+        case 'shuffle':
+          // Multiple quick tones for shuffle effect
+          setTimeout(() => createFallbackSound(300, 0.1, 'square'), 0)
+          setTimeout(() => createFallbackSound(350, 0.1, 'square'), 100)
+          setTimeout(() => createFallbackSound(320, 0.1, 'square'), 200)
+          break
+        case 'win':
+          // Victory chord progression
+          createFallbackSound(523, 0.4, 'sine') // C
+          setTimeout(() => createFallbackSound(659, 0.4, 'sine'), 200) // E
+          setTimeout(() => createFallbackSound(784, 0.6, 'sine'), 400) // G
+          break
+        case 'button':
+          createFallbackSound(1000, 0.1, 'square') // Quick click
+          break
+      }
+    } catch (fallbackError) {
+      console.log(`Fallback sound also failed for ${soundType}:`, fallbackError)
+    }
+  }, [createFallbackSound])
 
   const toggleSounds = useCallback(() => {
     setSoundsEnabled(prev => !prev)
   }, [])
 
-  return { playSound, soundsEnabled, toggleSounds }
+  // Enable audio on first user interaction (required for mobile)
+  const enableAudio = useCallback(() => {
+    if (typeof window !== 'undefined' && (window.AudioContext || (window as any).webkitAudioContext)) {
+      try {
+        const AudioContextClass = window.AudioContext || (window as any).webkitAudioContext
+        const audioContext = new AudioContextClass()
+        if (audioContext.state === 'suspended') {
+          audioContext.resume()
+        }
+      } catch (error) {
+        console.log('Failed to enable audio:', error)
+      }
+    }
+  }, [])
+
+  return { playSound, soundsEnabled, toggleSounds, enableAudio }
 }
 
 // ⬇️ ADDED A COMPLETE MAP OF ALL CARD IMAGES ⬇️
@@ -885,6 +899,10 @@ function Table({
             </div>
             <button 
               onClick={onCloseTutorial}
+              onTouchEnd={(e) => {
+                e.preventDefault()
+                onCloseTutorial()
+              }}
               className="tutorial-close"
             >
               Got it!
@@ -1004,7 +1022,7 @@ function App() {
   const [showTutorial, setShowTutorial] = useState(false)
   
   // 🎵 NEW: Initialize sound manager
-  const { playSound, soundsEnabled, toggleSounds } = useSoundManager()
+  const { playSound, soundsEnabled, toggleSounds, enableAudio } = useSoundManager()
 
   useEffect(() => {
     const savedGame = localStorage.getItem("njukaGame")
@@ -1062,8 +1080,11 @@ function App() {
     const yourPlayer = state.players.find((p) => p?.name === playerName)
     const hasSeenTutorial = localStorage.getItem('njuka-tutorial-seen')
     if (!hasSeenTutorial && yourPlayer?.hand && yourPlayer.hand.length > 0) {
-      setShowTutorial(true)
-      localStorage.setItem('njuka-tutorial-seen', 'true')
+      // Delay tutorial to ensure game is fully loaded
+      setTimeout(() => {
+        setShowTutorial(true)
+        localStorage.setItem('njuka-tutorial-seen', 'true')
+      }, 1000)
     }
   }, [state, playerName])
 
@@ -1086,6 +1107,24 @@ function App() {
   useEffect(() => {
     checkConnection()
   }, [checkConnection])
+
+  // Enable audio on first user interaction (mobile requirement)
+  useEffect(() => {
+    const enableAudioOnInteraction = () => {
+      enableAudio()
+      // Remove listeners after first interaction
+      document.removeEventListener('touchstart', enableAudioOnInteraction)
+      document.removeEventListener('click', enableAudioOnInteraction)
+    }
+    
+    document.addEventListener('touchstart', enableAudioOnInteraction, { once: true })
+    document.addEventListener('click', enableAudioOnInteraction, { once: true })
+    
+    return () => {
+      document.removeEventListener('touchstart', enableAudioOnInteraction)
+      document.removeEventListener('click', enableAudioOnInteraction)
+    }
+  }, [enableAudio])
 
   useEffect(() => {
     if (!gameId || !backendAvailable) return
