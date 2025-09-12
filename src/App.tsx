@@ -629,12 +629,13 @@ function Table({
         const rect = cardElement.getBoundingClientRect()
         const card = yourPlayer.hand[index]
         
-        // 🎵 NEW: Play discard sound
+        // 🎵 Play discard sound
         playSound('discard')
         
-        // 📱 NEW: Haptic feedback for mobile
+        // 📱 Enhanced haptic feedback for card discard
         if (navigator.vibrate) {
-          navigator.vibrate(50) // Short vibration for card discard
+          // Stronger vibration pattern for discard action
+          navigator.vibrate([100, 50, 100]) // Strong-short-strong pattern
         }
         
         // Create animated overlay card positioned exactly where the original card is
@@ -647,7 +648,7 @@ function Table({
         setDiscardingCardIndex(index)
         
         // Mobile-first optimized animation duration
-        const animationDuration = window.innerWidth <= 768 ? 1800 : 1200; // Match updated mobile portrait timing
+        const animationDuration = window.innerWidth <= 768 ? 1800 : 1200;
         setTimeout(() => {
           onDiscard(index)
           setDiscardingCardIndex(null)
@@ -658,21 +659,23 @@ function Table({
     } else {
       setSelectedCardIndex(index)
       
-      // 📱 NEW: Haptic feedback for card selection
+      // 📱 Enhanced haptic feedback for card selection
       if (navigator.vibrate) {
-        navigator.vibrate(25) // Very short vibration for card selection
+        // Gentle vibration for selection
+        navigator.vibrate([30, 20, 30]) // Gentle-short-gentle pattern
       }
     }
   }
 
   // Enhanced draw animation handling
   const handleDraw = () => {
-    // 🎵 NEW: Play draw sound
+    // 🎵 Play draw sound
     playSound('draw')
     
-    // 📱 NEW: Haptic feedback for card draw
+    // 📱 Enhanced haptic feedback for card draw
     if (navigator.vibrate) {
-      navigator.vibrate(75) // Medium vibration for card draw
+      // Satisfying vibration pattern for draw action
+      navigator.vibrate([80, 30, 80]) // Medium-short-medium pattern
     }
     
     setDrawingCard(true)
@@ -883,33 +886,65 @@ function Table({
               <div className="tutorial-step">
                 <div className="tutorial-icon">👆</div>
                 <p><strong>Draw a card:</strong> Tap the deck to draw a card</p>
+                <div className="gesture-hint">📱 <em>Feel the vibration when you draw!</em></div>
               </div>
               <div className="tutorial-step">
                 <div className="tutorial-icon">👆</div>
                 <p><strong>Select a card:</strong> Tap a card in your hand to select it</p>
+                <div className="gesture-hint">📱 <em>Gentle vibration confirms selection</em></div>
               </div>
               <div className="tutorial-step">
                 <div className="tutorial-icon">👆</div>
                 <p><strong>Discard:</strong> Tap the selected card again to discard it</p>
+                <div className="gesture-hint">📱 <em>Strong vibration confirms discard</em></div>
               </div>
               <div className="tutorial-step">
                 <div className="tutorial-icon">📱</div>
-                <p><strong>Mobile:</strong> Swipe cards to discard them quickly</p>
+                <p><strong>Mobile Gestures:</strong></p>
+                <div className="gesture-hint">
+                  • <strong>Swipe left/right</strong> on cards to discard quickly<br/>
+                  • <strong>Long press</strong> for card details<br/>
+                  • <strong>Pinch to zoom</strong> for better card visibility
+                </div>
+              </div>
+              <div className="tutorial-step">
+                <div className="tutorial-icon">🎵</div>
+                <p><strong>Audio & Haptics:</strong></p>
+                <div className="gesture-hint">
+                  • Sound effects play for all actions<br/>
+                  • Haptic feedback on every touch<br/>
+                  • Toggle sounds with 🔊 button
+                </div>
               </div>
               <div className="tutorial-step">
                 <div className="tutorial-icon">💡</div>
-                <p><strong>Tip:</strong> You can win with 3 cards + the top discard pile card!</p>
+                <p><strong>Pro Tips:</strong></p>
+                <div className="gesture-hint">
+                  • You can win with 3 cards + the top discard pile card!<br/>
+                  • Watch for opponent moves with sound cues<br/>
+                  • Use the Info button to see this tutorial anytime
+                </div>
               </div>
             </div>
             <button 
-              onClick={onCloseTutorial}
+              onClick={() => {
+                // 📱 Haptic feedback for tutorial close
+                if (navigator.vibrate) {
+                  navigator.vibrate([50, 25, 50]) // Celebration pattern
+                }
+                onCloseTutorial()
+              }}
               onTouchEnd={(e) => {
                 e.preventDefault()
+                // 📱 Haptic feedback for tutorial close
+                if (navigator.vibrate) {
+                  navigator.vibrate([50, 25, 50]) // Celebration pattern
+                }
                 onCloseTutorial()
               }}
               className="tutorial-close"
             >
-              Got it!
+              Got it! 🎉
             </button>
           </div>
         </div>
@@ -983,7 +1018,13 @@ function BottomMenu({
 }) {
   
   const handleButtonClick = (action: () => void) => {
-    playSound('button') // 🎵 NEW: Play button sound
+    playSound('button') // 🎵 Play button sound
+    
+    // 📱 Haptic feedback for button interactions
+    if (navigator.vibrate) {
+      navigator.vibrate([40, 20, 40]) // Button press pattern
+    }
+    
     action()
   }
 
@@ -1057,10 +1098,16 @@ function App() {
     }
   }, [state, playerName])
 
-  // 🎵 NEW: Play win sound when game ends
+  // 🎵 Play win sound when game ends + haptic feedback
   useEffect(() => {
     if (state?.game_over && state?.winner) {
       playSound('win')
+      
+      // 📱 Celebration haptic feedback for game end
+      if (navigator.vibrate) {
+        // Victory pattern: strong-short-strong-short-strong
+        navigator.vibrate([200, 100, 200, 100, 200])
+      }
     }
   }, [state?.game_over, state?.winner, playSound])
 
