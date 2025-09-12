@@ -13,9 +13,9 @@ const useSoundManager = () => {
   
   // 🎵 Programmatic fallback sound generator with mobile compatibility
   const createFallbackSound = useCallback((frequency: number, duration: number, type: OscillatorType = 'sine') => {
-    if (typeof window !== 'undefined' && (window.AudioContext || (window as any).webkitAudioContext)) {
+    if (typeof window !== 'undefined' && (window.AudioContext || (window as unknown as { webkitAudioContext: typeof AudioContext }).webkitAudioContext)) {
       try {
-        const AudioContextClass = window.AudioContext || (window as any).webkitAudioContext
+        const AudioContextClass = window.AudioContext || (window as unknown as { webkitAudioContext: typeof AudioContext }).webkitAudioContext
         const audioContext = new AudioContextClass()
         
         // Resume audio context if suspended (required for mobile)
@@ -81,31 +81,6 @@ const useSoundManager = () => {
     })
   }), [])
 
-  const playSound = useCallback((soundType: keyof typeof sounds) => {
-    if (soundsEnabled) {
-      try {
-        const sound = sounds[soundType]
-        if (sound.state() === 'loaded') {
-          // Try to play the sound
-          try {
-            sound.play()
-          } catch (playError) {
-            console.log(`Howl sound failed for ${soundType}, using fallback:`, playError)
-            // Use fallback sound
-            createFallbackSoundForType(soundType)
-          }
-        } else {
-          // Use programmatic fallback sounds for better cross-device compatibility
-          createFallbackSoundForType(soundType)
-        }
-      } catch (error) {
-        console.log(`Failed to play ${soundType} sound:`, error)
-        // Always try fallback even if main sound fails
-        createFallbackSoundForType(soundType)
-      }
-    }
-  }, [soundsEnabled, sounds, createFallbackSound])
-
   const createFallbackSoundForType = useCallback((soundType: keyof typeof sounds) => {
     try {
       switch (soundType) {
@@ -136,15 +111,40 @@ const useSoundManager = () => {
     }
   }, [createFallbackSound])
 
+  const playSound = useCallback((soundType: keyof typeof sounds) => {
+    if (soundsEnabled) {
+      try {
+        const sound = sounds[soundType]
+        if (sound.state() === 'loaded') {
+          // Try to play the sound
+          try {
+            sound.play()
+          } catch (playError) {
+            console.log(`Howl sound failed for ${soundType}, using fallback:`, playError)
+            // Use fallback sound
+            createFallbackSoundForType(soundType)
+          }
+        } else {
+          // Use programmatic fallback sounds for better cross-device compatibility
+          createFallbackSoundForType(soundType)
+        }
+      } catch (error) {
+        console.log(`Failed to play ${soundType} sound:`, error)
+        // Always try fallback even if main sound fails
+        createFallbackSoundForType(soundType)
+      }
+    }
+  }, [soundsEnabled, sounds, createFallbackSoundForType])
+
   const toggleSounds = useCallback(() => {
     setSoundsEnabled(prev => !prev)
   }, [])
 
   // Enable audio on first user interaction (required for mobile)
   const enableAudio = useCallback(() => {
-    if (typeof window !== 'undefined' && (window.AudioContext || (window as any).webkitAudioContext)) {
+    if (typeof window !== 'undefined' && (window.AudioContext || (window as unknown as { webkitAudioContext: typeof AudioContext }).webkitAudioContext)) {
       try {
-        const AudioContextClass = window.AudioContext || (window as any).webkitAudioContext
+        const AudioContextClass = window.AudioContext || (window as unknown as { webkitAudioContext: typeof AudioContext }).webkitAudioContext
         const audioContext = new AudioContextClass()
         if (audioContext.state === 'suspended') {
           audioContext.resume()
@@ -511,13 +511,17 @@ const Card = React.memo(function Card({
     >
       <div className="card-inner">
         {imageUrl ? (
-          <img 
-            src={imageUrl}
-            alt={`${value} of ${suit}`}
-            className="card-face-image"
-            loading="lazy"
-            decoding="async"
-          />
+          <picture>
+            <source srcSet={imageUrl.replace('.png', '.webp')} type="image/webp" />
+            <source srcSet={imageUrl.replace('.png', '.avif')} type="image/avif" />
+            <img 
+              src={imageUrl}
+              alt={`${value} of ${suit}`}
+              className="card-face-image"
+              loading="lazy"
+              decoding="async"
+            />
+          </picture>
         ) : (
           <>
             <span className="card-value">{value}</span>
@@ -1067,12 +1071,30 @@ function App() {
     const currentPlayer = state.players[state.current_player]
     const isMyTurn = currentPlayer.name === playerName
     
-    // If it's not my turn and not a CPU, play sounds for other human players
-    if (!isMyTurn && !currentPlayer?.is_cpu) {
+    // Play sounds for other players' moves (both CPU and human)
+    if (!isMyTurn) {
       // Play draw sound when it becomes another player's turn
       playSound('draw')
     }
-  }, [state, playerName, playSound])
+  }, [state?.current_player, state?.has_drawn, playerName, playSound, state])
+
+  // 🎵 NEW: Play discard sound when other players discard
+  useEffect(() => {
+    if (!state || state.game_over) return
+    
+    const currentPlayer = state.players[state.current_player]
+    const isMyTurn = currentPlayer.name === playerName
+    
+    // If it's not my turn and the player has drawn, they might discard soon
+    if (!isMyTurn && state.has_drawn) {
+      // Play discard sound after a short delay to simulate other player's discard
+      const timer = setTimeout(() => {
+        playSound('discard')
+      }, 1000) // 1 second delay to simulate thinking time
+      
+      return () => clearTimeout(timer)
+    }
+  }, [state?.has_drawn, state?.current_player, playerName, playSound, state])
 
   // Show tutorial for first-time users
   useEffect(() => {
