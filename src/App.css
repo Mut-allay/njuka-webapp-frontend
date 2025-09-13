@@ -1645,11 +1645,22 @@ button:disabled {
     font-size: 0.8em;
   }
 
+  /* Mobile portrait optimization */
+  @media (orientation: portrait) {
+    .poker-table {
+      width: 98vw; /* Use almost full width on mobile portrait */
+      height: 70vh; /* Taller for better card visibility */
+      border-radius: 25% / 45%; /* More horizontal oval for portrait */
+      margin: 5px auto;
+    }
+  }
+
   .poker-table {
     width: 95vw;
-    height: 60vh;
-    border-radius: 50% / 30%;
+    height: 65vh; /* Slightly taller for better mobile portrait */
+    border-radius: 30% / 50%; /* Mobile portrait: horizontal oval */
     position: relative;
+    margin: 10px auto; /* Reduced margin for mobile */
   }
 
   /* 4+ player layout optimizations */
