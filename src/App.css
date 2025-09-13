@@ -1,6 +1,18 @@
 /* Add these at the end of App.css */
 @import url("https://fonts.googleapis.com/css2?family=Bebas+Neue&display=swap");
 
+/* Connection Status */
+.connection-status-top {
+  position: fixed;
+  top: 1rem;
+  right: 1rem;
+  z-index: 1000;
+  background: rgba(255, 255, 255, 0.95);
+  backdrop-filter: blur(10px);
+  border: 1px solid rgba(0, 0, 0, 0.1);
+  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+}
+
 /* Screen reader only content */
 .sr-only {
   position: absolute !important;

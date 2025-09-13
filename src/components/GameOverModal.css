@@ -1,0 +1,296 @@
+/* Game Over Modal Styles */
+
+/* Simple Card Component Styles */
+.simple-card {
+  width: 60px;
+  height: 90px;
+  background: white;
+  border: 2px solid #333;
+  border-radius: 8px;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  padding: 8px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
+  position: relative;
+  overflow: hidden;
+}
+
+.simple-card.red {
+  color: #d32f2f;
+}
+
+.simple-card.black {
+  color: #333;
+}
+
+.simple-card.highlight-card {
+  border-color: #f8d56b;
+  box-shadow: 0 0 15px rgba(248, 213, 107, 0.5);
+  transform: scale(1.1);
+}
+
+.card-inner {
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  height: 100%;
+}
+
+.card-value {
+  font-size: 1.2em;
+  font-weight: bold;
+  line-height: 1;
+}
+
+.card-suit {
+  font-size: 1.5em;
+  text-align: center;
+  line-height: 1;
+}
+
+.game-over-modal .modal-content {
+  max-width: 600px;
+}
+
+.game-over-content {
+  padding: 0;
+}
+
+.game-over-message {
+  padding: 25px;
+  text-align: center;
+}
+
+.winner-announcement {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  margin-bottom: 25px;
+  padding: 20px;
+  background: rgba(248, 213, 107, 0.1);
+  border-radius: 15px;
+  border: 2px solid #f8d56b;
+}
+
+.winner-icon {
+  font-size: 3em;
+  margin-bottom: 15px;
+  animation: bounce 1s ease-in-out;
+}
+
+.winner-announcement h3 {
+  color: #f8d56b;
+  margin: 0;
+  font-size: 1.8em;
+  font-weight: bold;
+}
+
+.winner-announcement strong {
+  color: #fff;
+  text-shadow: 0 0 10px rgba(248, 213, 107, 0.5);
+}
+
+.winning-hand-section {
+  margin-top: 25px;
+  padding: 20px;
+  background: rgba(0, 0, 0, 0.3);
+  border-radius: 10px;
+  border: 1px solid rgba(248, 213, 107, 0.3);
+}
+
+.winning-hand-section h4 {
+  color: #f8d56b;
+  margin: 0 0 15px 0;
+  font-size: 1.3em;
+  font-weight: bold;
+}
+
+.winning-hand {
+  display: flex;
+  justify-content: center;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.winning-card {
+  transform: scale(1.1);
+  box-shadow: 0 0 15px rgba(248, 213, 107, 0.5);
+  animation: glow 2s ease-in-out infinite alternate;
+}
+
+.game-over-actions {
+  display: flex;
+  gap: 15px;
+  padding: 20px 25px;
+  background: rgba(248, 213, 107, 0.05);
+  border-top: 1px solid rgba(248, 213, 107, 0.3);
+  justify-content: center;
+}
+
+.new-game-button,
+.close-button {
+  padding: 12px 24px;
+  border-radius: 25px;
+  font-size: 1em;
+  font-weight: bold;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  min-width: 120px;
+  border: 2px solid;
+}
+
+.new-game-button {
+  background: #f8d56b;
+  color: #1a1a1a;
+  border-color: #f8d56b;
+}
+
+.new-game-button:hover {
+  background: #e6c200;
+  border-color: #e6c200;
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(248, 213, 107, 0.3);
+}
+
+.new-game-button:focus {
+  outline: 2px solid #f8d56b;
+  outline-offset: 2px;
+  background: #e6c200;
+}
+
+.close-button {
+  background: #666;
+  color: white;
+  border-color: #666;
+}
+
+.close-button:hover {
+  background: #555;
+  border-color: #555;
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(102, 102, 102, 0.3);
+}
+
+.close-button:focus {
+  outline: 2px solid #666;
+  outline-offset: 2px;
+  background: #555;
+}
+
+.new-game-button:active,
+.close-button:active {
+  transform: translateY(0);
+}
+
+/* Animations */
+@keyframes bounce {
+  0%, 20%, 50%, 80%, 100% {
+    transform: translateY(0);
+  }
+  40% {
+    transform: translateY(-10px);
+  }
+  60% {
+    transform: translateY(-5px);
+  }
+}
+
+@keyframes glow {
+  from {
+    box-shadow: 0 0 15px rgba(248, 213, 107, 0.5);
+  }
+  to {
+    box-shadow: 0 0 25px rgba(248, 213, 107, 0.8);
+  }
+}
+
+/* Mobile responsiveness */
+@media (max-width: 768px) {
+  .game-over-modal .modal-content {
+    max-width: 95vw;
+  }
+  
+  .game-over-message {
+    padding: 20px;
+  }
+  
+  .winner-announcement {
+    padding: 15px;
+  }
+  
+  .winner-icon {
+    font-size: 2.5em;
+  }
+  
+  .winner-announcement h3 {
+    font-size: 1.5em;
+  }
+  
+  .winning-hand-section {
+    padding: 15px;
+  }
+  
+  .winning-hand {
+    gap: 8px;
+  }
+  
+  .winning-card {
+    transform: scale(1.05);
+  }
+  
+  .game-over-actions {
+    flex-direction: column;
+    padding: 15px 20px;
+  }
+  
+  .new-game-button,
+  .close-button {
+    width: 100%;
+    padding: 15px;
+  }
+}
+
+/* High contrast mode support */
+@media (prefers-contrast: high) {
+  .winner-announcement {
+    border-width: 3px;
+    background: rgba(248, 213, 107, 0.2);
+  }
+  
+  .winning-hand-section {
+    border-width: 2px;
+  }
+  
+  .new-game-button,
+  .close-button {
+    border-width: 3px;
+  }
+}
+
+/* Reduced motion support */
+@media (prefers-reduced-motion: reduce) {
+  .winner-icon {
+    animation: none;
+  }
+  
+  .winning-card {
+    animation: none;
+    box-shadow: 0 0 15px rgba(248, 213, 107, 0.5);
+  }
+  
+  .new-game-button,
+  .close-button {
+    transition: none;
+  }
+  
+  .new-game-button:hover,
+  .close-button:hover {
+    transform: none;
+  }
+  
+  .new-game-button:active,
+  .close-button:active {
+    transform: none;
+  }
+}

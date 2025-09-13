@@ -1,9 +1,20 @@
 "use client"
 
-import React from "react"
 import { useState, useEffect, useCallback, useMemo } from "react"
 import { Howl } from "howler"
 import "./App.css"
+
+// Import core components (loaded immediately)
+import ErrorModal from "./components/ErrorModal"
+import LoadingOverlay from "./components/LoadingOverlay"
+import { ConnectionStatus } from "./components/ConnectionStatus"
+
+// Import lazy-loaded components
+import LazyGameOverModal from "./components/LazyGameOverModal"
+import LazyGameTable from "./components/LazyGameTable"
+
+// Import WebSocket context
+import { WebSocketProvider } from "./contexts/WebSocketContext"
 
 const API = "https://njuka-webapp-backend.onrender.com"
 
@@ -158,61 +169,6 @@ const useSoundManager = () => {
   return { playSound, soundsEnabled, toggleSounds, enableAudio }
 }
 
-// ⬇️ ADDED A COMPLETE MAP OF ALL CARD IMAGES ⬇️
-const cardImageMap: { [key: string]: string } = {
-  'A♠': 'https://i.ibb.co/7xkX3DBP/ace-of-spades2.png',
-  'A♥': 'https://i.ibb.co/35B8BckQ/ace-of-hearts.png',
-  'A♦': 'https://i.ibb.co/Q7vLKGzd/ace-of-diamonds.png',
-  'A♣': 'https://i.ibb.co/vx789zqQ/ace-of-clubs.png',
-  'K♠': 'https://i.ibb.co/398YspSR/king-of-spades2.png',
-  'K♥': 'https://i.ibb.co/9kxNhK2k/king-of-hearts2.png',
-  'K♦': 'https://i.ibb.co/tphVCgVN/king-of-diamonds2.png',
-  'K♣': 'https://i.ibb.co/Jj8sbb7c/king-of-clubs2.png',
-  'Q♠': 'https://i.ibb.co/Df4rqCWy/queen-of-spades2.png',
-  'Q♥': 'https://i.ibb.co/7NkjSWQr/queen-of-hearts2.png',
-  'Q♦': 'https://i.ibb.co/SwK6jMqx/queen-of-diamonds2.png',
-  'Q♣': 'https://i.ibb.co/SwBy5qF7/queen-of-clubs2.png',
-  'J♠': 'https://i.ibb.co/NdTVnL3k/jack-of-spades2.png',
-  'J♥': 'https://i.ibb.co/PGQwd0Bx/jack-of-hearts2.png',
-  'J♦': 'https://i.ibb.co/HL2JdQzN/jack-of-diamonds2.png',
-  'J♣': 'https://i.ibb.co/SwC4DSyV/jack-of-clubs2.png',
-  '10♠': 'https://i.ibb.co/Q3gTw393/10-of-spades.png',
-  '10♥': 'https://i.ibb.co/ch0S4v6d/10-of-hearts.png',
-  '10♦': 'https://i.ibb.co/rGhvXcQ0/10-of-diamonds.png',
-  '10♣': 'https://i.ibb.co/27WWR0RC/10-of-clubs.png',
-  '9♠': 'https://i.ibb.co/ynrRZpdf/9-of-spades.png',
-  '9♥': 'https://i.ibb.co/VYjD94NT/9-of-hearts.png',
-  '9♦': 'https://i.ibb.co/Z3C0k19/9-of-diamonds.png',
-  '9♣': 'https://i.ibb.co/MyCtXBzK/9-of-clubs.png',
-  '8♠': 'https://i.ibb.co/p6cMtzSL/8-of-spades.png',
-  '8♥': 'https://i.ibb.co/DfMDbGs1/8-of-hearts.png',
-  '8♦': 'https://i.ibb.co/PR1P7W3/8-of-diamonds.png',
-  '8♣': 'https://i.ibb.co/DSNkX0V/8-of-clubs.png',
-  '7♠': 'https://i.ibb.co/3YGzcP6B/7-of-spades.png',
-  '7♥': 'https://i.ibb.co/RkMZCPg0/7-of-hearts.png',
-  '7♦': 'https://i.ibb.co/PGBBLCjc/7-of-diamonds.png',
-  '7♣': 'https://i.ibb.co/Zp9RgpJB/7-of-clubs.png',
-  '6♠': 'https://i.ibb.co/hJrcyLRB/6-of-spades.png',
-  '6♥': 'https://i.ibb.co/LzVt9rp5/6-of-hearts.png',
-  '6♦': 'https://i.ibb.co/4RCGvb87/6-of-diamonds.png',
-  '6♣': 'https://i.ibb.co/LDWSqJVh/6-of-clubs.png',
-  '5♠': 'https://i.ibb.co/274Cy2FS/5-of-spades.png',
-  '5♥': 'https://i.ibb.co/G4ksQ9nr/5-of-hearts.png',
-  '5♦': 'https://i.ibb.co/tGHPrkB/5-of-diamonds.png',
-  '5♣': 'https://i.ibb.co/RGs6VwSx/5-of-clubs.png',
-  '4♠': 'https://i.ibb.co/Dg1727gc/4-of-spades.png',
-  '4♥': 'https://i.ibb.co/3mYLwTcJ/4-of-hearts.png',
-  '4♦': 'https://i.ibb.co/hxCkckC3/4-of-diamonds.png',
-  '4♣': 'https://i.ibb.co/dZvG32N/4-of-clubs.png',
-  '3♠': 'https://i.ibb.co/6R0gW7Z7/3-of-spades.png',
-  '3♥': 'https://i.ibb.co/dw5fs4kS/3-of-hearts.png',
-  '3♦': 'https://i.ibb.co/RpdFmS3X/3-of-diamonds.png',
-  '3♣': 'https://i.ibb.co/v604KYky/3-of-clubs.png',
-  '2♠': 'https://i.ibb.co/wrJhGjjf/2-of-spades.png',
-  '2♥': 'https://i.ibb.co/vC7D20SR/2-of-hearts.png',
-  '2♦': 'https://i.ibb.co/kgb1jzxT/2-of-diamonds.png',
-  '2♣': 'https://i.ibb.co/xqF5KThJ/2-of-clubs.png'
-};
 
 
 type CardType = {
@@ -420,538 +376,7 @@ const apiService = {
   },
 }
 
-const Card = React.memo(function Card({
-  value,
-  suit,
-  onClick,
-  disabled,
-  facedown = false,
-  className = "",
-  highlight = false,
-  small = false,
-  style = {},
-  selected = false,
-  ...props
-}: {
-  value: string
-  suit: string
-  onClick?: () => void
-  disabled?: boolean
-  facedown?: boolean
-  className?: string
-  highlight?: boolean
-  small?: boolean
-  style?: React.CSSProperties
-  selected?: boolean
-  [key: string]: unknown
-}) {
-  const [isHovered, setIsHovered] = useState(false)
-  const [touchStart, setTouchStart] = useState(0)
 
-  // ⬇️ REFACTORED LOGIC TO USE THE MAP ⬇️
-  const imageUrl = cardImageMap[value + suit];
-
-  const handleTouchStart = (e: React.TouchEvent) => {
-    setTouchStart(e.touches[0].clientX)
-  }
-
-  const handleTouchEnd = (e: React.TouchEvent) => {
-    if (!onClick || disabled) return
-    
-    const touchEnd = e.changedTouches[0].clientX
-    if (Math.abs(touchStart - touchEnd) > 30) {
-      // Swipe detected
-      onClick()
-    }
-  }
-
-  const handleKeyPress = (e: React.KeyboardEvent) => {
-    if (!onClick || disabled) return
-    if (e.key === 'Enter' || e.key === ' ') {
-      e.preventDefault()
-      onClick()
-    }
-  }
-
-  if (facedown) {
-    return (
-      <div
-        className={`card facedown ${className} ${small ? "small-card" : ""}`}
-        style={style}
-        onMouseEnter={() => setIsHovered(true)}
-        onMouseLeave={() => setIsHovered(false)}
-        role="img"
-        aria-label="Facedown card"
-        {...props}
-      >
-        <div className="card-back"></div>
-      </div>
-    )
-  }
-
-  const suitColor = suit === "♥" || suit === "♦" ? "red" : "black"
-  const cardLabel = `${value} of ${suit}${selected ? ", selected" : ""}${highlight ? ", winning card" : ""}`
-  
-  return (
-    <div
-      className={`card ${suitColor} ${className} ${highlight ? "highlight-card" : ""} ${small ? "small-card" : ""} ${isHovered ? "card-hover" : ""} ${selected ? "card-selected" : ""}`}
-      onClick={!disabled ? onClick : undefined}
-      onTouchStart={handleTouchStart}
-      onTouchEnd={handleTouchEnd}
-      onKeyDown={handleKeyPress}
-      style={disabled ? { opacity: 0.7, cursor: "not-allowed", ...style } : style}
-      onMouseEnter={() => setIsHovered(true)}
-      onMouseLeave={() => setIsHovered(false)}
-      role="button"
-      tabIndex={disabled ? -1 : 0}
-      aria-label={cardLabel}
-      aria-pressed={selected}
-      aria-disabled={disabled}
-      {...props}
-    >
-      <div className="card-inner">
-        {imageUrl ? (
-          <picture>
-            <source srcSet={imageUrl.replace('.png', '.webp')} type="image/webp" />
-            <source srcSet={imageUrl.replace('.png', '.avif')} type="image/avif" />
-            <img 
-              src={imageUrl}
-              alt={`${value} of ${suit}`}
-              className="card-face-image"
-              loading="lazy"
-              decoding="async"
-            />
-          </picture>
-        ) : (
-          <>
-            <span className="card-value">{value}</span>
-            <span className="card-suit">{suit}</span>
-          </>
-        )}
-      </div>
-    </div>
-  )
-})
-
-function Table({
-  state,
-  playerName,
-  onDiscard,
-  onDraw,
-  loadingStates,
-  playSound, // 🎵 NEW: Sound function passed from parent
-  showTutorial,
-  onCloseTutorial
-}: {
-  state: GameState
-  playerName: string
-  onDiscard: (index: number) => void
-  onDraw: () => void
-  loadingStates: {
-    drawing: boolean
-    discarding: boolean
-    cpuMoving: boolean
-  }
-  playSound: (soundType: 'draw' | 'discard' | 'win' | 'button' | 'shuffle') => void // 🎵 NEW: Sound prop
-  showTutorial: boolean
-  onCloseTutorial: () => void
-}) {
-  const [selectedCardIndex, setSelectedCardIndex] = useState<number | null>(null)
-  const [showDeckHighlight, setShowDeckHighlight] = useState(false)
-  const [discardingCardIndex, setDiscardingCardIndex] = useState<number | null>(null)
-  const [animatingCard, setAnimatingCard] = useState<{card: CardType, position: {x: number, y: number}} | null>(null)
-  const [isShuffling, setIsShuffling] = useState(false)
-  const [dealingCards, setDealingCards] = useState<boolean[]>([])
-  const [drawingCard, setDrawingCard] = useState(false)
-
-  const yourPlayer = state.players.find((p) => p?.name === playerName)
-  const currentPlayerIndex = state.current_player ?? 0
-  const currentPlayer = state.players[currentPlayerIndex]
-  const isGameOver = state.game_over
-
-  // All useEffect hooks must be called before any early returns
-  useEffect(() => {
-    const timer = setTimeout(() => {
-      setShowDeckHighlight(true)
-    }, 3000)
-    return () => clearTimeout(timer)
-  }, [])
-
-
-  useEffect(() => {
-    if (state?.current_player !== state?.players.findIndex((p) => p?.name === playerName)) {
-      setShowDeckHighlight(false)
-      setSelectedCardIndex(null)
-      setDiscardingCardIndex(null)
-      setAnimatingCard(null)
-      setDrawingCard(false)
-    }
-  }, [state, playerName])
-
-  // Trigger shuffle animation at game start
-  useEffect(() => {
-    if (state && !isGameOver && state.deck.length > 0 && yourPlayer?.hand.length === 0) {
-      setIsShuffling(true)
-      playSound('shuffle') // 🎵 NEW: Play shuffle sound
-      setTimeout(() => {
-        setIsShuffling(false)
-        // Start dealing animation after shuffle
-        const handSize = yourPlayer?.hand.length || 0
-        if (handSize > 0) {
-          setDealingCards(new Array(handSize).fill(true))
-          setTimeout(() => setDealingCards([]), handSize * 250 + 2200)
-        }
-      }, window.innerWidth <= 768 ? 2000 : 2000)
-    }
-  }, [state?.id, isGameOver, state, yourPlayer?.hand.length, playSound]) // 🎵 NEW: Added playSound dependency
-
-  // Early return after all hooks
-  if (!yourPlayer || !currentPlayer) {
-    return <div className="error">Player data not available</div>
-  }
-
-  const getPlayerSafe = (index: number) => {
-    return state.players[index] ?? { name: "Player", hand: [], is_cpu: false }
-  }
-
-  const isWinner = (player: Player) => isGameOver && state.winner === player.name
-
-  const shouldShowPrompt = () => {
-    const playerId = state.players[state.current_player]?.name
-    // Show prompt when it's the player's turn and they haven't drawn yet
-    return playerId === playerName && !state.has_drawn && !isGameOver
-  }
-
-  const handleCardClick = (index: number) => {
-    if (selectedCardIndex === index) {
-      const cardElement = document.querySelector(`[data-card-index="${index}"]`) as HTMLElement
-      if (cardElement && yourPlayer) {
-        const rect = cardElement.getBoundingClientRect()
-        const card = yourPlayer.hand[index]
-        
-        // 🎵 Play discard sound
-        playSound('discard')
-        
-        // 📱 Enhanced haptic feedback for card discard
-        if (navigator.vibrate) {
-          // Stronger vibration pattern for discard action
-          navigator.vibrate([100, 50, 100]) // Strong-short-strong pattern
-        }
-        
-        // Create animated overlay card positioned exactly where the original card is
-        setAnimatingCard({
-          card,
-          position: { x: rect.left, y: rect.top }
-        })
-        
-        // Mark this card as discarding to prevent layout shift
-        setDiscardingCardIndex(index)
-        
-        // Mobile-first optimized animation duration
-        const animationDuration = window.innerWidth <= 768 ? 1800 : 1200;
-        setTimeout(() => {
-          onDiscard(index)
-          setDiscardingCardIndex(null)
-          setAnimatingCard(null)
-        }, animationDuration)
-      }
-      setSelectedCardIndex(null)
-    } else {
-      setSelectedCardIndex(index)
-      
-      // 📱 Enhanced haptic feedback for card selection
-      if (navigator.vibrate) {
-        // Gentle vibration for selection
-        navigator.vibrate([30, 20, 30]) // Gentle-short-gentle pattern
-      }
-    }
-  }
-
-  // Enhanced draw animation handling
-  const handleDraw = () => {
-    // 🎵 Play draw sound
-    playSound('draw')
-    
-    // 📱 Enhanced haptic feedback for card draw
-    if (navigator.vibrate) {
-      // Satisfying vibration pattern for draw action
-      navigator.vibrate([80, 30, 80]) // Medium-short-medium pattern
-    }
-    
-    setDrawingCard(true)
-    onDraw()
-    // Reset drawing state after mobile-optimized animation completes
-    setTimeout(() => {
-      setDrawingCard(false)
-    }, window.innerWidth <= 768 ? 1800 : 1400)
-  }
-
-  const canDraw = !loadingStates.drawing && currentPlayer.name === playerName && !isGameOver && !state.has_drawn
-
-  return (
-    <div className="poker-table">
-      {/* Screen reader announcements */}
-      <div 
-        id="game-announcements" 
-        role="status" 
-        aria-live="polite" 
-        aria-atomic="true"
-        className="sr-only"
-        style={{ position: 'absolute', left: '-10000px', width: '1px', height: '1px', overflow: 'hidden' }}
-      >
-        {isGameOver && state.winner && `Game over! ${state.winner} wins!`}
-        {!isGameOver && currentPlayer.name === playerName && !state.has_drawn && "It's your turn. Draw a card from the deck."}
-        {!isGameOver && currentPlayer.name === playerName && state.has_drawn && "Select a card to discard."}
-        {!isGameOver && currentPlayer.name !== playerName && `${currentPlayer.name} is playing.`}
-      </div>
-      
-      {/* Top Player */}
-      {state.players.length > 1 && (
-        <div 
-          className={`player-seat top ${currentPlayerIndex === 1 ? "active" : ""}`}
-          role="region"
-          aria-label={`Player ${getPlayerSafe(1).name}${getPlayerSafe(1).is_cpu ? " (CPU)" : ""}${currentPlayerIndex === 1 ? ", current turn" : ""}`}
-        >
-          <h3>
-            {getPlayerSafe(1).name}
-            {getPlayerSafe(1).is_cpu && " (CPU)"}
-          </h3>
-          <div className="hand horizontal" aria-label={`${getPlayerSafe(1).name}'s hand with ${getPlayerSafe(1).hand.length} cards`}>
-            {getPlayerSafe(1).hand.map((card, i) => (
-              <Card
-                key={`top-${i}`}
-                facedown={!isGameOver}
-                value={card.value}
-                suit={card.suit}
-                small={true}
-                highlight={isWinner(getPlayerSafe(1))}
-              />
-            ))}
-          </div>
-        </div>
-      )}
-
-      {/* Left Player */}
-      {state.players.length > 2 && (
-        <div 
-          className={`player-seat left ${currentPlayerIndex === 2 ? "active" : ""}`}
-          role="region"
-          aria-label={`Player ${getPlayerSafe(2).name}${getPlayerSafe(2).is_cpu ? " (CPU)" : ""}${currentPlayerIndex === 2 ? ", current turn" : ""}`}
-        >
-          <h3>
-            {getPlayerSafe(2).name}
-            {getPlayerSafe(2).is_cpu && " (CPU)"}
-          </h3>
-          <div className="hand horizontal" aria-label={`${getPlayerSafe(2).name}'s hand with ${getPlayerSafe(2).hand.length} cards`}>
-            {getPlayerSafe(2).hand.map((card, i) => (
-              <Card
-                key={`left-${i}`}
-                facedown={!isGameOver}
-                value={card.value}
-                suit={card.suit}
-                small={true}
-                highlight={isWinner(getPlayerSafe(2))}
-              />
-            ))}
-          </div>
-        </div>
-      )}
-
-      {/* Right Player */}
-      {state.players.length > 3 && (
-        <div 
-          className={`player-seat right ${currentPlayerIndex === 3 ? "active" : ""}`}
-          role="region"
-          aria-label={`Player ${getPlayerSafe(3).name}${getPlayerSafe(3).is_cpu ? " (CPU)" : ""}${currentPlayerIndex === 3 ? ", current turn" : ""}`}
-        >
-          <h3>
-            {getPlayerSafe(3).name}
-            {getPlayerSafe(3).is_cpu && " (CPU)"}
-          </h3>
-          <div className="hand horizontal" aria-label={`${getPlayerSafe(3).name}'s hand with ${getPlayerSafe(3).hand.length} cards`}>
-            {getPlayerSafe(3).hand.map((card, i) => (
-              <Card
-                key={`right-${i}`}
-                facedown={!isGameOver}
-                value={card.value}
-                suit={card.suit}
-                small={true}
-                highlight={isWinner(getPlayerSafe(3))}
-              />
-            ))}
-          </div>
-        </div>
-      )}
-
-      <div className="table-center">
-        <div
-          className={`deck-area ${showDeckHighlight ? "deck-highlight" : ""} ${isShuffling ? "deck-shuffling" : ""}`}
-          onClick={canDraw ? handleDraw : undefined}
-          role="button"
-          tabIndex={canDraw ? 0 : -1}
-          aria-label={`Deck with ${state.deck?.length ?? 0} cards remaining${canDraw ? ", click to draw a card" : ""}`}
-          onKeyDown={(e) => {
-            if (canDraw && (e.key === 'Enter' || e.key === ' ')) {
-              e.preventDefault()
-              handleDraw()
-            }
-          }}
-        >
-          <div className="deck-count" aria-hidden="true">{state.deck?.length ?? 0}</div>
-          {shouldShowPrompt() && <div className="tutorial-prompt" role="status" aria-live="polite">Pick a card</div>}
-          <Card
-            facedown
-            value=""
-            suit=""
-            className={`${drawingCard || loadingStates.drawing ? "card-drawing" : ""} ${isShuffling ? "card-shuffling" : ""}`}
-            style={{
-              cursor: canDraw ? "pointer" : "default",
-            }}
-          />
-        </div>
-
-        <div className="discard-area" role="region" aria-label="Discard pile">
-          {state.pot?.length > 0 ? (
-            <Card {...state.pot[state.pot.length - 1]} className="discard-top" />
-          ) : (
-            <div className="discard-empty" aria-label="Empty discard pile">Empty</div>
-          )}
-        </div>
-      </div>
-
-      {/* Bottom Player (current player) */}
-      <div
-        className={`player-seat bottom ${currentPlayerIndex === state.players.findIndex((p) => p?.name === playerName) ? "active" : ""}`}
-        role="region"
-        aria-label={`Your hand${currentPlayerIndex === state.players.findIndex((p) => p?.name === playerName) ? ", current turn" : ""}`}
-      >
-        <h4 className="player-name">{yourPlayer.name}</h4>
-        <div className="hand" aria-label={`Your hand with ${yourPlayer.hand?.length || 0} cards`}>
-          {yourPlayer.hand?.map((card, i) => {
-            const isDealing = dealingCards[i] || false
-            const delayClass = isDealing ? `deal-delay-${Math.min(i + 1, 7)}` : ""
-            
-            return (
-              <Card
-                key={`you-${i}`}
-                {...card}
-                onClick={() => handleCardClick(i)}
-                disabled={
-                  !state.has_drawn ||
-                  currentPlayer.is_cpu ||
-                  currentPlayer.name !== yourPlayer.name ||
-                  loadingStates.discarding ||
-                  discardingCardIndex !== null ||
-                  isDealing
-                }
-                className={`${discardingCardIndex === i ? "card-discarding" : ""} ${isDealing ? `card-dealing ${delayClass}` : ""}`}
-                highlight={isWinner(yourPlayer)}
-                selected={selectedCardIndex === i}
-                style={{}}
-                data-card-index={i}
-              />
-            )
-          })}
-        </div>
-      </div>
-      
-      {/* Animated overlay card for discard effect */}
-      {animatingCard && (
-        <Card
-          {...animatingCard.card}
-          className="discard-animation-overlay"
-          style={{
-            left: animatingCard.position.x,
-            top: animatingCard.position.y,
-            width: '70px', // Match card width
-            height: '100px', // Match card height
-          }}
-        />
-      )}
-
-      {/* Tutorial overlay for first-time users */}
-      {showTutorial && (
-        <div className="tutorial-overlay">
-          <div className="tutorial-content">
-            <h3>How to Play Njuka King</h3>
-            <div className="tutorial-steps">
-              <div className="tutorial-step">
-                <div className="tutorial-icon">🎯</div>
-                <p><strong>Objective:</strong> Be the first to get a winning hand of 4 cards</p>
-              </div>
-              <div className="tutorial-step">
-                <div className="tutorial-icon">🃏</div>
-                <p><strong>Winning Hand:</strong> One pair + two cards in sequence (followers)</p>
-              </div>
-              <div className="tutorial-step">
-                <div className="tutorial-icon">👆</div>
-                <p><strong>Draw a card:</strong> Tap the deck to draw a card</p>
-                <div className="gesture-hint">📱 <em>Feel the vibration when you draw!</em></div>
-              </div>
-              <div className="tutorial-step">
-                <div className="tutorial-icon">👆</div>
-                <p><strong>Select a card:</strong> Tap a card in your hand to select it</p>
-                <div className="gesture-hint">📱 <em>Gentle vibration confirms selection</em></div>
-              </div>
-              <div className="tutorial-step">
-                <div className="tutorial-icon">👆</div>
-                <p><strong>Discard:</strong> Tap the selected card again to discard it</p>
-                <div className="gesture-hint">📱 <em>Strong vibration confirms discard</em></div>
-              </div>
-              <div className="tutorial-step">
-                <div className="tutorial-icon">📱</div>
-                <p><strong>Mobile Gestures:</strong></p>
-                <div className="gesture-hint">
-                  • <strong>Swipe left/right</strong> on cards to discard quickly<br/>
-                  • <strong>Long press</strong> for card details<br/>
-                  • <strong>Pinch to zoom</strong> for better card visibility
-                </div>
-              </div>
-              <div className="tutorial-step">
-                <div className="tutorial-icon">🎵</div>
-                <p><strong>Audio & Haptics:</strong></p>
-                <div className="gesture-hint">
-                  • Sound effects play for all actions<br/>
-                  • Haptic feedback on every touch<br/>
-                  • Toggle sounds with 🔊 button
-                </div>
-              </div>
-              <div className="tutorial-step">
-                <div className="tutorial-icon">💡</div>
-                <p><strong>Pro Tips:</strong></p>
-                <div className="gesture-hint">
-                  • You can win with 3 cards + the top discard pile card!<br/>
-                  • Watch for opponent moves with sound cues<br/>
-                  • Use the Info button to see this tutorial anytime
-                </div>
-              </div>
-            </div>
-            <button 
-              onClick={() => {
-                // 📱 Haptic feedback for tutorial close
-                if (navigator.vibrate) {
-                  navigator.vibrate([50, 25, 50]) // Celebration pattern
-                }
-                onCloseTutorial()
-              }}
-              onTouchEnd={(e) => {
-                e.preventDefault()
-                // 📱 Haptic feedback for tutorial close
-                if (navigator.vibrate) {
-                  navigator.vibrate([50, 25, 50]) // Celebration pattern
-                }
-                onCloseTutorial()
-              }}
-              className="tutorial-close"
-            >
-              Got it! 🎉
-            </button>
-          </div>
-        </div>
-      )}
-    </div>
-  )
-}
 
 function LobbyView({
   lobby,
@@ -1490,38 +915,42 @@ function App() {
   }
 
   return (
-    <div className="App">
-      <h1>Njuka King</h1>
+    <WebSocketProvider baseUrl="wss://njuka-webapp-backend.onrender.com">
+      <div className="App">
+        <h1>Njuka King</h1>
+        
+        <ConnectionStatus 
+          showControls={true}
+          showDetails={true}
+          className="connection-status-top"
+        />
 
-      {error && (
-        <div className="error-modal">
-          <div className="error-content">
-            <h3>Error</h3>
-            <p>{error}</p>
-            <button onClick={() => setError(null)}>OK</button>
-          </div>
-        </div>
-      )}
+        <ErrorModal
+          isOpen={!!error}
+          onClose={() => setError(null)}
+          message={error || ''}
+          showRetryButton={error?.includes('Connection') || error?.includes('Network') || false}
+          onRetry={() => window.location.reload()}
+          retryButtonText="Retry Connection"
+        />
 
-      {(loadingStates.starting || loadingStates.joining) && (
-        <div className="loading-overlay">
-          <div className="loading-spinner"></div>
-          <p>Connecting to game server...</p>
-        </div>
-      )}
+        <LoadingOverlay
+          isVisible={loadingStates.starting || loadingStates.joining}
+          message="Connecting to game server..."
+        />
 
       {state ? (
         <div className="game-container">
           <div>
             
           </div>
-          <Table
+          <LazyGameTable
             state={state}
             playerName={playerName}
             onDiscard={discard}
             onDraw={draw}
             loadingStates={loadingStates}
-            playSound={playSound} // 🎵 NEW: Pass sound function to Table
+            playSound={playSound} // 🎵 NEW: Pass sound function to GameTable
             showTutorial={showTutorial}
             onCloseTutorial={handleCloseTutorial}
           />
@@ -1532,27 +961,13 @@ function App() {
             playSound={playSound} // 🎵 NEW: Pass sound props to BottomMenu
             onShowTutorial={handleShowTutorial}
           />
-          {state.game_over && (
-            <div className="game-over">
-              <div>
-                <h2>Game Over!</h2>
-                <p>
-                  Winner: <strong>{state.winner}</strong>
-                </p>
-                {state.winner_hand && (
-                  <div className="winning-hand">
-                    <p>Winning Hand:</p>
-                    <div className="hand">
-                      {state.winner_hand.map((card, i) => (
-                        <Card key={`winner-${i}`} value={card.value} suit={card.suit} highlight={true} />
-                      ))}
-                    </div>
-                  </div>
-                )}
-                <button onClick={quitGameToMenu}>New Game</button>
-              </div>
-            </div>
-          )}
+          <LazyGameOverModal
+            isOpen={!!state.game_over}
+            onClose={quitGameToMenu}
+            winner={state.winner || 'Unknown'}
+            winnerHand={state.winner_hand}
+            onNewGame={quitGameToMenu}
+          />
         </div>
       ) : lobby ? (
         <LobbyView
@@ -1694,7 +1109,8 @@ function App() {
           )}
         </div>
       )}
-    </div>
+      </div>
+    </WebSocketProvider>
   )
 }
 

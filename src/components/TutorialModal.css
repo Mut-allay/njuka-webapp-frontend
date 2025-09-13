@@ -1,0 +1,175 @@
+/* Tutorial Modal Styles */
+
+.tutorial-modal .modal-content {
+  max-width: 600px;
+  max-height: 80vh;
+}
+
+.tutorial-content {
+  padding: 0;
+}
+
+.tutorial-steps {
+  padding: 25px;
+  max-height: 60vh;
+  overflow-y: auto;
+}
+
+.tutorial-step {
+  display: flex;
+  align-items: flex-start;
+  margin-bottom: 20px;
+  padding: 15px;
+  background: rgba(248, 213, 107, 0.05);
+  border-radius: 10px;
+  border-left: 4px solid #f8d56b;
+}
+
+.tutorial-icon {
+  font-size: 2em;
+  margin-right: 15px;
+  flex-shrink: 0;
+  margin-top: 5px;
+}
+
+.tutorial-text {
+  flex: 1;
+}
+
+.tutorial-text h3 {
+  color: #f8d56b;
+  margin: 0 0 8px 0;
+  font-size: 1.2em;
+  font-weight: bold;
+}
+
+.tutorial-text p {
+  color: #e0e0e0;
+  margin: 0 0 8px 0;
+  line-height: 1.5;
+}
+
+.gesture-hint {
+  color: #b0b0b0;
+  font-size: 0.9em;
+  margin-top: 8px;
+}
+
+.gesture-hint em {
+  font-style: italic;
+  color: #f8d56b;
+}
+
+.gesture-hint ul {
+  margin: 8px 0 0 0;
+  padding-left: 20px;
+}
+
+.gesture-hint li {
+  margin-bottom: 4px;
+  line-height: 1.4;
+}
+
+.tutorial-actions {
+  padding: 20px 25px;
+  border-top: 1px solid rgba(248, 213, 107, 0.3);
+  background: rgba(248, 213, 107, 0.05);
+  text-align: center;
+}
+
+.tutorial-close-button {
+  background: #f8d56b;
+  color: #1a1a1a;
+  border: 2px solid #f8d56b;
+  border-radius: 25px;
+  padding: 12px 30px;
+  font-size: 1.1em;
+  font-weight: bold;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  min-width: 150px;
+}
+
+.tutorial-close-button:hover {
+  background: #e6c200;
+  border-color: #e6c200;
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(248, 213, 107, 0.3);
+}
+
+.tutorial-close-button:focus {
+  outline: 2px solid #f8d56b;
+  outline-offset: 2px;
+  background: #e6c200;
+}
+
+.tutorial-close-button:active {
+  transform: translateY(0);
+  box-shadow: 0 2px 6px rgba(248, 213, 107, 0.3);
+}
+
+/* Mobile responsiveness */
+@media (max-width: 768px) {
+  .tutorial-modal .modal-content {
+    max-width: 95vw;
+    max-height: 90vh;
+  }
+  
+  .tutorial-steps {
+    padding: 20px;
+    max-height: 70vh;
+  }
+  
+  .tutorial-step {
+    flex-direction: column;
+    text-align: center;
+    padding: 15px;
+  }
+  
+  .tutorial-icon {
+    margin-right: 0;
+    margin-bottom: 10px;
+    font-size: 1.8em;
+  }
+  
+  .tutorial-text h3 {
+    font-size: 1.1em;
+  }
+  
+  .tutorial-actions {
+    padding: 15px 20px;
+  }
+  
+  .tutorial-close-button {
+    width: 100%;
+    padding: 15px;
+    font-size: 1em;
+  }
+}
+
+/* High contrast mode support */
+@media (prefers-contrast: high) {
+  .tutorial-step {
+    border-left-width: 6px;
+    background: rgba(248, 213, 107, 0.1);
+  }
+  
+  .tutorial-close-button {
+    border-width: 3px;
+  }
+}
+
+/* Reduced motion support */
+@media (prefers-reduced-motion: reduce) {
+  .tutorial-close-button {
+    transition: none;
+  }
+  
+  .tutorial-close-button:hover {
+    transform: none;
+  }
+  
+  .tutorial-close-button:active {
+    transform: none;
+  }
+}
