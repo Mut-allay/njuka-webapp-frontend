@@ -340,10 +340,17 @@ const apiService = {
         `${API}/lobby/join?lobby_id=${lobbyId}&player_name=${encodeURIComponent(playerName)}`,
         { method: "POST" },
       )
-      if (!response.ok) throw new Error("Failed to join lobby")
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({}))
+        const errorMessage = errorData.detail || `HTTP ${response.status}: Failed to join lobby`
+        throw new Error(errorMessage)
+      }
       return response.json()
     } catch (error) {
       console.error("API Error:", error)
+      if (error instanceof Error) {
+        throw error
+      }
       throw new Error("Failed to join lobby")
     }
   },
@@ -485,7 +492,7 @@ function App() {
   const [error, setError] = useState<string | null>(null)
   const [currentMenu, setCurrentMenu] = useState<"main" | "multiplayer" | "cpu">("main")
   const [numPlayersSetting, setNumPlayersSetting] = useState(1)
-  const [playerName, setPlayerName] = useState("Player")
+  const [playerName, setPlayerName] = useState(`Player${Math.floor(Math.random() * 1000)}`)
   const [backendAvailable, setBackendAvailable] = useState(true)
   const [lobby, setLobby] = useState<LobbyGame | null>(null)
   const [lobbies, setLobbies] = useState<LobbyGame[]>([])
@@ -848,7 +855,20 @@ function App() {
       setLobby(joinedLobby)
       playSound('draw') // 🎵 NEW: Join lobby sound
     } catch (error: unknown) {
-      const errorMessage = error instanceof Error ? error.message : "Failed to join lobby. Please try again."
+      let errorMessage = "Failed to join lobby. Please try again."
+      
+      if (error instanceof Error) {
+        if (error.message.includes("Name already taken")) {
+          errorMessage = "This name is already taken in this lobby. Please choose a different name."
+        } else if (error.message.includes("Lobby not found")) {
+          errorMessage = "This lobby no longer exists. Please refresh the lobby list."
+        } else if (error.message.includes("Lobby is full")) {
+          errorMessage = "This lobby is full. Please join a different lobby."
+        } else {
+          errorMessage = error.message
+        }
+      }
+      
       setError(errorMessage)
       console.error("Join lobby error:", error)
     } finally {

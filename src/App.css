@@ -10,7 +10,7 @@ html, body {
 
 .App {
   text-align: center;
-  background-image: url('https://i.ibb.co/6csxbFY3/10013144.jpg');
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
   background-size: cover;
   background-position: center;
   background-repeat: no-repeat;
@@ -86,6 +86,15 @@ button:disabled {
   color: #ccc;
   cursor: not-allowed;
   transform: none;
+}
+
+.disabled-btn {
+  background: #666 !important;
+  color: #ccc !important;
+  cursor: not-allowed !important;
+  transform: none !important;
+  opacity: 0.6;
+  pointer-events: none;
 }
 
 /* ===== MENU & LOBBY STYLES ===== */
