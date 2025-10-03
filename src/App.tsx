@@ -501,6 +501,26 @@ function App() {
   // 🎵 NEW: Initialize sound manager
   const { playSound, soundsEnabled, toggleSounds, enableAudio } = useSoundManager()
 
+  // Handle URL-based routing
+  useEffect(() => {
+    const path = window.location.pathname
+    if (path === '/cpu') {
+      setCurrentMenu('cpu')
+    } else if (path === '/multiplayer') {
+      setCurrentMenu('multiplayer')
+    } else {
+      setCurrentMenu('main')
+    }
+  }, [])
+
+  // Update URL when menu changes
+  useEffect(() => {
+    const path = currentMenu === 'main' ? '/' : `/${currentMenu}`
+    if (window.location.pathname !== path) {
+      window.history.pushState({}, '', path)
+    }
+  }, [currentMenu])
+
   useEffect(() => {
     const savedGame = localStorage.getItem("njukaGame")
     if (savedGame) {

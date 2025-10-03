@@ -34,9 +34,12 @@ export class GameWebSocketService implements WebSocketService {
   private errorCallbacks: ((error: Event) => void)[] = []
   private isConnecting = false
   private shouldReconnect = true
+  private connectionTimeoutId: NodeJS.Timeout | null = null
 
   constructor(gameId: string, playerName: string, baseUrl: string = 'wss://njuka-webapp-backend.onrender.com') {
-    this.url = `${baseUrl}/ws/game/${gameId}?player_name=${encodeURIComponent(playerName)}`
+    // Ensure we're using the correct protocol for mobile
+    const wsBaseUrl = baseUrl.startsWith('ws') ? baseUrl : `wss://${baseUrl}`
+    this.url = `${wsBaseUrl}/ws/game/${gameId}?player_name=${encodeURIComponent(playerName)}`
   }
 
   async connect(): Promise<void> {
@@ -47,10 +50,27 @@ export class GameWebSocketService implements WebSocketService {
     this.isConnecting = true
 
     try {
+      // Add mobile-specific WebSocket configuration
       this.ws = new WebSocket(this.url)
       
+      // Set connection timeout for mobile devices
+      const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent)
+      const connectionTimeout = isMobile ? 10000 : 5000 // 10s for mobile, 5s for desktop
+      
+      this.connectionTimeoutId = setTimeout(() => {
+        if (this.ws && this.ws.readyState === WebSocket.CONNECTING) {
+          console.log('WebSocket connection timeout, closing...')
+          this.ws.close()
+        }
+      }, connectionTimeout)
+      
+      // Set mobile-friendly timeouts
       this.ws.onopen = () => {
         console.log('WebSocket connected to game')
+        if (this.connectionTimeoutId) {
+          clearTimeout(this.connectionTimeoutId)
+          this.connectionTimeoutId = null
+        }
         this.isConnecting = false
         this.reconnectAttempts = 0
         this.shouldReconnect = true
@@ -70,6 +90,7 @@ export class GameWebSocketService implements WebSocketService {
         this.isConnecting = false
         this.closeCallbacks.forEach(callback => callback())
         
+        // More aggressive reconnection for mobile
         if (this.shouldReconnect && this.reconnectAttempts < this.maxReconnectAttempts) {
           this.scheduleReconnect()
         }
@@ -84,6 +105,17 @@ export class GameWebSocketService implements WebSocketService {
     } catch (error) {
       console.error('Failed to create WebSocket connection:', error)
       this.isConnecting = false
+      
+      // For mobile devices, try fallback connection method
+      if (/Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent)) {
+        console.log('Mobile device detected, attempting fallback connection...')
+        setTimeout(() => {
+          if (this.shouldReconnect) {
+            this.connect()
+          }
+        }, 1000)
+      }
+      
       throw error
     }
   }
@@ -154,7 +186,9 @@ export class LobbyWebSocketService implements WebSocketService {
   private shouldReconnect = true
 
   constructor(lobbyId: string, baseUrl: string = 'wss://njuka-webapp-backend.onrender.com') {
-    this.url = `${baseUrl}/ws/lobby/${lobbyId}`
+    // Ensure we're using the correct protocol for mobile
+    const wsBaseUrl = baseUrl.startsWith('ws') ? baseUrl : `wss://${baseUrl}`
+    this.url = `${wsBaseUrl}/ws/lobby/${lobbyId}`
   }
 
   async connect(): Promise<void> {
@@ -188,6 +222,7 @@ export class LobbyWebSocketService implements WebSocketService {
         this.isConnecting = false
         this.closeCallbacks.forEach(callback => callback())
         
+        // More aggressive reconnection for mobile
         if (this.shouldReconnect && this.reconnectAttempts < this.maxReconnectAttempts) {
           this.scheduleReconnect()
         }
@@ -202,6 +237,17 @@ export class LobbyWebSocketService implements WebSocketService {
     } catch (error) {
       console.error('Failed to create WebSocket connection:', error)
       this.isConnecting = false
+      
+      // For mobile devices, try fallback connection method
+      if (/Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent)) {
+        console.log('Mobile device detected, attempting fallback connection...')
+        setTimeout(() => {
+          if (this.shouldReconnect) {
+            this.connect()
+          }
+        }, 1000)
+      }
+      
       throw error
     }
   }
