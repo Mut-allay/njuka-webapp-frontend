@@ -65,14 +65,15 @@ app = FastAPI()
 origins = [
     "https://njuka-webapp-frontend.vercel.app",
     "https://njuka.vercel.app",
+    "https://njuka-king.web.app",  # Firebase hosting domain
     "http://localhost:3000",
     "http://localhost:5173"
 ]
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=origins,
-    allow_credentials=True,
+    allow_origins=["*"],  # Temporary: allow all origins
+    allow_credentials=False,  # Must be False when using allow_origins=["*"]
     allow_methods=["*"],
     allow_headers=["*"],
 )
