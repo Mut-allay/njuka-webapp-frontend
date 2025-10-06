@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback, useMemo } from 'react';
+import { useState, useEffect, useCallback, useMemo } from 'react';
 import { Howl } from 'howler';
 import './App.css';
 
@@ -154,8 +154,9 @@ const useSoundManager = () => {
   return { playSound, soundsEnabled, toggleSounds, enableAudio };
 };
 
-// Card image mapping
-const cardImageMap: { [key: string]: string } = {
+// Card image mapping (unused in this version)
+/*
+const _cardImageMap: { [key: string]: string } = {
   'A♠': 'https://i.ibb.co/7xkX3DBP/ace-of-spades2.png',
   'A♥': 'https://i.ibb.co/35B8BckQ/ace-of-hearts.png',
   'A♦': 'https://i.ibb.co/Q7vLKGzd/ace-of-diamonds.png',
@@ -209,6 +210,7 @@ const cardImageMap: { [key: string]: string } = {
   '2♦': 'https://i.ibb.co/kgb1jzxT/2-of-diamonds.png',
   '2♣': 'https://i.ibb.co/xqF5KThJ/2-of-clubs.png'
 };
+*/
 
 // Types
 type CardType = {
@@ -415,126 +417,6 @@ const apiService = {
   },
 };
 
-// Card Component
-const Card = React.memo(function Card({
-  value,
-  suit,
-  onClick,
-  disabled,
-  facedown = false,
-  className = "",
-  highlight = false,
-  small = false,
-  style = {},
-  selected = false,
-  ...props
-}: {
-  value: string;
-  suit: string;
-  onClick?: () => void;
-  disabled?: boolean;
-  facedown?: boolean;
-  className?: string;
-  highlight?: boolean;
-  small?: boolean;
-  style?: React.CSSProperties;
-  selected?: boolean;
-  [key: string]: unknown;
-}) {
-  const [isHovered, setIsHovered] = useState(false);
-  const [touchStart, setTouchStart] = useState(0);
-  const [touchStartTime, setTouchStartTime] = useState(0);
-
-  const imageUrl = cardImageMap[value + suit];
-
-  const handleTouchStart = (e: React.TouchEvent) => {
-    setTouchStart(e.touches[0].clientX);
-    setTouchStartTime(Date.now());
-  };
-
-  const handleTouchEnd = (e: React.TouchEvent) => {
-    if (!onClick || disabled) return;
-    
-    const touchEnd = e.changedTouches[0].clientX;
-    const touchDuration = Date.now() - touchStartTime;
-    const swipeDistance = Math.abs(touchStart - touchEnd);
-    
-    if (swipeDistance > 30 || touchDuration < 200) {
-      onClick();
-      
-      if (navigator.vibrate) {
-        navigator.vibrate([40, 20, 40]);
-      }
-    }
-  };
-
-  const handleKeyPress = (e: React.KeyboardEvent) => {
-    if (!onClick || disabled) return;
-    if (e.key === 'Enter' || e.key === ' ') {
-      e.preventDefault();
-      onClick();
-    }
-  };
-
-  if (facedown) {
-    return (
-      <div
-        className={`card facedown ${className} ${small ? "small-card" : ""}`}
-        style={style}
-        onMouseEnter={() => setIsHovered(true)}
-        onMouseLeave={() => setIsHovered(false)}
-        role="img"
-        aria-label="Facedown card"
-        {...props}
-      >
-        <div className="card-back"></div>
-      </div>
-    );
-  }
-
-  const suitColor = suit === "♥" || suit === "♦" ? "red" : "black";
-  const cardLabel = `${value} of ${suit}${selected ? ", selected" : ""}${highlight ? ", winning card" : ""}`;
-  
-  return (
-    <div
-      className={`card ${suitColor} ${className} ${highlight ? "highlight-card" : ""} ${small ? "small-card" : ""} ${isHovered ? "card-hover" : ""} ${selected ? "card-selected" : ""}`}
-      onClick={!disabled ? onClick : undefined}
-      onTouchStart={handleTouchStart}
-      onTouchEnd={handleTouchEnd}
-      onKeyDown={handleKeyPress}
-      style={disabled ? { opacity: 0.7, cursor: "not-allowed", ...style } : style}
-      onMouseEnter={() => setIsHovered(true)}
-      onMouseLeave={() => setIsHovered(false)}
-      role="button"
-      tabIndex={disabled ? -1 : 0}
-      aria-label={cardLabel}
-      aria-pressed={selected}
-      aria-disabled={disabled}
-      {...props}
-    >
-      <div className="card-inner">
-        {imageUrl ? (
-          <picture>
-            <source srcSet={imageUrl.replace('.png', '.webp')} type="image/webp" />
-            <source srcSet={imageUrl.replace('.png', '.avif')} type="image/avif" />
-            <img 
-              src={imageUrl}
-              alt={`${value} of ${suit}`}
-              className="card-face-image"
-              loading="lazy"
-              decoding="async"
-            />
-          </picture>
-        ) : (
-          <>
-            <span className="card-value">{value}</span>
-            <span className="card-suit">{suit}</span>
-          </>
-        )}
-      </div>
-    </div>
-  );
-});
 
 // Home Page Component
 const HomePage = ({ onSelectMode, playerName, setPlayerName }: {
@@ -850,7 +732,7 @@ const EnhancedBottomMenu = ({
   toggleSounds,
   playSound,
   onShowRules,
-  currentPage,
+  currentPage: _currentPage,
   onGoHome
 }: {
   quitGameToMenu?: () => void;
@@ -958,9 +840,9 @@ function App() {
   const [lobbies, setLobbies] = useState<LobbyGame[]>([]);
   const [lobby, setLobby] = useState<LobbyGame | null>(null);
   const [gameState, setGameState] = useState<GameState | null>(null);
-  const [gameId, setGameId] = useState<string | null>(null);
+  const [_gameId, setGameId] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
-  const [backendAvailable, setBackendAvailable] = useState(true);
+  const [_backendAvailable] = useState(true);
   const [loadingStates, setLoadingStates] = useState({
     drawing: false,
     discarding: false,
