@@ -497,11 +497,7 @@ def is_winning_combination(cards: list) -> bool:
     # Get remaining cards (excluding the pair)
     remaining = []
     for v in values_idx:
-        if v == pair_value:
-            # Only add one instance of the pair value to remaining
-            if remaining.count(v) < 1:
-                remaining.append(v)
-        else:
+        if v != pair_value:
             remaining.append(v)
     
     # Should have exactly 2 remaining cards
