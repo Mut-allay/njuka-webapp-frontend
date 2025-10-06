@@ -89,6 +89,7 @@ git rev-parse --abbrev-ref HEAD # Show current branch name
 🔥 FIREBASE
 npm install -g firebase-tools
 firebase login
+firebase logout
 firebase init
 firebase init functions # In your project directory
 firebase emulators:start --only functions
