@@ -10,36 +10,42 @@ const API = "https://njuka-webapp-backend.onrender.com";
 // Sound Manager Hook
 const useSoundManager = () => {
   const [soundsEnabled, setSoundsEnabled] = useState(true);
+  const [audioContext, setAudioContext] = useState<AudioContext | null>(null);
   
-  const createFallbackSound = useCallback((frequency: number, duration: number, type: OscillatorType = 'sine') => {
+  const createFallbackSound = useCallback(async (frequency: number, duration: number, type: OscillatorType = 'sine') => {
     if (typeof window !== 'undefined' && (window.AudioContext || (window as any).webkitAudioContext)) {
       try {
-        const AudioContextClass = window.AudioContext || (window as any).webkitAudioContext;
-        const audioContext = new AudioContextClass();
-        
-        if (audioContext.state === 'suspended') {
-          audioContext.resume();
+        let context = audioContext;
+        if (!context) {
+          const AudioContextClass = window.AudioContext || (window as any).webkitAudioContext;
+          context = new AudioContextClass();
+          setAudioContext(context);
         }
         
-        const oscillator = audioContext.createOscillator();
-        const gainNode = audioContext.createGain();
+        // Ensure audio context is resumed before creating sounds
+        if (context.state === 'suspended') {
+          await context.resume();
+        }
+        
+        const oscillator = context.createOscillator();
+        const gainNode = context.createGain();
         
         oscillator.connect(gainNode);
-        gainNode.connect(audioContext.destination);
+        gainNode.connect(context.destination);
         
-        oscillator.frequency.setValueAtTime(frequency, audioContext.currentTime);
+        oscillator.frequency.setValueAtTime(frequency, context.currentTime);
         oscillator.type = type;
         
-        gainNode.gain.setValueAtTime(0.05, audioContext.currentTime);
-        gainNode.gain.exponentialRampToValueAtTime(0.001, audioContext.currentTime + duration);
+        gainNode.gain.setValueAtTime(0.05, context.currentTime);
+        gainNode.gain.exponentialRampToValueAtTime(0.001, context.currentTime + duration);
         
-        oscillator.start(audioContext.currentTime);
-        oscillator.stop(audioContext.currentTime + duration);
+        oscillator.start(context.currentTime);
+        oscillator.stop(context.currentTime + duration);
       } catch (error) {
         console.log('Fallback sound generation failed:', error);
       }
     }
-  }, []);
+  }, [audioContext]);
   
   const sounds = useMemo(() => ({
     draw: new Howl({
@@ -74,27 +80,27 @@ const useSoundManager = () => {
     })
   }), []);
 
-  const createFallbackSoundForType = useCallback((soundType: keyof typeof sounds) => {
+  const createFallbackSoundForType = useCallback(async (soundType: keyof typeof sounds) => {
     try {
       switch (soundType) {
         case 'draw':
-          createFallbackSound(800, 0.2, 'sine');
+          await createFallbackSound(800, 0.2, 'sine');
           break;
         case 'discard':
-          createFallbackSound(400, 0.3, 'sawtooth');
+          await createFallbackSound(400, 0.3, 'sawtooth');
           break;
         case 'shuffle':
-          setTimeout(() => createFallbackSound(300, 0.1, 'square'), 0);
-          setTimeout(() => createFallbackSound(350, 0.1, 'square'), 100);
-          setTimeout(() => createFallbackSound(320, 0.1, 'square'), 200);
+          setTimeout(async () => await createFallbackSound(300, 0.1, 'square'), 0);
+          setTimeout(async () => await createFallbackSound(350, 0.1, 'square'), 100);
+          setTimeout(async () => await createFallbackSound(320, 0.1, 'square'), 200);
           break;
         case 'win':
-          createFallbackSound(523, 0.4, 'sine');
-          setTimeout(() => createFallbackSound(659, 0.4, 'sine'), 200);
-          setTimeout(() => createFallbackSound(784, 0.6, 'sine'), 400);
+          await createFallbackSound(523, 0.4, 'sine');
+          setTimeout(async () => await createFallbackSound(659, 0.4, 'sine'), 200);
+          setTimeout(async () => await createFallbackSound(784, 0.6, 'sine'), 400);
           break;
         case 'button':
-          createFallbackSound(1000, 0.1, 'square');
+          await createFallbackSound(1000, 0.1, 'square');
           break;
       }
     } catch (fallbackError) {
@@ -102,7 +108,7 @@ const useSoundManager = () => {
     }
   }, [createFallbackSound]);
 
-  const playSound = useCallback((soundType: keyof typeof sounds) => {
+  const playSound = useCallback(async (soundType: keyof typeof sounds) => {
     if (soundsEnabled) {
       try {
         const sound = sounds[soundType];
@@ -111,14 +117,14 @@ const useSoundManager = () => {
             sound.play();
           } catch (playError) {
             console.log(`Howl sound failed for ${soundType}, using fallback:`, playError);
-            createFallbackSoundForType(soundType);
+            await createFallbackSoundForType(soundType);
           }
         } else {
-          createFallbackSoundForType(soundType);
+          await createFallbackSoundForType(soundType);
         }
       } catch (error) {
         console.log(`Failed to play ${soundType} sound:`, error);
-        createFallbackSoundForType(soundType);
+        await createFallbackSoundForType(soundType);
       }
     }
   }, [soundsEnabled, sounds, createFallbackSoundForType]);
@@ -127,19 +133,23 @@ const useSoundManager = () => {
     setSoundsEnabled(prev => !prev);
   }, []);
 
-  const enableAudio = useCallback(() => {
+  const enableAudio = useCallback(async () => {
     if (typeof window !== 'undefined' && (window.AudioContext || (window as any).webkitAudioContext)) {
       try {
-        const AudioContextClass = window.AudioContext || (window as any).webkitAudioContext;
-        const audioContext = new AudioContextClass();
-        if (audioContext.state === 'suspended') {
-          audioContext.resume();
+        let context = audioContext;
+        if (!context) {
+          const AudioContextClass = window.AudioContext || (window as any).webkitAudioContext;
+          context = new AudioContextClass();
+          setAudioContext(context);
+        }
+        if (context.state === 'suspended') {
+          await context.resume();
         }
       } catch (error) {
         console.log('Failed to enable audio:', error);
       }
     }
-  }, []);
+  }, [audioContext]);
 
   return { playSound, soundsEnabled, toggleSounds, enableAudio };
 };
@@ -963,18 +973,21 @@ function App() {
 
   // Enable audio on first user interaction
   useEffect(() => {
-    const enableAudioOnInteraction = () => {
-      enableAudio();
+    const enableAudioOnInteraction = async () => {
+      await enableAudio();
       document.removeEventListener('touchstart', enableAudioOnInteraction);
       document.removeEventListener('click', enableAudioOnInteraction);
+      document.removeEventListener('keydown', enableAudioOnInteraction);
     };
     
     document.addEventListener('touchstart', enableAudioOnInteraction, { once: true });
     document.addEventListener('click', enableAudioOnInteraction, { once: true });
+    document.addEventListener('keydown', enableAudioOnInteraction, { once: true });
     
     return () => {
       document.removeEventListener('touchstart', enableAudioOnInteraction);
       document.removeEventListener('click', enableAudioOnInteraction);
+      document.removeEventListener('keydown', enableAudioOnInteraction);
     };
   }, [enableAudio]);
 
