@@ -482,38 +482,78 @@ def card_value_index(card):
     return values.index(card.value) + 1
 
 def is_winning_combination(cards: list) -> bool:
+    """
+    Njuka King Card Game - Winning Conditions
+    
+    Two winning patterns:
+    1. Three of a kind + one consecutive card
+    2. One pair + two consecutive cards
+    
+    Special rule: A and K are NOT consecutive (no wrap-around)
+    """
+    if len(cards) != 4:
+        return False
+    
     values_idx = [card_value_index(card) for card in cards]
     value_counts = {}
     for v in values_idx:
         value_counts[v] = value_counts.get(v, 0) + 1
     
-    # Check for exactly one pair
+    # Get counts for analysis
     pairs = [v for v, count in value_counts.items() if count == 2]
-    if len(pairs) != 1:
+    threes = [v for v, count in value_counts.items() if count == 3]
+    fours = [v for v, count in value_counts.items() if count == 4]
+    
+    # Reject invalid combinations
+    if len(fours) > 0:  # Four of a kind
+        return False
+    if len(pairs) > 1:  # Two pairs
+        return False
+    if len(threes) > 1:  # Multiple three of a kinds (impossible with 4 cards)
         return False
     
-    pair_value = pairs[0]
+    # Pattern 1: Three of a kind + one consecutive card
+    if len(threes) == 1 and len(pairs) == 0:
+        three_value = threes[0]
+        # Get the remaining card
+        remaining = [v for v in values_idx if v != three_value]
+        if len(remaining) != 1:
+            return False
+        
+        remaining_value = remaining[0]
+        # Check if remaining card is consecutive to the three of a kind
+        # Special case: A and K are NOT consecutive
+        if three_value == 1 and remaining_value == 13:  # A and K
+            return False
+        if three_value == 13 and remaining_value == 1:  # K and A
+            return False
+        
+        # Check consecutive values
+        return abs(remaining_value - three_value) == 1
     
-    # Get remaining cards (excluding the pair)
-    remaining = []
-    for v in values_idx:
-        if v != pair_value:
-            remaining.append(v)
+    # Pattern 2: One pair + two consecutive cards
+    elif len(pairs) == 1 and len(threes) == 0:
+        pair_value = pairs[0]
+        
+        # Get remaining cards (excluding the pair)
+        remaining = [v for v in values_idx if v != pair_value]
+        
+        # Should have exactly 2 remaining cards
+        if len(remaining) != 2:
+            return False
+        
+        remaining = sorted(remaining)
+        
+        # Special case: A and K are NOT consecutive
+        if remaining == [1, 13]:  # A, K
+            return False
+        
+        # Check consecutive values
+        diff = remaining[1] - remaining[0]
+        return diff == 1
     
-    # Should have exactly 2 remaining cards
-    if len(remaining) != 2:
-        return False
-    
-    remaining = sorted(remaining)
-    
-    # Check if they form a sequence (followers)
-    # Handle wrap-around case: K, A (13, 1) should be valid
-    if remaining == [1, 13]:  # A, K
-        return True
-    
-    # Check consecutive values
-    diff = remaining[1] - remaining[0]
-    return diff == 1
+    # No valid pattern found
+    return False
 
 def check_any_player_win(players, pot):
     pot_top = pot[-1] if pot else None
