@@ -186,25 +186,26 @@ def new_game_state(mode: str, player_name: str, cpu_count: int = 1, max_players:
         max_players=max_players
     )
 
+class CreateLobbyRequest(BaseModel):
+    host: str
+    max_players: int = 4
+
 @app.post("/lobby/create")
-async def create_lobby(
-    host_name: str = Query(...),
-    max_players: int = Query(4)
-):
-    if max_players < 2 or max_players > 8:
+async def create_lobby(request: CreateLobbyRequest):
+    if request.max_players < 2 or request.max_players > 8:
         raise HTTPException(status_code=400, detail="Max players must be 2-8")
     
     lobby_id = str(uuid.uuid4())
     lobby = LobbyGame(
         id=lobby_id,
-        host=host_name,
-        players=[host_name],
-        max_players=max_players,
+        host=request.host,
+        players=[request.host],
+        max_players=request.max_players,
         created_at=datetime.now(),
         last_updated=datetime.now()
     )
     active_lobbies[lobby_id] = lobby
-    logger.info(f"Created lobby {lobby_id} for host {host_name}")
+    logger.info(f"Created lobby {lobby_id} for host {request.host}")
     return JSONResponse(content=lobby.dict())
 
 @app.get("/lobby/list")
@@ -233,6 +234,11 @@ async def list_lobbies():
     ]
     return JSONResponse(content={"lobbies": lobbies})
 
+@app.get("/lobbies")
+async def get_lobbies():
+    """Alias for /lobby/list to match frontend expectations"""
+    return await list_lobbies()
+
 @app.get("/lobby/{lobby_id}")
 async def get_lobby_details(lobby_id: str):
     """
@@ -245,11 +251,11 @@ async def get_lobby_details(lobby_id: str):
     lobby.last_updated = datetime.now()
     return JSONResponse(content=lobby.dict())
 
-@app.post("/lobby/join")
-async def join_lobby(
-    lobby_id: str = Query(...),
-    player_name: str = Query(...)
-):
+class JoinLobbyRequest(BaseModel):
+    player: str
+
+@app.post("/lobby/{lobby_id}/join")
+async def join_lobby(lobby_id: str, request: JoinLobbyRequest):
     if lobby_id not in active_lobbies:
         raise HTTPException(status_code=404, detail="Lobby not found")
     
@@ -258,10 +264,10 @@ async def join_lobby(
         raise HTTPException(status_code=400, detail="Game already started")
     if len(lobby.players) >= lobby.max_players:
         raise HTTPException(status_code=400, detail="Lobby is full")
-    if player_name in lobby.players:
+    if request.player in lobby.players:
         raise HTTPException(status_code=400, detail="Name already taken")
     
-    lobby.players.append(player_name)
+    lobby.players.append(request.player)
     lobby.last_updated = datetime.now()
     
     # Broadcast update to all connected lobby clients

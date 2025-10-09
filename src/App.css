@@ -556,7 +556,7 @@ button:disabled {
   backdrop-filter: blur(10px);
   display: flex;
   justify-content: space-around;
-  padding: 14px 8px; /* Larger for mobile */
+  padding: 4px 6px; /* Minimal height for mobile */
   border-top: 1px solid rgba(248, 213, 107, 0.3);
 }
 
@@ -564,15 +564,15 @@ button:disabled {
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 4px;
+  gap: 1px;
   background: transparent;
   color: #f8d56b;
   border: none;
-  padding: 10px 14px; /* Larger for mobile */
-  font-size: clamp(0.75em, 2.5vw, 0.8em);
-  border-radius: 12px;
-  min-width: 60px; /* Adjusted for mobile */
-  min-height: 48px; /* Touch target */
+  padding: 3px 6px; /* Minimal for mobile */
+  font-size: clamp(0.7em, 2.2vw, 0.75em);
+  border-radius: 8px;
+  min-width: 50px; /* Smaller for mobile */
+  min-height: 36px; /* Reduced touch target */
   transition: all 0.3s ease;
 }
 
@@ -822,12 +822,12 @@ button:disabled {
   }
 
   .main-menu-bar {
-    padding: 15px 10px;
+    padding: 6px 8px;
   }
 
   .menu-button {
-    min-width: 80px;
-    padding: 12px 16px;
+    min-width: 70px;
+    padding: 4px 8px;
   }
 
   .lobby-view {

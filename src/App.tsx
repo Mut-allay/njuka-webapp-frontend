@@ -13,6 +13,43 @@ import ErrorModal from './components/ErrorModal';
 import LoadingOverlay from './components/LoadingOverlay';
 
 const API = "https://njuka-webapp-backend.onrender.com";
+// const WS_API = API.replace('https://', 'wss://');  // WebSocket API (currently unused)
+
+// Types
+type CardType = {
+  value: string;
+  suit: string;
+};
+
+type Player = {
+  name: string;
+  hand: CardType[];
+  is_cpu: boolean;
+};
+
+type GameState = {
+  players: Player[];
+  pot: CardType[];
+  deck: CardType[];
+  current_player: number;
+  has_drawn: boolean;
+  mode: string;
+  id: string;
+  max_players: number;
+  winner?: string;
+  winner_hand?: CardType[];
+  game_over?: boolean;
+};
+
+type LobbyGame = {
+  id: string;
+  host: string;
+  players: string[];
+  max_players: number;
+  created_at: string;
+  started?: boolean;
+  game_id?: string;
+};
 
 // Sound Manager Hook
 const useSoundManager = () => {
@@ -130,325 +167,15 @@ const useSoundManager = () => {
           await createFallbackSoundForType(soundType);
         }
       } catch (error) {
-        console.log(`Failed to play ${soundType} sound:`, error);
-        await createFallbackSoundForType(soundType);
+        console.log(`Sound playback failed for ${soundType}:`, error);
       }
     }
   }, [soundsEnabled, sounds, createFallbackSoundForType]);
 
-  const toggleSounds = useCallback(() => {
-    setSoundsEnabled(prev => !prev);
-  }, []);
-
-  const enableAudio = useCallback(async () => {
-    if (typeof window !== 'undefined' && (window.AudioContext || (window as any).webkitAudioContext)) {
-      try {
-        let context = audioContext;
-        if (!context) {
-          const AudioContextClass = window.AudioContext || (window as any).webkitAudioContext;
-          context = new AudioContextClass();
-          setAudioContext(context);
-        }
-        if (context.state === 'suspended') {
-          await context.resume();
-        }
-      } catch (error) {
-        console.log('Failed to enable audio:', error);
-      }
-    }
-  }, [audioContext]);
-
-  return { playSound, soundsEnabled, toggleSounds, enableAudio };
+  return { playSound, soundsEnabled, toggleSounds: () => setSoundsEnabled(!soundsEnabled) };
 };
 
-// Card image mapping (unused in this version)
-/*
-const _cardImageMap: { [key: string]: string } = {
-  'A♠': 'https://i.ibb.co/7xkX3DBP/ace-of-spades2.png',
-  'A♥': 'https://i.ibb.co/35B8BckQ/ace-of-hearts.png',
-  'A♦': 'https://i.ibb.co/Q7vLKGzd/ace-of-diamonds.png',
-  'A♣': 'https://i.ibb.co/vx789zqQ/ace-of-clubs.png',
-  'K♠': 'https://i.ibb.co/398YspSR/king-of-spades2.png',
-  'K♥': 'https://i.ibb.co/9kxNhK2k/king-of-hearts2.png',
-  'K♦': 'https://i.ibb.co/tphVCgVN/king-of-diamonds2.png',
-  'K♣': 'https://i.ibb.co/Jj8sbb7c/king-of-clubs2.png',
-  'Q♠': 'https://i.ibb.co/Df4rqCWy/queen-of-spades2.png',
-  'Q♥': 'https://i.ibb.co/7NkjSWQr/queen-of-hearts2.png',
-  'Q♦': 'https://i.ibb.co/SwK6jMqx/queen-of-diamonds2.png',
-  'Q♣': 'https://i.ibb.co/SwBy5qF7/queen-of-clubs2.png',
-  'J♠': 'https://i.ibb.co/NdTVnL3k/jack-of-spades2.png',
-  'J♥': 'https://i.ibb.co/PGQwd0Bx/jack-of-hearts2.png',
-  'J♦': 'https://i.ibb.co/HL2JdQzN/jack-of-diamonds2.png',
-  'J♣': 'https://i.ibb.co/SwC4DSyV/jack-of-clubs2.png',
-  '10♠': 'https://i.ibb.co/Q3gTw393/10-of-spades.png',
-  '10♥': 'https://i.ibb.co/ch0S4v6d/10-of-hearts.png',
-  '10♦': 'https://i.ibb.co/rGhvXcQ0/10-of-diamonds.png',
-  '10♣': 'https://i.ibb.co/27WWR0RC/10-of-clubs.png',
-  '9♠': 'https://i.ibb.co/ynrRZpdf/9-of-spades.png',
-  '9♥': 'https://i.ibb.co/VYjD94NT/9-of-hearts.png',
-  '9♦': 'https://i.ibb.co/Z3C0k19/9-of-diamonds.png',
-  '9♣': 'https://i.ibb.co/MyCtXBzK/9-of-clubs.png',
-  '8♠': 'https://i.ibb.co/p6cMtzSL/8-of-spades.png',
-  '8♥': 'https://i.ibb.co/DfMDbGs1/8-of-hearts.png',
-  '8♦': 'https://i.ibb.co/PR1P7W3/8-of-diamonds.png',
-  '8♣': 'https://i.ibb.co/DSNkX0V/8-of-clubs.png',
-  '7♠': 'https://i.ibb.co/3YGzcP6B/7-of-spades.png',
-  '7♥': 'https://i.ibb.co/RkMZCPg0/7-of-hearts.png',
-  '7♦': 'https://i.ibb.co/PGBBLCjc/7-of-diamonds.png',
-  '7♣': 'https://i.ibb.co/Zp9RgpJB/7-of-clubs.png',
-  '6♠': 'https://i.ibb.co/hJrcyLRB/6-of-spades.png',
-  '6♥': 'https://i.ibb.co/LzVt9rp5/6-of-hearts.png',
-  '6♦': 'https://i.ibb.co/4RCGvb87/6-of-diamonds.png',
-  '6♣': 'https://i.ibb.co/LDWSqJVh/6-of-clubs.png',
-  '5♠': 'https://i.ibb.co/274Cy2FS/5-of-spades.png',
-  '5♥': 'https://i.ibb.co/G4ksQ9nr/5-of-hearts.png',
-  '5♦': 'https://i.ibb.co/tGHPrkB/5-of-diamonds.png',
-  '5♣': 'https://i.ibb.co/RGs6VwSx/5-of-clubs.png',
-  '4♠': 'https://i.ibb.co/Dg1727gc/4-of-spades.png',
-  '4♥': 'https://i.ibb.co/3mYLwTcJ/4-of-hearts.png',
-  '4♦': 'https://i.ibb.co/hxCkckC3/4-of-diamonds.png',
-  '4♣': 'https://i.ibb.co/dZvG32N/4-of-clubs.png',
-  '3♠': 'https://i.ibb.co/6R0gW7Z7/3-of-spades.png',
-  '3♥': 'https://i.ibb.co/dw5fs4kS/3-of-hearts.png',
-  '3♦': 'https://i.ibb.co/RpdFmS3X/3-of-diamonds.png',
-  '3♣': 'https://i.ibb.co/v604KYky/3-of-clubs.png',
-  '2♠': 'https://i.ibb.co/wrJhGjjf/2-of-spades.png',
-  '2♥': 'https://i.ibb.co/vC7D20SR/2-of-hearts.png',
-  '2♦': 'https://i.ibb.co/kgb1jzxT/2-of-diamonds.png',
-  '2♣': 'https://i.ibb.co/xqF5KThJ/2-of-clubs.png'
-};
-*/
-
-// Types
-type CardType = {
-  value: string;
-  suit: string;
-};
-
-type Player = {
-  name: string;
-  hand: CardType[];
-  is_cpu: boolean;
-};
-
-type GameState = {
-  players: Player[];
-  pot: CardType[];
-  deck: CardType[];
-  current_player: number;
-  has_drawn: boolean;
-  mode: string;
-  id: string;
-  max_players: number;
-  winner?: string;
-  winner_hand?: CardType[];
-  game_over?: boolean;
-};
-
-type LobbyGame = {
-  id: string;
-  host: string;
-  players: string[];
-  max_players: number;
-  created_at: string;
-  started?: boolean;
-  game_id?: string;
-};
-
-// API Service
-const apiService = {
-  createNewGame: async (
-    mode: "cpu" | "multiplayer",
-    playerName: string,
-    cpuCount = 1,
-    maxPlayers = 4,
-  ): Promise<GameState> => {
-    try {
-      const response = await fetch(
-        `${API}/new_game?mode=${mode}&player_name=${encodeURIComponent(playerName)}&cpu_count=${cpuCount}&max_players=${maxPlayers}`,
-        {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-          },
-        },
-      );
-
-      if (!response.ok) {
-        const errorData = await response.json().catch(() => ({}));
-        throw new Error(errorData.message || "Failed to create game");
-      }
-      return response.json();
-    } catch (err) {
-      console.error("API Error:", err);
-      throw new Error("Network error. Please check your connection.");
-    }
-  },
-
-  joinGame: async (gameId: string, playerName: string): Promise<GameState> => {
-    try {
-      const response = await fetch(`${API}/join_game?game_id=${gameId}&player_name=${encodeURIComponent(playerName)}`, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-      });
-
-      if (!response.ok) {
-        const errorData = await response.json().catch(() => ({}));
-        throw new Error(errorData.message || "Failed to join game");
-      }
-      return response.json();
-    } catch (err) {
-      console.error("API Error:", err);
-      throw new Error("Network error. Please check your connection.");
-    }
-  },
-
-  drawCard: async (gameId: string): Promise<GameState> => {
-    try {
-      const response = await fetch(`${API}/game/${gameId}/draw`, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-      });
-      if (!response.ok) {
-        const errorData = await response.json().catch(() => ({}));
-        throw new Error(errorData.message || "Failed to draw card");
-      }
-      return response.json();
-    } catch {
-      throw new Error("Failed to connect to server. Please try again.");
-    }
-  },
-
-  discardCard: async (gameId: string, cardIndex: number): Promise<GameState> => {
-    try {
-      const response = await fetch(`${API}/game/${gameId}/discard?card_index=${cardIndex}`, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-      });
-      if (!response.ok) {
-        const errorData = await response.json().catch(() => ({}));
-        throw new Error(errorData.message || "Failed to discard card");
-      }
-      return response.json();
-    } catch {
-      throw new Error("Failed to connect to server. Please try again.");
-    }
-  },
-
-  checkHealth: async (): Promise<boolean> => {
-    try {
-      const response = await fetch(`${API}/health`);
-      return response.ok;
-    } catch {
-      return false;
-    }
-  },
-
-  listLobbies: async (): Promise<LobbyGame[]> => {
-    try {
-      const response = await fetch(`${API}/lobby/list`);
-      if (!response.ok) {
-        if (response.status === 404) {
-          console.log("Lobby endpoint not found - returning empty list");
-          return [];
-        }
-        throw new Error("Failed to fetch lobbies");
-      }
-      const data = await response.json();
-      return data.lobbies || [];
-    } catch (error) {
-      console.error("API Error:", error);
-      return [];
-    }
-  },
-
-  createLobby: async (hostName: string, maxPlayers: number): Promise<LobbyGame> => {
-    try {
-      const response = await fetch(
-        `${API}/lobby/create?host_name=${encodeURIComponent(hostName)}&max_players=${maxPlayers}`,
-        { method: "POST" },
-      );
-      if (!response.ok) throw new Error("Failed to create lobby");
-      return response.json();
-    } catch (error) {
-      console.error("API Error:", error);
-      throw new Error("Failed to create lobby");
-    }
-  },
-
-  joinLobby: async (lobbyId: string, playerName: string): Promise<LobbyGame> => {
-    try {
-      const response = await fetch(
-        `${API}/lobby/join?lobby_id=${lobbyId}&player_name=${encodeURIComponent(playerName)}`,
-        { method: "POST" },
-      );
-      if (!response.ok) throw new Error("Failed to join lobby");
-      return response.json();
-    } catch (error) {
-      console.error("API Error:", error);
-      throw new Error("Failed to join lobby");
-    }
-  },
-
-  getLobbyDetails: async (lobbyId: string): Promise<LobbyGame | null> => {
-    try {
-      const response = await fetch(`${API}/lobby/${lobbyId}`);
-      if (response.status === 404) {
-        return null;
-      }
-      if (!response.ok) throw new Error("Failed to fetch lobby details");
-      return response.json();
-    } catch (error) {
-      console.error("API Error:", error);
-      throw new Error("Failed to fetch lobby details");
-    }
-  },
-
-  cancelLobby: async (lobbyId: string, hostName: string): Promise<void> => {
-    try {
-      const response = await fetch(`${API}/lobby/cancel?lobby_id=${lobbyId}&host_name=${encodeURIComponent(hostName)}`, {
-        method: "POST",
-      });
-      if (!response.ok) throw new Error("Failed to cancel lobby");
-    } catch (error) {
-      console.error("API Error:", error);
-      throw new Error("Failed to cancel lobby");
-    }
-  },
-
-  startLobbyGame: async (lobbyId: string, hostName: string): Promise<GameState> => {
-    try {
-      const response = await fetch(`${API}/lobby/start?lobby_id=${lobbyId}&host_name=${encodeURIComponent(hostName)}`, {
-        method: "POST",
-      });
-      if (!response.ok) throw new Error("Failed to start game");
-      return response.json();
-    } catch (error) {
-      console.error("API Error:", error);
-      throw new Error("Failed to start game");
-    }
-  },
-
-  getGame: async (gameId: string): Promise<GameState> => {
-    try {
-      const response = await fetch(`${API}/game/${gameId}`);
-      if (!response.ok) throw new Error("Failed to fetch game");
-      return response.json();
-    } catch (error) {
-      console.error("API Error:", error);
-      throw new Error("Failed to fetch game");
-    }
-  },
-};
-
-
-// Home Page Component
+// Component definitions
 const HomePage = ({ onSelectMode, playerName, setPlayerName }: {
   onSelectMode: (mode: 'multiplayer' | 'cpu') => void;
   playerName: string;
@@ -506,7 +233,6 @@ const HomePage = ({ onSelectMode, playerName, setPlayerName }: {
   );
 };
 
-// Multiplayer Lobby Page Component
 const MultiplayerPage = ({ 
   onBack, 
   playerName, 
@@ -588,7 +314,7 @@ const MultiplayerPage = ({
                     <h4>Host: {lobby.host}</h4>
                     <p>Players: {lobby.players.length}/{lobby.max_players}</p>
                     <div className="player-list-preview">
-                      {lobby.players.map(player => (
+                      {lobby.players.map((player) => (
                         <span key={player} className="player-tag">
                           {player}
                           {player === lobby.host && " 👑"}
@@ -616,7 +342,6 @@ const MultiplayerPage = ({
   );
 };
 
-// CPU Game Page Component
 const CPUGamePage = ({ 
   onBack, 
   onStartGame, 
@@ -678,7 +403,6 @@ const CPUGamePage = ({
   );
 };
 
-// Rules Page Component
 const RulesPage = ({ onBack }: { onBack: () => void }) => {
   return (
     <div className="page-container">
@@ -715,54 +439,17 @@ const RulesPage = ({ onBack }: { onBack: () => void }) => {
             <li><strong>Continue:</strong> Play passes to the next player</li>
           </ol>
         </section>
-
-        <section className="rules-section">
-          <h3>📱 Controls</h3>
-          <ul>
-            <li><strong>Draw Card:</strong> Tap the deck to draw a card</li>
-            <li><strong>Select Card:</strong> Tap a card in your hand to select it</li>
-            <li><strong>Discard:</strong> Tap the selected card again to discard it</li>
-            <li><strong>Mobile Gestures:</strong> Swipe cards left/right to discard quickly</li>
-          </ul>
-        </section>
-
-        <section className="rules-section">
-          <h3>💡 Pro Tips</h3>
-          <ul>
-            <li>Watch what other players discard - you might be able to use those cards!</li>
-            <li>Sometimes you can win with just 3 cards if the top discard pile card completes your hand</li>
-            <li>Keep track of which cards have been played to know what's still in the deck</li>
-            <li>Don't hold onto cards too long - be ready to adapt your strategy</li>
-          </ul>
-        </section>
-
-        <section className="rules-section">
-          <h3>🎵 Audio & Accessibility</h3>
-          <ul>
-            <li>Sound effects play for all game actions</li>
-            <li>Haptic feedback on mobile devices for better gameplay feel</li>
-            <li>Screen reader compatible with proper ARIA labels</li>
-            <li>Toggle sounds on/off in settings</li>
-          </ul>
-        </section>
-
-        <section className="rules-section">
-          <h3>🏆 Winning</h3>
-          <p>The first player to achieve a winning hand wins the game! The winning hand will be displayed for all players to see.</p>
-        </section>
       </div>
     </div>
   );
 };
 
-// Enhanced Bottom Menu with Expandable Options
 const EnhancedBottomMenu = ({
   quitGameToMenu,
   soundsEnabled,
   toggleSounds,
   playSound,
   onShowRules,
-  currentPage: _currentPage,
   onGoHome
 }: {
   quitGameToMenu?: () => void;
@@ -770,7 +457,6 @@ const EnhancedBottomMenu = ({
   toggleSounds: () => void;
   playSound: (soundType: 'button') => void;
   onShowRules: () => void;
-  currentPage: string;
   onGoHome: () => void;
 }) => {
   const [settingsExpanded, setSettingsExpanded] = useState(false);
@@ -786,17 +472,16 @@ const EnhancedBottomMenu = ({
 
   const toggleSettings = () => {
     setSettingsExpanded(!settingsExpanded);
-    setInfoExpanded(false); // Close info if open
+    setInfoExpanded(false);
   };
 
   const toggleInfo = () => {
     setInfoExpanded(!infoExpanded);
-    setSettingsExpanded(false); // Close settings if open
+    setSettingsExpanded(false);
   };
 
   return (
     <div className="enhanced-bottom-menu">
-      {/* Expandable Settings Panel */}
       {settingsExpanded && (
         <div className="expanded-panel settings-panel">
           <button 
@@ -809,7 +494,6 @@ const EnhancedBottomMenu = ({
         </div>
       )}
 
-      {/* Expandable Info Panel */}
       {infoExpanded && (
         <div className="expanded-panel info-panel">
           <button 
@@ -822,7 +506,6 @@ const EnhancedBottomMenu = ({
         </div>
       )}
 
-      {/* Main Menu Bar */}
       <div className="main-menu-bar">
         <button 
           onClick={() => handleButtonClick(onGoHome)}
@@ -861,335 +544,150 @@ const EnhancedBottomMenu = ({
   );
 };
 
-// Main App Component
 function App() {
-  const [currentPage, setCurrentPage] = useState<'home' | 'multiplayer' | 'cpu' | 'rules' | 'game' | 'tutorial'>('home');
-  const [playerName, setPlayerName] = useState('Player');
-  const [numPlayers, setNumPlayers] = useState(4);
+  const [currentPage, setCurrentPage] = useState('home');
+  const [playerName, setPlayerName] = useState('');
+  const [numPlayers, setNumPlayers] = useState(2);
   const [numCPU, setNumCPU] = useState(1);
-  const [lobbies, setLobbies] = useState<LobbyGame[]>([]);
+  const [lobbies, setLobbies] = useState([]);
   const [lobby, setLobby] = useState<LobbyGame | null>(null);
   const [gameState, setGameState] = useState<GameState | null>(null);
-  const [gameId, setGameId] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
-  const [backendAvailable, setBackendAvailable] = useState(true);
   const [loadingStates, setLoadingStates] = useState({
+    starting: false,
+    joining: false,
     drawing: false,
     discarding: false,
-    joining: false,
-    starting: false,
     cpuMoving: false,
   });
+  const { playSound, soundsEnabled, toggleSounds } = useSoundManager();
 
-  const { playSound, soundsEnabled, toggleSounds, enableAudio } = useSoundManager();
+  // WebSocket states (currently unused but kept for future implementation)
+  // const [lobbyWS, setLobbyWS] = useState<WebSocket | null>(null);
+  // const [gameWS, setGameWS] = useState<WebSocket | null>(null);
 
-  // Enable audio on first user interaction
+  // API service (assuming you have this; if not, add it)
+  const apiService = useMemo(() => ({
+    createLobby: async (host: string, maxPlayers: number) => {
+      const response = await fetch(`${API}/lobby/create`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ host, max_players: maxPlayers }),
+      });
+      if (!response.ok) throw new Error('Failed to create lobby');
+      return await response.json();
+    },
+    joinLobby: async (lobbyId: string, player: string) => {
+      const response = await fetch(`${API}/lobby/${lobbyId}/join`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ player }),
+      });
+      if (!response.ok) throw new Error('Failed to join lobby');
+      return await response.json();
+    },
+    getLobbies: async () => {
+      const response = await fetch(`${API}/lobbies`);
+      if (!response.ok) throw new Error('Failed to fetch lobbies');
+      return await response.json();
+    },
+    // Add other methods like drawCard, discard, etc.
+    getGame: async (gameId: string) => {
+      const response = await fetch(`${API}/game/${gameId}`);
+      if (!response.ok) throw new Error('Failed to fetch game state');
+      return await response.json();
+    },
+    drawCard: async (gameId: string) => {
+      const response = await fetch(`${API}/game/${gameId}/draw`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+      });
+      if (!response.ok) throw new Error('Failed to draw card');
+      return await response.json();
+    },
+    discardCard: async (gameId: string, cardIndex: number) => {
+      const response = await fetch(`${API}/game/${gameId}/discard?card_index=${cardIndex}`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+      });
+      if (!response.ok) throw new Error('Failed to discard card');
+      return await response.json();
+    },
+    createNewGame: async (mode: string, playerName: string, cpuCount: number = 1, maxPlayers: number = 4) => {
+      const response = await fetch(`${API}/new_game?mode=${mode}&player_name=${encodeURIComponent(playerName)}&cpu_count=${cpuCount}&max_players=${maxPlayers}`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+      });
+      if (!response.ok) throw new Error('Failed to create game');
+      return await response.json();
+    },
+    joinGame: async (gameId: string, playerName: string) => {
+      const response = await fetch(`${API}/join_game?game_id=${gameId}&player_name=${encodeURIComponent(playerName)}`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+      });
+      if (!response.ok) throw new Error('Failed to join game');
+      return await response.json();
+    },
+    cancelLobby: async (lobbyId: string, hostName: string) => {
+      const response = await fetch(`${API}/lobby/cancel?lobby_id=${lobbyId}&host_name=${encodeURIComponent(hostName)}`, {
+        method: 'POST',
+      });
+      if (!response.ok) throw new Error('Failed to cancel lobby');
+    },
+  }), []);
+
+  // WebSocket connections (currently disabled, using polling instead)
+  /*
   useEffect(() => {
-    const enableAudioOnInteraction = async () => {
-      await enableAudio();
-      document.removeEventListener('touchstart', enableAudioOnInteraction);
-      document.removeEventListener('click', enableAudioOnInteraction);
-      document.removeEventListener('keydown', enableAudioOnInteraction);
-    };
-    
-    document.addEventListener('touchstart', enableAudioOnInteraction, { once: true });
-    document.addEventListener('click', enableAudioOnInteraction, { once: true });
-    document.addEventListener('keydown', enableAudioOnInteraction, { once: true });
-    
-    return () => {
-      document.removeEventListener('touchstart', enableAudioOnInteraction);
-      document.removeEventListener('click', enableAudioOnInteraction);
-      document.removeEventListener('keydown', enableAudioOnInteraction);
-    };
-  }, [enableAudio]);
-
-  // Game state polling
-  useEffect(() => {
-    if (!gameId || !backendAvailable) return;
-
-    let intervalId: NodeJS.Timeout;
-    let currentRetries = 3;
-    // More frequent polling for multiplayer games to catch new players joining
-    let pollInterval = gameState?.mode === 'multiplayer' ? 1000 : 2000;
-    const maxInterval = 10000;
-    const backoffMultiplier = 1.5;
-
-    const fetchGameState = async () => {
-      try {
-        const res = await fetch(`${API}/game/${gameId}`);
-        if (!res.ok) {
-          if (res.status === 404) {
-            console.error(`Game ${gameId} not found on backend. Returning to menu.`);
-            setError("Game not found or expired. Returning to main menu.");
-            setGameState(null);
-            setGameId(null);
-            clearInterval(intervalId);
-            return;
+    if (lobby) {
+      const ws = new WebSocket(`${WS_API}/ws/lobby/${lobby.id}`);
+      ws.onopen = () => console.log('Connected to lobby WebSocket');
+      ws.onmessage = (event) => {
+        const message = JSON.parse(event.data);
+        if (message.type === 'lobby_update') {
+          setLobby(message.data);
+          if (message.data.started && message.data.game_id) {
+            apiService.getGame(message.data.game_id).then(setGameState).catch(setError);
           }
-          throw new Error("Network response was not ok");
-        }
-        const latestState = await res.json();
-        setGameState(latestState);
-        currentRetries = 3;
-        // Adjust polling interval based on game mode
-        pollInterval = latestState.mode === 'multiplayer' ? 1000 : 2000;
-      } catch (err) {
-        console.error("Failed to fetch game state:", err);
-        currentRetries--;
-        
-        pollInterval = Math.min(pollInterval * backoffMultiplier, maxInterval);
-        
-        if (currentRetries <= 0) {
-          setError("Connection lost. Trying to reconnect...");
-          clearInterval(intervalId);
-          setTimeout(async () => {
-            const isHealthy = await apiService.checkHealth();
-            setBackendAvailable(isHealthy);
-            if (isHealthy) {
-              pollInterval = 2000;
-              intervalId = setInterval(fetchGameState, pollInterval);
-              fetchGameState();
-            }
-            currentRetries = 3;
-          }, 5000);
-        } else {
-          clearInterval(intervalId);
-          intervalId = setInterval(fetchGameState, pollInterval);
-        }
-      }
-    };
-
-    intervalId = setInterval(fetchGameState, pollInterval);
-    fetchGameState();
-
-    return () => clearInterval(intervalId);
-  }, [gameId, backendAvailable, gameState?.mode]);
-
-  // CPU move logic
-  useEffect(() => {
-    if (!gameState || gameState.game_over || !backendAvailable) return;
-
-    const currentPlayer = gameState.players[gameState.current_player];
-    const isMyTurn = currentPlayer.name === playerName;
-
-    if (currentPlayer?.is_cpu && !isMyTurn && !loadingStates.cpuMoving) {
-      setLoadingStates((prev) => ({ ...prev, cpuMoving: true }));
-
-      const makeCpuMove = async () => {
-        try {
-          await new Promise((resolve) => setTimeout(resolve, 1000));
-          playSound('draw');
-          const updatedStateAfterDraw = await apiService.drawCard(gameState.id);
-          setGameState(updatedStateAfterDraw);
-
-          await new Promise((resolve) => setTimeout(resolve, 1000));
-          const cpuPlayerAfterDraw = updatedStateAfterDraw.players.find((p) => p.name === currentPlayer.name);
-          if (cpuPlayerAfterDraw && cpuPlayerAfterDraw.hand.length > 0) {
-            const randomIndex = Math.floor(Math.random() * cpuPlayerAfterDraw.hand.length);
-            playSound('discard');
-            const finalState = await apiService.discardCard(updatedStateAfterDraw.id, randomIndex);
-            setGameState(finalState);
-          } else {
-            const latestState = await fetch(`${API}/game/${gameState.id}`).then((res) => res.json());
-            setGameState(latestState);
-          }
-        } catch (err) {
-          console.error("CPU move failed:", err);
-          try {
-            const latestState = await fetch(`${API}/game/${gameState.id}`).then((res) => res.json());
-            setGameState(latestState);
-          } catch (fetchErr) {
-            console.error("Failed to fetch game state after CPU move error:", fetchErr);
-          }
-        } finally {
-          setLoadingStates((prev) => ({ ...prev, cpuMoving: false }));
         }
       };
+      ws.onclose = () => console.log('Lobby WebSocket closed');
+      ws.onerror = (error) => console.error('Lobby WebSocket error:', error);
 
-      makeCpuMove();
+      return () => {
+        ws.close();
+      };
     }
-  }, [gameState, playerName, backendAvailable, loadingStates.cpuMoving, playSound]);
+  }, [lobby, apiService]);
 
-  // Lobby polling
   useEffect(() => {
-    if (currentPage !== "multiplayer" || !backendAvailable) return;
-
-    const interval = setInterval(() => {
-      apiService
-        .listLobbies()
-        .then(setLobbies)
-        .catch(() => {});
-    }, 5000);
-
-    return () => clearInterval(interval);
-  }, [currentPage, backendAvailable]);
-
-  // Lobby details polling
-  useEffect(() => {
-    if (!lobby || !backendAvailable) return;
-
-    const fetchLobbyDetails = async () => {
-      try {
-        const updatedLobby = await apiService.getLobbyDetails(lobby.id);
-        if (updatedLobby === null) {
-          console.log("Lobby no longer exists. Checking if game started...");
-          setLobby(null);
-          setError("Lobby disappeared. It might have started or expired. Please check available games.");
-          setCurrentPage("home");
-        } else if (updatedLobby.started && updatedLobby.game_id) {
-          console.log(`Lobby started. Joining game with ID: ${updatedLobby.game_id}`);
-          try {
-            const game = await apiService.joinGame(updatedLobby.game_id, playerName);
-            setLobby(null);
-            setGameId(game.id);
-            setGameState(game);
-          } catch (joinError: any) {
-            const errorMessage = joinError instanceof Error ? joinError.message : "Failed to join game after lobby started.";
-            setError(errorMessage);
-            console.error("Failed to join game after lobby started:", joinError);
-            setLobby(null);
-            setCurrentPage("home");
-          }
-        } else {
-          setLobby(updatedLobby);
+    if (gameState) {
+      const ws = new WebSocket(`${WS_API}/ws/game/${gameState.id}/${playerName}`);
+      ws.onopen = () => console.log('Connected to game WebSocket');
+      ws.onmessage = (event) => {
+        const message = JSON.parse(event.data);
+        if (message.type === 'game_update') {
+          setGameState(message.data);
         }
-      } catch (error: any) {
-        const errorMessage = error instanceof Error ? error.message : "An unexpected error occurred while fetching lobby details.";
-        setError(errorMessage);
-        console.error("Error fetching lobby details:", error);
-      }
-    };
+      };
+      ws.onclose = () => console.log('Game WebSocket closed');
+      ws.onerror = (error) => console.error('Game WebSocket error:', error);
 
-    const intervalId = setInterval(fetchLobbyDetails, 3000);
-    return () => clearInterval(intervalId);
-  }, [lobby, backendAvailable, playerName]);
-
-  // Auto-start game when 2+ players are present
-  useEffect(() => {
-    if (!gameState || gameState.game_over) return;
-    
-    // Check if we have at least 2 players and the game hasn't started yet
-    if (gameState.players.length >= 2 && !gameState.has_drawn && gameState.pot.length === 0) {
-      // Game is ready to start - the backend will handle random player selection
-      console.log('Game ready to start with', gameState.players.length, 'players');
+      return () => {
+        ws.close();
+      };
     }
-  }, [gameState]);
+  }, [gameState, playerName]);
+  */
 
-  const handleSelectMode = (mode: 'multiplayer' | 'cpu') => {
-    if (mode === 'multiplayer') {
-      setCurrentPage('multiplayer');
-      // Load lobbies when entering multiplayer page
-      apiService.listLobbies()
-        .then(setLobbies)
-        .catch(() => setLobbies([]));
-    } else {
-      setCurrentPage('cpu');
-    }
-  };
-
+  // Existing functions (e.g., handleCreateLobby, handleJoinLobby, etc.)
   const handleCreateLobby = async () => {
     setLoadingStates(prev => ({ ...prev, starting: true }));
-    setError(null);
     try {
       const newLobby = await apiService.createLobby(playerName, numPlayers);
       setLobby(newLobby);
-      
-      // Create a game immediately when creating a lobby
-      const game = await apiService.createNewGame("multiplayer", playerName, 0, numPlayers);
-      setGameId(game.id);
-      setGameState(game);
-      setCurrentPage('game');
-      
-      // Immediately refresh game state to show all players
-      setTimeout(async () => {
-        try {
-          const refreshedGame = await apiService.getGame(game.id);
-          setGameState(refreshedGame);
-        } catch (error) {
-          console.warn('Failed to refresh game state:', error);
-        }
-      }, 500);
-      
-      playSound('shuffle');
-    } catch (error: any) {
-      setError(error.message || "Failed to create lobby");
-    } finally {
-      setLoadingStates(prev => ({ ...prev, starting: false }));
-    }
-  };
-
-  const handleJoinLobby = async (lobbyId: string) => {
-    setLoadingStates(prev => ({ ...prev, joining: true }));
-    setError(null);
-    try {
-      // First, get the current lobby details to check if player is already in it
-      const currentLobby = await apiService.getLobbyDetails(lobbyId);
-      if (!currentLobby) {
-        throw new Error("Lobby not found");
-      }
-      
-      // If player is already in the lobby, just join the game directly
-      if (currentLobby.players.includes(playerName)) {
-        if (currentLobby.game_id) {
-          const game = await apiService.joinGame(currentLobby.game_id, playerName);
-          setGameId(game.id);
-          setGameState(game);
-          setCurrentPage('game');
-          playSound('draw');
-          return;
-        }
-      }
-      
-      // If player is not in lobby, join the lobby first
-      const joinedLobby = await apiService.joinLobby(lobbyId, playerName);
-      setLobby(joinedLobby);
-      
-      let game;
-      // If lobby has a game_id, join that game directly
-      if (joinedLobby.game_id) {
-        game = await apiService.joinGame(joinedLobby.game_id, playerName);
-      } else {
-        // If no game exists yet, create one and join it
-        game = await apiService.createNewGame("multiplayer", joinedLobby.host, 0, joinedLobby.max_players);
-        // Add all lobby players to the game
-        for (const playerName of joinedLobby.players) {
-          if (playerName !== joinedLobby.host) {
-            await apiService.joinGame(game.id, playerName);
-          }
-        }
-      }
-      
-      setGameId(game.id);
-      setGameState(game);
-      setCurrentPage('game');
-      
-      // Immediately refresh game state to show all players
-      setTimeout(async () => {
-        try {
-          const refreshedGame = await apiService.getGame(game.id);
-          setGameState(refreshedGame);
-        } catch (error) {
-          console.warn('Failed to refresh game state:', error);
-        }
-      }, 500);
-      
-      playSound('draw');
-    } catch (error: any) {
-      setError(error.message || "Failed to join lobby");
-    } finally {
-      setLoadingStates(prev => ({ ...prev, joining: false }));
-    }
-  };
-
-  const handleStartCPUGame = async () => {
-    setLoadingStates(prev => ({ ...prev, starting: true }));
-    setError(null);
-    try {
-      const game = await apiService.createNewGame("cpu", playerName, numCPU);
-      setGameId(game.id);
-      setGameState(game);
-      setCurrentPage('game');
-      playSound('shuffle');
+      playSound('button');
     } catch (error: any) {
       setError(error.message || "Failed to create game");
     } finally {
@@ -1197,57 +695,45 @@ function App() {
     }
   };
 
-  const handleRefreshLobbies = () => {
-    apiService.listLobbies()
-      .then(setLobbies)
-      .catch(() => setError("Failed to refresh lobbies"));
-  };
-
-  const handleCancelLobby = async () => {
-    if (!lobby) return;
-    
-    setLoadingStates(prev => ({ ...prev, starting: true }));
-    setError(null);
+  const handleJoinLobby = async (lobbyId: string) => {
+    setLoadingStates(prev => ({ ...prev, joining: true }));
     try {
-      await apiService.cancelLobby(lobby.id, playerName);
-      setLobby(null);
-      setCurrentPage('home');
-      // Refresh lobby list to remove the cancelled lobby
-      apiService.listLobbies()
-        .then(setLobbies)
-        .catch(() => setLobbies([]));
+      const joinedLobby = await apiService.joinLobby(lobbyId, playerName);
+      setLobby(joinedLobby);
       playSound('button');
     } catch (error: any) {
-      setError(error.message || "Failed to cancel lobby");
+      setError(error.message || "Failed to join game");
     } finally {
-      setLoadingStates(prev => ({ ...prev, starting: false }));
+      setLoadingStates(prev => ({ ...prev, joining: false }));
     }
   };
 
-  const handleGoHome = () => {
-    setCurrentPage('home');
-    setLobby(null);
-    setGameState(null);
-    setGameId(null);
-  };
+  const handleRefreshLobbies = useCallback(async () => {
+    try {
+      const lobbyList = await apiService.getLobbies();
+      setLobbies(lobbyList);
+    } catch (error: any) {
+      setError(error.message || "Failed to fetch lobbies");
+    }
+  }, [apiService]);
 
-  const handleShowRules = () => {
-    setCurrentPage('rules');
-  };
+  useEffect(() => {
+    if (currentPage === 'multiplayer') {
+      handleRefreshLobbies();
+      // Optional: Poll as fallback, but WS handles real-time now
+      const interval = setInterval(handleRefreshLobbies, 10000);
+      return () => clearInterval(interval);
+    }
+  }, [currentPage, handleRefreshLobbies]);
 
-  const handleQuitGame = () => {
-    setGameState(null);
-    setGameId(null);
-    setCurrentPage('home');
-  };
+  // ... (rest of your existing code, like draw, discard, handleQuitGame, etc.)
 
-  // Game logic functions
-  const discard = async (cardIdx: number) => {
+  const discard = async (index: number) => {
     setLoadingStates(prev => ({ ...prev, discarding: true }));
     setError(null);
     try {
       if (!gameState) return;
-      const newState = await apiService.discardCard(gameState.id, cardIdx);
+      const newState = await apiService.discardCard(gameState.id, index);  // Assume you have this method
       setGameState(newState);
       playSound('discard');
     } catch (error: any) {
@@ -1272,9 +758,62 @@ function App() {
     }
   };
 
-
   const handleCloseTutorial = () => {
     setCurrentPage('home');
+  };
+
+  const handleSelectMode = (mode: 'multiplayer' | 'cpu') => {
+    if (mode === 'multiplayer') {
+      setCurrentPage('multiplayer');
+    } else {
+      setCurrentPage('cpu');
+    }
+  };
+
+  const handleStartCPUGame = async () => {
+    setLoadingStates(prev => ({ ...prev, starting: true }));
+    try {
+      const game = await apiService.createNewGame("cpu", playerName, numCPU);
+      setGameState(game);
+      setCurrentPage('game');
+      playSound('shuffle');
+    } catch (error: any) {
+      setError(error.message || "Failed to create game");
+    } finally {
+      setLoadingStates(prev => ({ ...prev, starting: false }));
+    }
+  };
+
+  const handleQuitGame = () => {
+    setGameState(null);
+    setLobby(null);
+    setCurrentPage('home');
+  };
+
+  const handleCancelLobby = async () => {
+    if (!lobby) return;
+    
+    setLoadingStates(prev => ({ ...prev, starting: true }));
+    try {
+      await apiService.cancelLobby(lobby.id, playerName);
+      setLobby(null);
+      setCurrentPage('home');
+      playSound('button');
+    } catch (error: any) {
+      setError(error.message || "Failed to cancel lobby");
+    } finally {
+      setLoadingStates(prev => ({ ...prev, starting: false }));
+    }
+  };
+
+  const handleShowRules = () => {
+    setCurrentPage('rules');
+  };
+
+  const handleGoHome = () => {
+    setCurrentPage('home');
+    setLobby(null);
+    setGameState(null);
   };
 
   return (
@@ -1282,129 +821,128 @@ function App() {
       <h1>Njuka King</h1>
 
       <ErrorModal
-          isOpen={!!error}
-          onClose={() => setError(null)}
-          message={error || ''}
-          showRetryButton={error?.includes('Connection') || error?.includes('Network') || false}
-          onRetry={() => window.location.reload()}
-          retryButtonText="Retry Connection"
-        />
+        isOpen={!!error}
+        onClose={() => setError(null)}
+        message={error || ''}
+        showRetryButton={error?.includes('Connection') || error?.includes('Network') || false}
+        onRetry={() => window.location.reload()}
+        retryButtonText="Retry Connection"
+      />
 
-        <LoadingOverlay
-          isVisible={loadingStates.starting || loadingStates.joining}
-          message="Connecting to game server..."
-        />
+      <LoadingOverlay
+        isVisible={loadingStates.starting || loadingStates.joining}
+        message="Connecting to game server..."
+      />
 
-        {/* Game Table Rendering */}
-        {gameState ? (
-          <div className="game-container">
-            <LazyGameTable
-              state={gameState}
-              playerName={playerName}
-              onDiscard={discard}
-              onDraw={draw}
-              loadingStates={loadingStates}
-              playSound={playSound}
-              showTutorial={currentPage === 'tutorial'}
-              onCloseTutorial={handleCloseTutorial}
-            />
-            <LazyGameOverModal
-              isOpen={!!gameState.game_over}
-              onClose={handleQuitGame}
-              winner={gameState.winner || 'Unknown'}
-              winnerHand={gameState.winner_hand}
-              onNewGame={handleQuitGame}
-            />
+      {/* Game Table Rendering */}
+      {gameState ? (
+        <div className="game-container">
+          <LazyGameTable
+            state={gameState}
+            playerName={playerName}
+            onDiscard={discard}
+            onDraw={draw}
+            loadingStates={loadingStates}
+            playSound={playSound}
+            showTutorial={currentPage === 'tutorial'}
+            onCloseTutorial={handleCloseTutorial}
+          />
+          <LazyGameOverModal
+            isOpen={!!gameState.game_over}
+            onClose={handleQuitGame}
+            winner={gameState.winner || 'Unknown'}
+            winnerHand={gameState.winner_hand}
+            onNewGame={handleQuitGame}
+          />
+        </div>
+      ) : lobby ? (
+        <div className="lobby-view">
+          <h2>Lobby: {lobby.id}</h2>
+          <p>Host: {lobby.host}</p>
+          <p>Players: {lobby.players.length}/{lobby.max_players}</p>
+          <div className="player-list">
+            <h3>Players:</h3>
+            <ul>
+              {lobby.players.map((player) => (
+                <li key={player}>
+                  {player} {player === playerName && "(You)"}
+                  {player === lobby.host && " 👑"}
+                </li>
+              ))}
+            </ul>
           </div>
-        ) : lobby ? (
-          <div className="lobby-view">
-            <h2>Lobby: {lobby.id}</h2>
-            <p>Host: {lobby.host}</p>
-            <p>Players: {lobby.players.length}/{lobby.max_players}</p>
-            <div className="player-list">
-              <h3>Players:</h3>
-              <ul>
-                {lobby.players.map((player) => (
-                  <li key={player}>
-                    {player} {player === playerName && "(You)"}
-                    {player === lobby.host && " 👑"}
-                  </li>
-                ))}
-              </ul>
-            </div>
-            <div className="lobby-actions">
-              {lobby.host === playerName && !lobby.started && (
-                <button 
-                  onClick={handleCancelLobby} 
-                  className="cancel-btn"
-                  disabled={loadingStates.starting}
-                >
-                  {loadingStates.starting ? "Cancelling..." : "Cancel Game"}
-                </button>
-              )}
-              <button onClick={() => setLobby(null)} className="quit-btn">
-                Leave Lobby
+          <div className="lobby-actions">
+            {lobby.host === playerName && !lobby.started && (
+              <button 
+                onClick={handleCancelLobby} 
+                className="cancel-btn"
+                disabled={loadingStates.starting}
+              >
+                {loadingStates.starting ? "Cancelling..." : "Cancel Game"}
               </button>
-            </div>
+            )}
+            <button onClick={() => setLobby(null)} className="quit-btn">
+              Leave Lobby
+            </button>
           </div>
-        ) : (
-          <>
-            {/* Page Rendering */}
-            {currentPage === 'home' && (
-              <HomePage
-                onSelectMode={handleSelectMode}
-                playerName={playerName}
-                setPlayerName={setPlayerName}
-              />
-            )}
+        </div>
+      ) : (
+        <>
+          {/* Page Rendering */}
+          {currentPage === 'home' && (
+            <HomePage
+              onSelectMode={handleSelectMode}
+              playerName={playerName}
+              setPlayerName={setPlayerName}
+            />
+          )}
 
-            {currentPage === 'multiplayer' && (
-              <MultiplayerPage
-                onBack={() => setCurrentPage('home')}
-                playerName={playerName}
-                numPlayers={numPlayers}
-                setNumPlayers={setNumPlayers}
-                onCreateLobby={handleCreateLobby}
-                onJoinLobby={handleJoinLobby}
-                lobbies={lobbies}
-                loadingStates={loadingStates}
-                onRefreshLobbies={handleRefreshLobbies}
-              />
-            )}
+          {currentPage === 'multiplayer' && (
+            <MultiplayerPage
+              onBack={() => setCurrentPage('home')}
+              playerName={playerName}
+              numPlayers={numPlayers}
+              setNumPlayers={setNumPlayers}
+              onCreateLobby={handleCreateLobby}
+              onJoinLobby={handleJoinLobby}
+              lobbies={lobbies}
+              loadingStates={loadingStates}
+              onRefreshLobbies={handleRefreshLobbies}
+            />
+          )}
 
-            {currentPage === 'cpu' && (
-              <CPUGamePage
-                onBack={() => setCurrentPage('home')}
-                onStartGame={handleStartCPUGame}
-                numCPU={numCPU}
-                setNumCPU={setNumCPU}
-                loadingStates={loadingStates}
-              />
-            )}
+          {currentPage === 'cpu' && (
+            <CPUGamePage
+              onBack={() => setCurrentPage('home')}
+              onStartGame={handleStartCPUGame}
+              numCPU={numCPU}
+              setNumCPU={setNumCPU}
+              loadingStates={loadingStates}
+            />
+          )}
 
-            {currentPage === 'rules' && (
-              <RulesPage onBack={() => setCurrentPage('home')} />
-            )}
+          {currentPage === 'rules' && (
+            <RulesPage onBack={() => setCurrentPage('home')} />
+          )}
 
-            {currentPage === 'tutorial' && (
-              <LazyTutorialModal
-                isOpen={true}
-                onClose={handleCloseTutorial}
-              />
-            )}
-          </>
-        )}
+          {currentPage === 'tutorial' && (
+            <LazyTutorialModal
+              isOpen={true}
+              onClose={handleCloseTutorial}
+            />
+          )}
+        </>
+      )}
 
-        <EnhancedBottomMenu
-          quitGameToMenu={gameState ? handleQuitGame : undefined}
-          soundsEnabled={soundsEnabled}
-          toggleSounds={toggleSounds}
-          playSound={playSound}
-          onShowRules={handleShowRules}
-          currentPage={currentPage}
-          onGoHome={handleGoHome}
-        />
-      </div>
+      <EnhancedBottomMenu
+        quitGameToMenu={gameState ? handleQuitGame : undefined}
+        soundsEnabled={soundsEnabled}
+        toggleSounds={toggleSounds}
+        playSound={playSound}
+        onShowRules={handleShowRules}
+        onGoHome={handleGoHome}
+      />
+    </div>
   );
 }
 
