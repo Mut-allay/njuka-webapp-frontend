@@ -302,7 +302,7 @@ const MultiplayerPage = ({
           </div>
           
           <div className="lobby-list">
-            {lobbies.length === 0 ? (
+            {!lobbies || lobbies.length === 0 ? (
               <div className="no-lobbies">
                 <p>No games available right now.</p>
                 <p>Create a new game to start playing!</p>
@@ -312,9 +312,9 @@ const MultiplayerPage = ({
                 <div key={lobby.id} className="lobby-item">
                   <div className="lobby-info">
                     <h4>Host: {lobby.host}</h4>
-                    <p>Players: {lobby.players.length}/{lobby.max_players}</p>
+                    <p>Players: {lobby.players?.length || 0}/{lobby.max_players}</p>
                     <div className="player-list-preview">
-                      {lobby.players.map((player) => (
+                      {(lobby.players || []).map((player) => (
                         <span key={player} className="player-tag">
                           {player}
                           {player === lobby.host && " 👑"}
@@ -327,7 +327,7 @@ const MultiplayerPage = ({
                   </div>
                   <button
                     onClick={() => onJoinLobby(lobby.id)}
-                    disabled={lobby.players.length >= lobby.max_players || loadingStates.joining}
+                    disabled={(lobby.players?.length || 0) >= lobby.max_players || loadingStates.joining}
                     className="join-lobby-btn"
                   >
                     {loadingStates.joining ? "Joining..." : "Join Game"}
@@ -710,10 +710,12 @@ function App() {
 
   const handleRefreshLobbies = useCallback(async () => {
     try {
-      const lobbyList = await apiService.getLobbies();
-      setLobbies(lobbyList);
+      const response = await apiService.getLobbies();
+      // The backend returns {lobbies: [...]}, so we need to extract the lobbies array
+      setLobbies(response.lobbies || []);
     } catch (error: any) {
       setError(error.message || "Failed to fetch lobbies");
+      setLobbies([]); // Set empty array on error to prevent map errors
     }
   }, [apiService]);
 
