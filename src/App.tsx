@@ -998,8 +998,7 @@ function App() {
             {gameState.mode === 'multiplayer' && 
              lobby && 
              lobby.host === playerName && 
-             !gameState.has_drawn && 
-             gameState.pot.length === 0 && (
+             gameState.players.length < 2 && (
               <div className="game-waiting-overlay" style={{
                 position: 'fixed',
                 top: '50%',

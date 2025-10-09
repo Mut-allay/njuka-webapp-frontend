@@ -368,8 +368,7 @@ async def join_game(
     # Auto-start game when 2+ players are present
     if len(game.players) >= 2 and not game.has_drawn and len(game.pot) == 0:
         randomize_starting_player_if_needed(game)
-        # Mark game as started
-        game.has_drawn = True
+        # Game is ready to start - the first player can now draw
     
     return JSONResponse(content=game.dict())
 
