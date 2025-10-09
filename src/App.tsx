@@ -663,11 +663,11 @@ function App() {
         console.error('Lobby WebSocket error:', error);
         setLobbyWS(null);
       };
-
-      return () => {
+    
+    return () => {
         ws.close();
         setLobbyWS(null);
-      };
+    };
     }
   }, [lobby, currentPage, apiService]);
 
@@ -791,7 +791,7 @@ function App() {
     const interval = setInterval(async () => {
       try {
         const game = await apiService.getGame(gameId);
-        setGameState(game);
+            setGameState(game);
       } catch (error) {
         console.error('Failed to fetch game state:', error);
       }
@@ -891,6 +891,50 @@ function App() {
     }
   };
 
+  const handleCancelGame = async () => {
+    if (!lobby) return;
+    
+    // Check if the current player is the host
+    const isHost = lobby.host === playerName;
+    if (!isHost) {
+      setError("Only the host can cancel the game");
+      return;
+    }
+    
+    // Check if the game has started (has drawn cards or pot has cards)
+    const gameHasStarted = gameState && (gameState.has_drawn || gameState.pot.length > 0);
+    if (gameHasStarted) {
+      setError("Cannot cancel a game that has already started");
+      return;
+    }
+    
+    setLoadingStates(prev => ({ ...prev, starting: true }));
+    try {
+      // Cancel the lobby (which will also cancel the associated game)
+      await apiService.cancelLobby(lobby.id, playerName);
+      
+      // Close WebSocket connections
+      if (gameWS) {
+        gameWS.close();
+        setGameWS(null);
+      }
+      if (lobbyWS) {
+        lobbyWS.close();
+        setLobbyWS(null);
+      }
+      
+      setGameState(null);
+      setLobby(null);
+      setGameId(null);
+      setCurrentPage('home');
+      playSound('button');
+    } catch (error: any) {
+      setError(error.message || "Failed to cancel game");
+    } finally {
+      setLoadingStates(prev => ({ ...prev, starting: false }));
+    }
+  };
+
   const handleShowRules = () => {
     setCurrentPage('rules');
   };
@@ -949,6 +993,44 @@ function App() {
                 {gameWS?.readyState === WebSocket.OPEN ? '🟢 Live' : '🔴 Polling'}
               </div>
             )}
+
+            {/* Game Waiting State - Show cancel button for host when game hasn't started */}
+            {gameState.mode === 'multiplayer' && 
+             lobby && 
+             lobby.host === playerName && 
+             !gameState.has_drawn && 
+             gameState.pot.length === 0 && (
+              <div className="game-waiting-overlay" style={{
+                position: 'fixed',
+                top: '50%',
+                left: '50%',
+                transform: 'translate(-50%, -50%)',
+                background: 'rgba(0, 0, 0, 0.8)',
+                color: 'white',
+                padding: '20px',
+                borderRadius: '10px',
+                textAlign: 'center',
+                zIndex: 1001
+              }}>
+                <h3>Waiting for players to join...</h3>
+                <p>Players: {gameState.players.length}/{gameState.max_players}</p>
+                <button 
+                  onClick={handleCancelGame}
+                  disabled={loadingStates.starting}
+                  style={{
+                    background: '#f44336',
+                    color: 'white',
+                    border: 'none',
+                    padding: '10px 20px',
+                    borderRadius: '5px',
+                    cursor: 'pointer',
+                    marginTop: '10px'
+                  }}
+                >
+                  {loadingStates.starting ? "Cancelling..." : "Cancel Game"}
+                </button>
+              </div>
+            )}
             <LazyGameTable
               state={gameState}
               playerName={playerName}
@@ -956,8 +1038,6 @@ function App() {
               onDraw={draw}
               loadingStates={loadingStates}
               playSound={playSound}
-              showTutorial={currentPage === 'tutorial'}
-              onCloseTutorial={handleCloseTutorial}
             />
             <LazyGameOverModal
               isOpen={!!gameState.game_over}

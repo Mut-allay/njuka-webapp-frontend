@@ -39,8 +39,6 @@ export interface GameTableProps {
     cpuMoving: boolean
   }
   playSound: (soundType: 'draw' | 'discard' | 'win' | 'button' | 'shuffle') => void
-  showTutorial: boolean
-  onCloseTutorial: () => void
 }
 
 export const GameTable: React.FC<GameTableProps> = ({
