@@ -268,6 +268,25 @@ async def join_lobby(
     
     return JSONResponse(content=lobby.dict())
 
+@app.post("/lobby/cancel")
+async def cancel_lobby(
+    lobby_id: str = Query(...),
+    host_name: str = Query(...)
+):
+    if lobby_id not in active_lobbies:
+        raise HTTPException(status_code=404, detail="Lobby not found")
+    
+    lobby = active_lobbies[lobby_id]
+    if lobby.host != host_name:
+        raise HTTPException(status_code=403, detail="Only the host can cancel the lobby")
+    if lobby.started:
+        raise HTTPException(status_code=400, detail="Cannot cancel a started game")
+    
+    # Remove the lobby
+    del active_lobbies[lobby_id]
+    
+    return JSONResponse(content={"message": "Lobby cancelled successfully"})
+
 @app.post("/lobby/start")
 async def start_lobby_game(
     lobby_id: str = Query(...),
@@ -339,7 +358,11 @@ async def join_game(
         if game.deck:
             game.players[-1].hand.append(game.deck.pop())
     
-    randomize_starting_player_if_needed(game)
+    # Auto-start game when 2+ players are present
+    if len(game.players) >= 2 and not game.has_drawn and len(game.pot) == 0:
+        randomize_starting_player_if_needed(game)
+        # Mark game as started
+        game.has_drawn = True
     
     return JSONResponse(content=game.dict())
 

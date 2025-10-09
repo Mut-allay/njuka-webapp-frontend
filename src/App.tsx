@@ -11,8 +11,6 @@ import LazyGameOverModal from './components/LazyGameOverModal';
 import LazyTutorialModal from './components/LazyTutorialModal';
 import ErrorModal from './components/ErrorModal';
 import LoadingOverlay from './components/LoadingOverlay';
-import { ConnectionStatus } from './components/ConnectionStatus';
-import { WebSocketProvider } from './contexts/WebSocketContext';
 
 const API = "https://njuka-webapp-backend.onrender.com";
 
@@ -412,6 +410,18 @@ const apiService = {
     }
   },
 
+  cancelLobby: async (lobbyId: string, hostName: string): Promise<void> => {
+    try {
+      const response = await fetch(`${API}/lobby/cancel?lobby_id=${lobbyId}&host_name=${encodeURIComponent(hostName)}`, {
+        method: "POST",
+      });
+      if (!response.ok) throw new Error("Failed to cancel lobby");
+    } catch (error) {
+      console.error("API Error:", error);
+      throw new Error("Failed to cancel lobby");
+    }
+  },
+
   startLobbyGame: async (lobbyId: string, hostName: string): Promise<GameState> => {
     try {
       const response = await fetch(`${API}/lobby/start?lobby_id=${lobbyId}&host_name=${encodeURIComponent(hostName)}`, {
@@ -422,6 +432,17 @@ const apiService = {
     } catch (error) {
       console.error("API Error:", error);
       throw new Error("Failed to start game");
+    }
+  },
+
+  getGame: async (gameId: string): Promise<GameState> => {
+    try {
+      const response = await fetch(`${API}/game/${gameId}`);
+      if (!response.ok) throw new Error("Failed to fetch game");
+      return response.json();
+    } catch (error) {
+      console.error("API Error:", error);
+      throw new Error("Failed to fetch game");
     }
   },
 };
@@ -888,7 +909,8 @@ function App() {
 
     let intervalId: NodeJS.Timeout;
     let currentRetries = 3;
-    let pollInterval = 2000;
+    // More frequent polling for multiplayer games to catch new players joining
+    let pollInterval = gameState?.mode === 'multiplayer' ? 1000 : 2000;
     const maxInterval = 10000;
     const backoffMultiplier = 1.5;
 
@@ -909,7 +931,8 @@ function App() {
         const latestState = await res.json();
         setGameState(latestState);
         currentRetries = 3;
-        pollInterval = 2000;
+        // Adjust polling interval based on game mode
+        pollInterval = latestState.mode === 'multiplayer' ? 1000 : 2000;
       } catch (err) {
         console.error("Failed to fetch game state:", err);
         currentRetries--;
@@ -940,7 +963,7 @@ function App() {
     fetchGameState();
 
     return () => clearInterval(intervalId);
-  }, [gameId, backendAvailable]);
+  }, [gameId, backendAvailable, gameState?.mode]);
 
   // CPU move logic
   useEffect(() => {
@@ -1041,6 +1064,17 @@ function App() {
     return () => clearInterval(intervalId);
   }, [lobby, backendAvailable, playerName]);
 
+  // Auto-start game when 2+ players are present
+  useEffect(() => {
+    if (!gameState || gameState.game_over) return;
+    
+    // Check if we have at least 2 players and the game hasn't started yet
+    if (gameState.players.length >= 2 && !gameState.has_drawn && gameState.pot.length === 0) {
+      // Game is ready to start - the backend will handle random player selection
+      console.log('Game ready to start with', gameState.players.length, 'players');
+    }
+  }, [gameState]);
+
   const handleSelectMode = (mode: 'multiplayer' | 'cpu') => {
     if (mode === 'multiplayer') {
       setCurrentPage('multiplayer');
@@ -1059,6 +1093,23 @@ function App() {
     try {
       const newLobby = await apiService.createLobby(playerName, numPlayers);
       setLobby(newLobby);
+      
+      // Create a game immediately when creating a lobby
+      const game = await apiService.createNewGame("multiplayer", playerName, 0, numPlayers);
+      setGameId(game.id);
+      setGameState(game);
+      setCurrentPage('game');
+      
+      // Immediately refresh game state to show all players
+      setTimeout(async () => {
+        try {
+          const refreshedGame = await apiService.getGame(game.id);
+          setGameState(refreshedGame);
+        } catch (error) {
+          console.warn('Failed to refresh game state:', error);
+        }
+      }, 500);
+      
       playSound('shuffle');
     } catch (error: any) {
       setError(error.message || "Failed to create lobby");
@@ -1071,8 +1122,57 @@ function App() {
     setLoadingStates(prev => ({ ...prev, joining: true }));
     setError(null);
     try {
+      // First, get the current lobby details to check if player is already in it
+      const currentLobby = await apiService.getLobbyDetails(lobbyId);
+      if (!currentLobby) {
+        throw new Error("Lobby not found");
+      }
+      
+      // If player is already in the lobby, just join the game directly
+      if (currentLobby.players.includes(playerName)) {
+        if (currentLobby.game_id) {
+          const game = await apiService.joinGame(currentLobby.game_id, playerName);
+          setGameId(game.id);
+          setGameState(game);
+          setCurrentPage('game');
+          playSound('draw');
+          return;
+        }
+      }
+      
+      // If player is not in lobby, join the lobby first
       const joinedLobby = await apiService.joinLobby(lobbyId, playerName);
       setLobby(joinedLobby);
+      
+      let game;
+      // If lobby has a game_id, join that game directly
+      if (joinedLobby.game_id) {
+        game = await apiService.joinGame(joinedLobby.game_id, playerName);
+      } else {
+        // If no game exists yet, create one and join it
+        game = await apiService.createNewGame("multiplayer", joinedLobby.host, 0, joinedLobby.max_players);
+        // Add all lobby players to the game
+        for (const playerName of joinedLobby.players) {
+          if (playerName !== joinedLobby.host) {
+            await apiService.joinGame(game.id, playerName);
+          }
+        }
+      }
+      
+      setGameId(game.id);
+      setGameState(game);
+      setCurrentPage('game');
+      
+      // Immediately refresh game state to show all players
+      setTimeout(async () => {
+        try {
+          const refreshedGame = await apiService.getGame(game.id);
+          setGameState(refreshedGame);
+        } catch (error) {
+          console.warn('Failed to refresh game state:', error);
+        }
+      }, 500);
+      
       playSound('draw');
     } catch (error: any) {
       setError(error.message || "Failed to join lobby");
@@ -1101,6 +1201,27 @@ function App() {
     apiService.listLobbies()
       .then(setLobbies)
       .catch(() => setError("Failed to refresh lobbies"));
+  };
+
+  const handleCancelLobby = async () => {
+    if (!lobby) return;
+    
+    setLoadingStates(prev => ({ ...prev, starting: true }));
+    setError(null);
+    try {
+      await apiService.cancelLobby(lobby.id, playerName);
+      setLobby(null);
+      setCurrentPage('home');
+      // Refresh lobby list to remove the cancelled lobby
+      apiService.listLobbies()
+        .then(setLobbies)
+        .catch(() => setLobbies([]));
+      playSound('button');
+    } catch (error: any) {
+      setError(error.message || "Failed to cancel lobby");
+    } finally {
+      setLoadingStates(prev => ({ ...prev, starting: false }));
+    }
   };
 
   const handleGoHome = () => {
@@ -1157,17 +1278,10 @@ function App() {
   };
 
   return (
-    <WebSocketProvider baseUrl="wss://njuka-webapp-backend.onrender.com">
-      <div className="App">
-        <h1>Njuka King</h1>
-        
-        <ConnectionStatus 
-          showControls={true}
-          showDetails={true}
-          className="connection-status-top"
-        />
+    <div className="App">
+      <h1>Njuka King</h1>
 
-        <ErrorModal
+      <ErrorModal
           isOpen={!!error}
           onClose={() => setError(null)}
           message={error || ''}
@@ -1218,9 +1332,20 @@ function App() {
                 ))}
               </ul>
             </div>
-            <button onClick={() => setLobby(null)} className="quit-btn">
-              Leave Lobby
-            </button>
+            <div className="lobby-actions">
+              {lobby.host === playerName && !lobby.started && (
+                <button 
+                  onClick={handleCancelLobby} 
+                  className="cancel-btn"
+                  disabled={loadingStates.starting}
+                >
+                  {loadingStates.starting ? "Cancelling..." : "Cancel Game"}
+                </button>
+              )}
+              <button onClick={() => setLobby(null)} className="quit-btn">
+                Leave Lobby
+              </button>
+            </div>
           </div>
         ) : (
           <>
@@ -1280,7 +1405,6 @@ function App() {
           onGoHome={handleGoHome}
         />
       </div>
-    </WebSocketProvider>
   );
 }
 
