@@ -5,6 +5,15 @@ import './App.css';
 // Import Lucide React icons
 import { Settings, Info, Home, Users, Bot, BookOpen, Volume2, VolumeX, ArrowLeft } from 'lucide-react';
 
+// Import existing game components
+import LazyGameTable from './components/LazyGameTable';
+import LazyGameOverModal from './components/LazyGameOverModal';
+import LazyTutorialModal from './components/LazyTutorialModal';
+import ErrorModal from './components/ErrorModal';
+import LoadingOverlay from './components/LoadingOverlay';
+import { ConnectionStatus } from './components/ConnectionStatus';
+import { WebSocketProvider } from './contexts/WebSocketContext';
+
 const API = "https://njuka-webapp-backend.onrender.com";
 
 // Sound Manager Hook
@@ -833,16 +842,16 @@ const EnhancedBottomMenu = ({
 
 // Main App Component
 function App() {
-  const [currentPage, setCurrentPage] = useState<'home' | 'multiplayer' | 'cpu' | 'rules' | 'game'>('home');
+  const [currentPage, setCurrentPage] = useState<'home' | 'multiplayer' | 'cpu' | 'rules' | 'game' | 'tutorial'>('home');
   const [playerName, setPlayerName] = useState('Player');
   const [numPlayers, setNumPlayers] = useState(4);
   const [numCPU, setNumCPU] = useState(1);
   const [lobbies, setLobbies] = useState<LobbyGame[]>([]);
   const [lobby, setLobby] = useState<LobbyGame | null>(null);
   const [gameState, setGameState] = useState<GameState | null>(null);
-  const [_gameId, setGameId] = useState<string | null>(null);
+  const [gameId, setGameId] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
-  const [_backendAvailable] = useState(true);
+  const [backendAvailable, setBackendAvailable] = useState(true);
   const [loadingStates, setLoadingStates] = useState({
     drawing: false,
     discarding: false,
@@ -872,6 +881,165 @@ function App() {
       document.removeEventListener('keydown', enableAudioOnInteraction);
     };
   }, [enableAudio]);
+
+  // Game state polling
+  useEffect(() => {
+    if (!gameId || !backendAvailable) return;
+
+    let intervalId: NodeJS.Timeout;
+    let currentRetries = 3;
+    let pollInterval = 2000;
+    const maxInterval = 10000;
+    const backoffMultiplier = 1.5;
+
+    const fetchGameState = async () => {
+      try {
+        const res = await fetch(`${API}/game/${gameId}`);
+        if (!res.ok) {
+          if (res.status === 404) {
+            console.error(`Game ${gameId} not found on backend. Returning to menu.`);
+            setError("Game not found or expired. Returning to main menu.");
+            setGameState(null);
+            setGameId(null);
+            clearInterval(intervalId);
+            return;
+          }
+          throw new Error("Network response was not ok");
+        }
+        const latestState = await res.json();
+        setGameState(latestState);
+        currentRetries = 3;
+        pollInterval = 2000;
+      } catch (err) {
+        console.error("Failed to fetch game state:", err);
+        currentRetries--;
+        
+        pollInterval = Math.min(pollInterval * backoffMultiplier, maxInterval);
+        
+        if (currentRetries <= 0) {
+          setError("Connection lost. Trying to reconnect...");
+          clearInterval(intervalId);
+          setTimeout(async () => {
+            const isHealthy = await apiService.checkHealth();
+            setBackendAvailable(isHealthy);
+            if (isHealthy) {
+              pollInterval = 2000;
+              intervalId = setInterval(fetchGameState, pollInterval);
+              fetchGameState();
+            }
+            currentRetries = 3;
+          }, 5000);
+        } else {
+          clearInterval(intervalId);
+          intervalId = setInterval(fetchGameState, pollInterval);
+        }
+      }
+    };
+
+    intervalId = setInterval(fetchGameState, pollInterval);
+    fetchGameState();
+
+    return () => clearInterval(intervalId);
+  }, [gameId, backendAvailable]);
+
+  // CPU move logic
+  useEffect(() => {
+    if (!gameState || gameState.game_over || !backendAvailable) return;
+
+    const currentPlayer = gameState.players[gameState.current_player];
+    const isMyTurn = currentPlayer.name === playerName;
+
+    if (currentPlayer?.is_cpu && !isMyTurn && !loadingStates.cpuMoving) {
+      setLoadingStates((prev) => ({ ...prev, cpuMoving: true }));
+
+      const makeCpuMove = async () => {
+        try {
+          await new Promise((resolve) => setTimeout(resolve, 1000));
+          playSound('draw');
+          const updatedStateAfterDraw = await apiService.drawCard(gameState.id);
+          setGameState(updatedStateAfterDraw);
+
+          await new Promise((resolve) => setTimeout(resolve, 1000));
+          const cpuPlayerAfterDraw = updatedStateAfterDraw.players.find((p) => p.name === currentPlayer.name);
+          if (cpuPlayerAfterDraw && cpuPlayerAfterDraw.hand.length > 0) {
+            const randomIndex = Math.floor(Math.random() * cpuPlayerAfterDraw.hand.length);
+            playSound('discard');
+            const finalState = await apiService.discardCard(updatedStateAfterDraw.id, randomIndex);
+            setGameState(finalState);
+          } else {
+            const latestState = await fetch(`${API}/game/${gameState.id}`).then((res) => res.json());
+            setGameState(latestState);
+          }
+        } catch (err) {
+          console.error("CPU move failed:", err);
+          try {
+            const latestState = await fetch(`${API}/game/${gameState.id}`).then((res) => res.json());
+            setGameState(latestState);
+          } catch (fetchErr) {
+            console.error("Failed to fetch game state after CPU move error:", fetchErr);
+          }
+        } finally {
+          setLoadingStates((prev) => ({ ...prev, cpuMoving: false }));
+        }
+      };
+
+      makeCpuMove();
+    }
+  }, [gameState, playerName, backendAvailable, loadingStates.cpuMoving, playSound]);
+
+  // Lobby polling
+  useEffect(() => {
+    if (currentPage !== "multiplayer" || !backendAvailable) return;
+
+    const interval = setInterval(() => {
+      apiService
+        .listLobbies()
+        .then(setLobbies)
+        .catch(() => {});
+    }, 5000);
+
+    return () => clearInterval(interval);
+  }, [currentPage, backendAvailable]);
+
+  // Lobby details polling
+  useEffect(() => {
+    if (!lobby || !backendAvailable) return;
+
+    const fetchLobbyDetails = async () => {
+      try {
+        const updatedLobby = await apiService.getLobbyDetails(lobby.id);
+        if (updatedLobby === null) {
+          console.log("Lobby no longer exists. Checking if game started...");
+          setLobby(null);
+          setError("Lobby disappeared. It might have started or expired. Please check available games.");
+          setCurrentPage("home");
+        } else if (updatedLobby.started && updatedLobby.game_id) {
+          console.log(`Lobby started. Joining game with ID: ${updatedLobby.game_id}`);
+          try {
+            const game = await apiService.joinGame(updatedLobby.game_id, playerName);
+            setLobby(null);
+            setGameId(game.id);
+            setGameState(game);
+          } catch (joinError: any) {
+            const errorMessage = joinError instanceof Error ? joinError.message : "Failed to join game after lobby started.";
+            setError(errorMessage);
+            console.error("Failed to join game after lobby started:", joinError);
+            setLobby(null);
+            setCurrentPage("home");
+          }
+        } else {
+          setLobby(updatedLobby);
+        }
+      } catch (error: any) {
+        const errorMessage = error instanceof Error ? error.message : "An unexpected error occurred while fetching lobby details.";
+        setError(errorMessage);
+        console.error("Error fetching lobby details:", error);
+      }
+    };
+
+    const intervalId = setInterval(fetchLobbyDetails, 3000);
+    return () => clearInterval(intervalId);
+  }, [lobby, backendAvailable, playerName]);
 
   const handleSelectMode = (mode: 'multiplayer' | 'cpu') => {
     if (mode === 'multiplayer') {
@@ -952,96 +1120,167 @@ function App() {
     setCurrentPage('home');
   };
 
+  // Game logic functions
+  const discard = async (cardIdx: number) => {
+    setLoadingStates(prev => ({ ...prev, discarding: true }));
+    setError(null);
+    try {
+      if (!gameState) return;
+      const newState = await apiService.discardCard(gameState.id, cardIdx);
+      setGameState(newState);
+      playSound('discard');
+    } catch (error: any) {
+      setError(error.message || "Failed to discard card");
+    } finally {
+      setLoadingStates(prev => ({ ...prev, discarding: false }));
+    }
+  };
+
+  const draw = async () => {
+    setLoadingStates(prev => ({ ...prev, drawing: true }));
+    setError(null);
+    try {
+      if (!gameState) return;
+      const newState = await apiService.drawCard(gameState.id);
+      setGameState(newState);
+      playSound('draw');
+    } catch (error: any) {
+      setError(error.message || "Failed to draw card");
+    } finally {
+      setLoadingStates(prev => ({ ...prev, drawing: false }));
+    }
+  };
+
+
+  const handleCloseTutorial = () => {
+    setCurrentPage('home');
+  };
+
   return (
-    <div className="App">
-      <h1>Njuka King</h1>
+    <WebSocketProvider baseUrl="wss://njuka-webapp-backend.onrender.com">
+      <div className="App">
+        <h1>Njuka King</h1>
+        
+        <ConnectionStatus 
+          showControls={true}
+          showDetails={true}
+          className="connection-status-top"
+        />
 
-      {error && (
-        <div className="error-modal">
-          <div className="error-content">
-            <h3>Error</h3>
-            <p>{error}</p>
-            <button onClick={() => setError(null)}>OK</button>
+        <ErrorModal
+          isOpen={!!error}
+          onClose={() => setError(null)}
+          message={error || ''}
+          showRetryButton={error?.includes('Connection') || error?.includes('Network') || false}
+          onRetry={() => window.location.reload()}
+          retryButtonText="Retry Connection"
+        />
+
+        <LoadingOverlay
+          isVisible={loadingStates.starting || loadingStates.joining}
+          message="Connecting to game server..."
+        />
+
+        {/* Game Table Rendering */}
+        {gameState ? (
+          <div className="game-container">
+            <LazyGameTable
+              state={gameState}
+              playerName={playerName}
+              onDiscard={discard}
+              onDraw={draw}
+              loadingStates={loadingStates}
+              playSound={playSound}
+              showTutorial={currentPage === 'tutorial'}
+              onCloseTutorial={handleCloseTutorial}
+            />
+            <LazyGameOverModal
+              isOpen={!!gameState.game_over}
+              onClose={handleQuitGame}
+              winner={gameState.winner || 'Unknown'}
+              winnerHand={gameState.winner_hand}
+              onNewGame={handleQuitGame}
+            />
           </div>
-        </div>
-      )}
-
-      {(loadingStates.starting || loadingStates.joining) && (
-        <div className="loading-overlay">
-          <div className="loading-spinner"></div>
-          <p>Loading...</p>
-        </div>
-      )}
-
-      {/* Page Rendering */}
-      {currentPage === 'home' && (
-        <HomePage
-          onSelectMode={handleSelectMode}
-          playerName={playerName}
-          setPlayerName={setPlayerName}
-        />
-      )}
-
-      {currentPage === 'multiplayer' && (
-        <MultiplayerPage
-          onBack={() => setCurrentPage('home')}
-          playerName={playerName}
-          numPlayers={numPlayers}
-          setNumPlayers={setNumPlayers}
-          onCreateLobby={handleCreateLobby}
-          onJoinLobby={handleJoinLobby}
-          lobbies={lobbies}
-          loadingStates={loadingStates}
-          onRefreshLobbies={handleRefreshLobbies}
-        />
-      )}
-
-      {currentPage === 'cpu' && (
-        <CPUGamePage
-          onBack={() => setCurrentPage('home')}
-          onStartGame={handleStartCPUGame}
-          numCPU={numCPU}
-          setNumCPU={setNumCPU}
-          loadingStates={loadingStates}
-        />
-      )}
-
-      {currentPage === 'rules' && (
-        <RulesPage onBack={() => setCurrentPage('home')} />
-      )}
-
-      {lobby && (
-        <div className="lobby-view">
-          <h2>Lobby: {lobby.id}</h2>
-          <p>Host: {lobby.host}</p>
-          <p>Players: {lobby.players.length}/{lobby.max_players}</p>
-          <div className="player-list">
-            <h3>Players:</h3>
-            <ul>
-              {lobby.players.map((player) => (
-                <li key={player}>
-                  {player} {player === playerName && "(You)"}
-                  {player === lobby.host && " 👑"}
-                </li>
-              ))}
-            </ul>
+        ) : lobby ? (
+          <div className="lobby-view">
+            <h2>Lobby: {lobby.id}</h2>
+            <p>Host: {lobby.host}</p>
+            <p>Players: {lobby.players.length}/{lobby.max_players}</p>
+            <div className="player-list">
+              <h3>Players:</h3>
+              <ul>
+                {lobby.players.map((player) => (
+                  <li key={player}>
+                    {player} {player === playerName && "(You)"}
+                    {player === lobby.host && " 👑"}
+                  </li>
+                ))}
+              </ul>
+            </div>
+            <button onClick={() => setLobby(null)} className="quit-btn">
+              Leave Lobby
+            </button>
           </div>
-          <button onClick={() => setLobby(null)} className="quit-btn">
-            Leave Lobby
-          </button>
-        </div>
-      )}
+        ) : (
+          <>
+            {/* Page Rendering */}
+            {currentPage === 'home' && (
+              <HomePage
+                onSelectMode={handleSelectMode}
+                playerName={playerName}
+                setPlayerName={setPlayerName}
+              />
+            )}
 
-      <EnhancedBottomMenu
-        quitGameToMenu={gameState ? handleQuitGame : undefined}
-        soundsEnabled={soundsEnabled}
-        toggleSounds={toggleSounds}
-        playSound={playSound}
-        onShowRules={handleShowRules}
-        currentPage={currentPage}
-        onGoHome={handleGoHome}
-      />
-    </div>
+            {currentPage === 'multiplayer' && (
+              <MultiplayerPage
+                onBack={() => setCurrentPage('home')}
+                playerName={playerName}
+                numPlayers={numPlayers}
+                setNumPlayers={setNumPlayers}
+                onCreateLobby={handleCreateLobby}
+                onJoinLobby={handleJoinLobby}
+                lobbies={lobbies}
+                loadingStates={loadingStates}
+                onRefreshLobbies={handleRefreshLobbies}
+              />
+            )}
+
+            {currentPage === 'cpu' && (
+              <CPUGamePage
+                onBack={() => setCurrentPage('home')}
+                onStartGame={handleStartCPUGame}
+                numCPU={numCPU}
+                setNumCPU={setNumCPU}
+                loadingStates={loadingStates}
+              />
+            )}
+
+            {currentPage === 'rules' && (
+              <RulesPage onBack={() => setCurrentPage('home')} />
+            )}
+
+            {currentPage === 'tutorial' && (
+              <LazyTutorialModal
+                isOpen={true}
+                onClose={handleCloseTutorial}
+              />
+            )}
+          </>
+        )}
+
+        <EnhancedBottomMenu
+          quitGameToMenu={gameState ? handleQuitGame : undefined}
+          soundsEnabled={soundsEnabled}
+          toggleSounds={toggleSounds}
+          playSound={playSound}
+          onShowRules={handleShowRules}
+          currentPage={currentPage}
+          onGoHome={handleGoHome}
+        />
+      </div>
+    </WebSocketProvider>
   );
 }
 
