@@ -60,8 +60,8 @@ export const GameTable: React.FC<GameTableProps> = ({
   const [drawingCard, setDrawingCard] = useState(false)
 
   const yourPlayer = state.players.find((p) => p?.name === playerName)
-  const currentPlayerIndex = state.current_player ?? 0
-  const currentPlayer = state.players[currentPlayerIndex]
+  const gameCurrentPlayerIndex = state.current_player ?? 0
+  const currentPlayer = state.players[gameCurrentPlayerIndex]
   const isGameOver = state.game_over
 
   // All useEffect hooks must be called before any early returns
@@ -104,9 +104,30 @@ export const GameTable: React.FC<GameTableProps> = ({
     return <div className="error">Player data not available</div>
   }
 
-  const getPlayerSafe = (index: number) => {
-    return state.players[index] ?? { name: "Player", hand: [], is_cpu: false }
+  // Get the current player's index in the players array
+  const currentPlayerIndex = state.players.findIndex((p) => p?.name === playerName)
+  
+  // Create seat mapping: current player is always bottom, others positioned relative to them
+  const getSeatPlayers = () => {
+    const players = state.players
+    const currentIndex = currentPlayerIndex
+    
+    if (currentIndex === -1) return { top: null, left: null, right: null, bottom: null }
+    
+    const bottom = players[currentIndex] // Current player always on bottom
+    
+    // Other players positioned relative to current player
+    const otherPlayers = players.filter((_, index) => index !== currentIndex)
+    
+    return {
+      top: otherPlayers[0] || null,      // First other player on top
+      left: otherPlayers[1] || null,     // Second other player on left  
+      right: otherPlayers[2] || null,    // Third other player on right
+      bottom: bottom
+    }
   }
+
+  const seatPlayers = getSeatPlayers()
 
   const isWinner = (player: Player) => isGameOver && state.winner === player.name
 
@@ -200,25 +221,25 @@ export const GameTable: React.FC<GameTableProps> = ({
       </div>
       
       {/* Top Player */}
-      {state.players.length > 1 && (
+      {seatPlayers.top && (
         <div 
-          className={`player-seat top ${currentPlayerIndex === 1 ? "active" : ""}`}
+          className={`player-seat top ${gameCurrentPlayerIndex === state.players.findIndex(p => p.name === seatPlayers.top?.name) ? "active" : ""}`}
           role="region"
-          aria-label={`Player ${getPlayerSafe(1).name}${getPlayerSafe(1).is_cpu ? " (CPU)" : ""}${currentPlayerIndex === 1 ? ", current turn" : ""}`}
+          aria-label={`Player ${seatPlayers.top.name}${seatPlayers.top.is_cpu ? " (CPU)" : ""}${state.current_player === state.players.findIndex(p => p.name === seatPlayers.top?.name) ? ", current turn" : ""}`}
         >
           <h3>
-            {getPlayerSafe(1).name}
-            {getPlayerSafe(1).is_cpu && " (CPU)"}
+            {seatPlayers.top.name}
+            {seatPlayers.top.is_cpu && " (CPU)"}
           </h3>
-          <div className="hand horizontal" aria-label={`${getPlayerSafe(1).name}'s hand with ${getPlayerSafe(1).hand.length} cards`}>
-            {getPlayerSafe(1).hand.map((card, i) => (
+          <div className="hand horizontal" aria-label={`${seatPlayers.top.name}'s hand with ${seatPlayers.top.hand.length} cards`}>
+            {seatPlayers.top.hand.map((card, i) => (
               <Card
                 key={`top-${i}`}
                 facedown={!isGameOver}
                 value={card.value}
                 suit={card.suit}
                 small={true}
-                highlight={isWinner(getPlayerSafe(1))}
+                highlight={isWinner(seatPlayers.top)}
               />
             ))}
           </div>
@@ -226,25 +247,25 @@ export const GameTable: React.FC<GameTableProps> = ({
       )}
 
       {/* Left Player */}
-      {state.players.length > 2 && (
+      {seatPlayers.left && (
         <div 
-          className={`player-seat left ${currentPlayerIndex === 2 ? "active" : ""}`}
+          className={`player-seat left ${gameCurrentPlayerIndex === state.players.findIndex(p => p.name === seatPlayers.left?.name) ? "active" : ""}`}
           role="region"
-          aria-label={`Player ${getPlayerSafe(2).name}${getPlayerSafe(2).is_cpu ? " (CPU)" : ""}${currentPlayerIndex === 2 ? ", current turn" : ""}`}
+          aria-label={`Player ${seatPlayers.left.name}${seatPlayers.left.is_cpu ? " (CPU)" : ""}${state.current_player === state.players.findIndex(p => p.name === seatPlayers.left?.name) ? ", current turn" : ""}`}
         >
           <h3>
-            {getPlayerSafe(2).name}
-            {getPlayerSafe(2).is_cpu && " (CPU)"}
+            {seatPlayers.left.name}
+            {seatPlayers.left.is_cpu && " (CPU)"}
           </h3>
-          <div className="hand horizontal" aria-label={`${getPlayerSafe(2).name}'s hand with ${getPlayerSafe(2).hand.length} cards`}>
-            {getPlayerSafe(2).hand.map((card, i) => (
+          <div className="hand horizontal" aria-label={`${seatPlayers.left.name}'s hand with ${seatPlayers.left.hand.length} cards`}>
+            {seatPlayers.left.hand.map((card, i) => (
               <Card
                 key={`left-${i}`}
                 facedown={!isGameOver}
                 value={card.value}
                 suit={card.suit}
                 small={true}
-                highlight={isWinner(getPlayerSafe(2))}
+                highlight={isWinner(seatPlayers.left)}
               />
             ))}
           </div>
@@ -252,25 +273,25 @@ export const GameTable: React.FC<GameTableProps> = ({
       )}
 
       {/* Right Player */}
-      {state.players.length > 3 && (
+      {seatPlayers.right && (
         <div 
-          className={`player-seat right ${currentPlayerIndex === 3 ? "active" : ""}`}
+          className={`player-seat right ${gameCurrentPlayerIndex === state.players.findIndex(p => p.name === seatPlayers.right?.name) ? "active" : ""}`}
           role="region"
-          aria-label={`Player ${getPlayerSafe(3).name}${getPlayerSafe(3).is_cpu ? " (CPU)" : ""}${currentPlayerIndex === 3 ? ", current turn" : ""}`}
+          aria-label={`Player ${seatPlayers.right.name}${seatPlayers.right.is_cpu ? " (CPU)" : ""}${state.current_player === state.players.findIndex(p => p.name === seatPlayers.right?.name) ? ", current turn" : ""}`}
         >
           <h3>
-            {getPlayerSafe(3).name}
-            {getPlayerSafe(3).is_cpu && " (CPU)"}
+            {seatPlayers.right.name}
+            {seatPlayers.right.is_cpu && " (CPU)"}
           </h3>
-          <div className="hand horizontal" aria-label={`${getPlayerSafe(3).name}'s hand with ${getPlayerSafe(3).hand.length} cards`}>
-            {getPlayerSafe(3).hand.map((card, i) => (
+          <div className="hand horizontal" aria-label={`${seatPlayers.right.name}'s hand with ${seatPlayers.right.hand.length} cards`}>
+            {seatPlayers.right.hand.map((card, i) => (
               <Card
                 key={`right-${i}`}
                 facedown={!isGameOver}
                 value={card.value}
                 suit={card.suit}
                 small={true}
-                highlight={isWinner(getPlayerSafe(3))}
+                highlight={isWinner(seatPlayers.right)}
               />
             ))}
           </div>
@@ -315,9 +336,9 @@ export const GameTable: React.FC<GameTableProps> = ({
 
       {/* Bottom Player (current player) */}
       <div
-        className={`player-seat bottom ${currentPlayerIndex === state.players.findIndex((p) => p?.name === playerName) ? "active" : ""}`}
+        className={`player-seat bottom ${gameCurrentPlayerIndex === currentPlayerIndex ? "active" : ""}`}
         role="region"
-        aria-label={`Your hand${currentPlayerIndex === state.players.findIndex((p) => p?.name === playerName) ? ", current turn" : ""}`}
+        aria-label={`Your hand${state.current_player === currentPlayerIndex ? ", current turn" : ""}`}
       >
         <h4 className="player-name">{yourPlayer.name}</h4>
         <div className="hand" aria-label={`Your hand with ${yourPlayer.hand?.length || 0} cards`}>

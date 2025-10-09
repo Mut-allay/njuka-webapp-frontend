@@ -13,7 +13,7 @@ import ErrorModal from './components/ErrorModal';
 import LoadingOverlay from './components/LoadingOverlay';
 
 const API = "https://njuka-webapp-backend.onrender.com";
-// const WS_API = API.replace('https://', 'wss://');  // WebSocket API (currently unused)
+const WS_API = API.replace('https://', 'wss://');  // WebSocket API
 
 // Types
 type CardType = {
@@ -552,6 +552,7 @@ function App() {
   const [lobbies, setLobbies] = useState([]);
   const [lobby, setLobby] = useState<LobbyGame | null>(null);
   const [gameState, setGameState] = useState<GameState | null>(null);
+  const [gameId, setGameId] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [loadingStates, setLoadingStates] = useState({
     starting: false,
@@ -562,9 +563,9 @@ function App() {
   });
   const { playSound, soundsEnabled, toggleSounds } = useSoundManager();
 
-  // WebSocket states (currently unused but kept for future implementation)
-  // const [lobbyWS, setLobbyWS] = useState<WebSocket | null>(null);
-  // const [gameWS, setGameWS] = useState<WebSocket | null>(null);
+  // WebSocket states
+  const [lobbyWS, setLobbyWS] = useState<WebSocket | null>(null);
+  const [gameWS, setGameWS] = useState<WebSocket | null>(null);
 
   // API service (assuming you have this; if not, add it)
   const apiService = useMemo(() => ({
@@ -637,12 +638,14 @@ function App() {
     },
   }), []);
 
-  // WebSocket connections (currently disabled, using polling instead)
-  /*
+  // WebSocket connections for real-time updates
   useEffect(() => {
-    if (lobby) {
+    if (lobby && currentPage === 'multiplayer') {
       const ws = new WebSocket(`${WS_API}/ws/lobby/${lobby.id}`);
-      ws.onopen = () => console.log('Connected to lobby WebSocket');
+      ws.onopen = () => {
+        console.log('Connected to lobby WebSocket');
+        setLobbyWS(ws);
+      };
       ws.onmessage = (event) => {
         const message = JSON.parse(event.data);
         if (message.type === 'lobby_update') {
@@ -652,42 +655,67 @@ function App() {
           }
         }
       };
-      ws.onclose = () => console.log('Lobby WebSocket closed');
-      ws.onerror = (error) => console.error('Lobby WebSocket error:', error);
+      ws.onclose = () => {
+        console.log('Lobby WebSocket closed');
+        setLobbyWS(null);
+      };
+      ws.onerror = (error) => {
+        console.error('Lobby WebSocket error:', error);
+        setLobbyWS(null);
+      };
 
       return () => {
         ws.close();
+        setLobbyWS(null);
       };
     }
-  }, [lobby, apiService]);
+  }, [lobby, currentPage, apiService]);
 
   useEffect(() => {
-    if (gameState) {
-      const ws = new WebSocket(`${WS_API}/ws/game/${gameState.id}/${playerName}`);
-      ws.onopen = () => console.log('Connected to game WebSocket');
+    if (gameState && gameState.mode === 'multiplayer' && playerName) {
+      const ws = new WebSocket(`${WS_API}/ws/game/${gameState.id}?player_name=${encodeURIComponent(playerName)}`);
+      ws.onopen = () => {
+        console.log('Connected to game WebSocket');
+        setGameWS(ws);
+      };
       ws.onmessage = (event) => {
         const message = JSON.parse(event.data);
         if (message.type === 'game_update') {
           setGameState(message.data);
         }
       };
-      ws.onclose = () => console.log('Game WebSocket closed');
-      ws.onerror = (error) => console.error('Game WebSocket error:', error);
+      ws.onclose = () => {
+        console.log('Game WebSocket closed');
+        setGameWS(null);
+      };
+      ws.onerror = (error) => {
+        console.error('Game WebSocket error:', error);
+        setGameWS(null);
+      };
 
       return () => {
         ws.close();
+        setGameWS(null);
       };
     }
   }, [gameState, playerName]);
-  */
 
   // Existing functions (e.g., handleCreateLobby, handleJoinLobby, etc.)
   const handleCreateLobby = async () => {
     setLoadingStates(prev => ({ ...prev, starting: true }));
+    setError(null);
     try {
+      // Create lobby first
       const newLobby = await apiService.createLobby(playerName, numPlayers);
       setLobby(newLobby);
-      playSound('button');
+      
+      // Immediately create a game and join it
+      const game = await apiService.createNewGame("multiplayer", playerName, 0, numPlayers);
+      setGameId(game.id);
+      setGameState(game);
+      setCurrentPage('game');
+      
+      playSound('shuffle');
     } catch (error: any) {
       setError(error.message || "Failed to create game");
     } finally {
@@ -697,13 +725,36 @@ function App() {
 
   const handleJoinLobby = async (lobbyId: string) => {
     setLoadingStates(prev => ({ ...prev, joining: true }));
+    setError(null);
     try {
+      // Join the lobby first
       const joinedLobby = await apiService.joinLobby(lobbyId, playerName);
       setLobby(joinedLobby);
-      playSound('button');
+      
+      // Check if the lobby already has a game, if not create one
+      let game;
+      if (joinedLobby.game_id) {
+        // Join existing game
+        game = await apiService.joinGame(joinedLobby.game_id, playerName);
+          } else {
+        // Create new game for this lobby
+        game = await apiService.createNewGame("multiplayer", joinedLobby.host, 0, joinedLobby.max_players);
+        // Add all lobby players to the game
+        for (const playerName of joinedLobby.players) {
+          if (playerName !== joinedLobby.host) {
+            await apiService.joinGame(game.id, playerName);
+          }
+        }
+      }
+      
+      setGameId(game.id);
+      setGameState(game);
+      setCurrentPage('game');
+      
+      playSound('draw');
     } catch (error: any) {
       setError(error.message || "Failed to join game");
-    } finally {
+        } finally {
       setLoadingStates(prev => ({ ...prev, joining: false }));
     }
   };
@@ -724,9 +775,30 @@ function App() {
       handleRefreshLobbies();
       // Optional: Poll as fallback, but WS handles real-time now
       const interval = setInterval(handleRefreshLobbies, 10000);
-      return () => clearInterval(interval);
+    return () => clearInterval(interval);
     }
   }, [currentPage, handleRefreshLobbies]);
+
+  // Poll game state as fallback when WebSocket is not available
+  useEffect(() => {
+    if (!gameId) return;
+
+    // Only use polling if WebSocket is not connected
+    const shouldPoll = !gameWS || gameWS.readyState !== WebSocket.OPEN;
+    
+    if (!shouldPoll) return;
+
+    const interval = setInterval(async () => {
+      try {
+        const game = await apiService.getGame(gameId);
+        setGameState(game);
+      } catch (error) {
+        console.error('Failed to fetch game state:', error);
+      }
+    }, gameState?.mode === 'multiplayer' ? 1000 : 2000); // More frequent for multiplayer
+
+    return () => clearInterval(interval);
+  }, [gameId, gameWS, gameState?.mode, apiService]);
 
   // ... (rest of your existing code, like draw, discard, handleQuitGame, etc.)
 
@@ -787,8 +859,19 @@ function App() {
   };
 
   const handleQuitGame = () => {
+    // Close WebSocket connections
+    if (gameWS) {
+      gameWS.close();
+      setGameWS(null);
+    }
+    if (lobbyWS) {
+      lobbyWS.close();
+      setLobbyWS(null);
+    }
+    
     setGameState(null);
     setLobby(null);
+    setGameId(null);
     setCurrentPage('home');
   };
 
@@ -813,66 +896,93 @@ function App() {
   };
 
   const handleGoHome = () => {
+    // Close WebSocket connections
+    if (gameWS) {
+      gameWS.close();
+      setGameWS(null);
+    }
+    if (lobbyWS) {
+      lobbyWS.close();
+      setLobbyWS(null);
+    }
+    
     setCurrentPage('home');
     setLobby(null);
     setGameState(null);
+    setGameId(null);
   };
 
   return (
-    <div className="App">
-      <h1>Njuka King</h1>
+      <div className="App">
+        <h1>Njuka King</h1>
 
-      <ErrorModal
-        isOpen={!!error}
-        onClose={() => setError(null)}
-        message={error || ''}
-        showRetryButton={error?.includes('Connection') || error?.includes('Network') || false}
-        onRetry={() => window.location.reload()}
-        retryButtonText="Retry Connection"
-      />
+        <ErrorModal
+          isOpen={!!error}
+          onClose={() => setError(null)}
+          message={error || ''}
+          showRetryButton={error?.includes('Connection') || error?.includes('Network') || false}
+          onRetry={() => window.location.reload()}
+          retryButtonText="Retry Connection"
+        />
 
-      <LoadingOverlay
-        isVisible={loadingStates.starting || loadingStates.joining}
-        message="Connecting to game server..."
-      />
+        <LoadingOverlay
+          isVisible={loadingStates.starting || loadingStates.joining}
+          message="Connecting to game server..."
+        />
 
-      {/* Game Table Rendering */}
-      {gameState ? (
-        <div className="game-container">
-          <LazyGameTable
-            state={gameState}
-            playerName={playerName}
-            onDiscard={discard}
-            onDraw={draw}
-            loadingStates={loadingStates}
-            playSound={playSound}
-            showTutorial={currentPage === 'tutorial'}
-            onCloseTutorial={handleCloseTutorial}
-          />
-          <LazyGameOverModal
-            isOpen={!!gameState.game_over}
-            onClose={handleQuitGame}
-            winner={gameState.winner || 'Unknown'}
-            winnerHand={gameState.winner_hand}
-            onNewGame={handleQuitGame}
-          />
-        </div>
-      ) : lobby ? (
-        <div className="lobby-view">
-          <h2>Lobby: {lobby.id}</h2>
-          <p>Host: {lobby.host}</p>
-          <p>Players: {lobby.players.length}/{lobby.max_players}</p>
-          <div className="player-list">
-            <h3>Players:</h3>
-            <ul>
-              {lobby.players.map((player) => (
-                <li key={player}>
-                  {player} {player === playerName && "(You)"}
-                  {player === lobby.host && " 👑"}
-                </li>
-              ))}
-            </ul>
+        {/* Game Table Rendering */}
+        {gameState ? (
+          <div className="game-container">
+            {/* WebSocket Status Indicator for Multiplayer */}
+            {gameState.mode === 'multiplayer' && (
+              <div className="websocket-status" style={{
+                position: 'fixed',
+                top: '10px',
+                right: '10px',
+                background: gameWS?.readyState === WebSocket.OPEN ? '#4CAF50' : '#f44336',
+                color: 'white',
+                padding: '4px 8px',
+                borderRadius: '4px',
+                fontSize: '12px',
+                zIndex: 1000
+              }}>
+                {gameWS?.readyState === WebSocket.OPEN ? '🟢 Live' : '🔴 Polling'}
+              </div>
+            )}
+            <LazyGameTable
+              state={gameState}
+              playerName={playerName}
+              onDiscard={discard}
+              onDraw={draw}
+              loadingStates={loadingStates}
+              playSound={playSound}
+              showTutorial={currentPage === 'tutorial'}
+              onCloseTutorial={handleCloseTutorial}
+            />
+            <LazyGameOverModal
+              isOpen={!!gameState.game_over}
+              onClose={handleQuitGame}
+              winner={gameState.winner || 'Unknown'}
+              winnerHand={gameState.winner_hand}
+              onNewGame={handleQuitGame}
+            />
           </div>
+        ) : lobby ? (
+          <div className="lobby-view">
+            <h2>Lobby: {lobby.id}</h2>
+            <p>Host: {lobby.host}</p>
+            <p>Players: {lobby.players.length}/{lobby.max_players}</p>
+            <div className="player-list">
+              <h3>Players:</h3>
+              <ul>
+                {lobby.players.map((player) => (
+                  <li key={player}>
+                    {player} {player === playerName && "(You)"}
+                    {player === lobby.host && " 👑"}
+                  </li>
+                ))}
+              </ul>
+            </div>
           <div className="lobby-actions">
             {lobby.host === playerName && !lobby.started && (
               <button 
@@ -887,64 +997,64 @@ function App() {
               Leave Lobby
             </button>
           </div>
-        </div>
-      ) : (
-        <>
-          {/* Page Rendering */}
-          {currentPage === 'home' && (
-            <HomePage
-              onSelectMode={handleSelectMode}
-              playerName={playerName}
-              setPlayerName={setPlayerName}
-            />
-          )}
+          </div>
+        ) : (
+          <>
+            {/* Page Rendering */}
+            {currentPage === 'home' && (
+              <HomePage
+                onSelectMode={handleSelectMode}
+                playerName={playerName}
+                setPlayerName={setPlayerName}
+              />
+            )}
 
-          {currentPage === 'multiplayer' && (
-            <MultiplayerPage
-              onBack={() => setCurrentPage('home')}
-              playerName={playerName}
-              numPlayers={numPlayers}
-              setNumPlayers={setNumPlayers}
-              onCreateLobby={handleCreateLobby}
-              onJoinLobby={handleJoinLobby}
-              lobbies={lobbies}
-              loadingStates={loadingStates}
-              onRefreshLobbies={handleRefreshLobbies}
-            />
-          )}
+            {currentPage === 'multiplayer' && (
+              <MultiplayerPage
+                onBack={() => setCurrentPage('home')}
+                playerName={playerName}
+                numPlayers={numPlayers}
+                setNumPlayers={setNumPlayers}
+                onCreateLobby={handleCreateLobby}
+                onJoinLobby={handleJoinLobby}
+                lobbies={lobbies}
+                loadingStates={loadingStates}
+                onRefreshLobbies={handleRefreshLobbies}
+              />
+            )}
 
-          {currentPage === 'cpu' && (
-            <CPUGamePage
-              onBack={() => setCurrentPage('home')}
-              onStartGame={handleStartCPUGame}
-              numCPU={numCPU}
-              setNumCPU={setNumCPU}
-              loadingStates={loadingStates}
-            />
-          )}
+            {currentPage === 'cpu' && (
+              <CPUGamePage
+                onBack={() => setCurrentPage('home')}
+                onStartGame={handleStartCPUGame}
+                numCPU={numCPU}
+                setNumCPU={setNumCPU}
+                loadingStates={loadingStates}
+              />
+            )}
 
-          {currentPage === 'rules' && (
-            <RulesPage onBack={() => setCurrentPage('home')} />
-          )}
+            {currentPage === 'rules' && (
+              <RulesPage onBack={() => setCurrentPage('home')} />
+            )}
 
-          {currentPage === 'tutorial' && (
-            <LazyTutorialModal
-              isOpen={true}
-              onClose={handleCloseTutorial}
-            />
-          )}
-        </>
-      )}
+            {currentPage === 'tutorial' && (
+              <LazyTutorialModal
+                isOpen={true}
+                onClose={handleCloseTutorial}
+              />
+            )}
+          </>
+        )}
 
-      <EnhancedBottomMenu
-        quitGameToMenu={gameState ? handleQuitGame : undefined}
-        soundsEnabled={soundsEnabled}
-        toggleSounds={toggleSounds}
-        playSound={playSound}
-        onShowRules={handleShowRules}
-        onGoHome={handleGoHome}
-      />
-    </div>
+        <EnhancedBottomMenu
+          quitGameToMenu={gameState ? handleQuitGame : undefined}
+          soundsEnabled={soundsEnabled}
+          toggleSounds={toggleSounds}
+          playSound={playSound}
+          onShowRules={handleShowRules}
+          onGoHome={handleGoHome}
+        />
+      </div>
   );
 }
 
