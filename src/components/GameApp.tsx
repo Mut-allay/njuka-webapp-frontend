@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef, useMemo } from 'react';
 import type { GameState, LobbyGame, LoadingStates } from '../types/game';
 import { GameService, WS_API } from '../services/gameService';
 
@@ -46,8 +46,8 @@ export function GameApp({
   const [lobbyWS, setLobbyWS] = useState<WebSocket | null>(null);
   const [gameWS, setGameWS] = useState<WebSocket | null>(null);
 
-  // Initialize game service
-  const gameService = new GameService();
+  // Initialize game service (use useMemo to avoid recreating on every render)
+  const gameService = useMemo(() => new GameService(), []);
 
   // WebSocket connections for real-time updates
   useEffect(() => {
@@ -114,11 +114,13 @@ export function GameApp({
   }, [gameState, playerName]);
 
   // Poll game state as fallback when WebSocket is not available
+  // For CPU games, always poll since they don't use WebSocket
   useEffect(() => {
     if (!gameId) return;
 
-    // Only use polling if WebSocket is not connected
-    const shouldPoll = !gameWS || gameWS.readyState !== WebSocket.OPEN;
+    // For CPU games, always poll. For multiplayer, only poll if WebSocket is not connected
+    const isCPUGame = gameState?.mode === 'cpu';
+    const shouldPoll = isCPUGame || !gameWS || gameWS.readyState !== WebSocket.OPEN;
     
     if (!shouldPoll) return;
 
@@ -132,7 +134,78 @@ export function GameApp({
     }, gameState?.mode === 'multiplayer' ? 1000 : 2000); // More frequent for multiplayer
 
     return () => clearInterval(interval);
-  }, [gameId, gameWS, gameState?.mode]);
+  }, [gameId, gameWS, gameState?.mode, gameService]);
+
+  // CPU turn processing - automatically handle CPU moves
+  const cpuProcessingRef = useRef(false);
+  useEffect(() => {
+    if (!gameState || gameState.mode !== 'cpu' || gameState.game_over) return;
+    if (cpuProcessingRef.current) return; // Prevent concurrent CPU processing
+
+    const currentPlayer = gameState.players[gameState.current_player];
+    if (!currentPlayer || !currentPlayer.is_cpu) return; // Not a CPU turn
+
+    // Check if CPU needs to draw
+    if (!gameState.has_drawn) {
+      cpuProcessingRef.current = true;
+      setLoadingStates(prev => ({ ...prev, cpuMoving: true }));
+      
+      // CPU draws a card
+      gameService.drawCard(gameState.id)
+        .then((newState) => {
+          setGameState(newState);
+          playSound('draw');
+          
+          // After drawing, CPU needs to discard
+          // Wait a bit for visual feedback, then discard
+          setTimeout(() => {
+            if (newState.has_drawn && newState.players[newState.current_player].hand.length > 0) {
+              // CPU discards the first card (simple strategy)
+              const discardIndex = 0;
+              return gameService.discardCard(newState.id, discardIndex)
+                .then((finalState) => {
+                  setGameState(finalState);
+                  playSound('discard');
+                  cpuProcessingRef.current = false;
+                  setLoadingStates(prev => ({ ...prev, cpuMoving: false }));
+                })
+                .catch((error) => {
+                  console.error('CPU discard failed:', error);
+                  cpuProcessingRef.current = false;
+                  setLoadingStates(prev => ({ ...prev, cpuMoving: false }));
+                });
+            } else {
+              cpuProcessingRef.current = false;
+              setLoadingStates(prev => ({ ...prev, cpuMoving: false }));
+            }
+          }, 1500); // 1.5 second delay between draw and discard
+        })
+        .catch((error) => {
+          console.error('CPU draw failed:', error);
+          cpuProcessingRef.current = false;
+          setLoadingStates(prev => ({ ...prev, cpuMoving: false }));
+        });
+    } else {
+      // CPU has drawn but needs to discard
+      cpuProcessingRef.current = true;
+      setLoadingStates(prev => ({ ...prev, cpuMoving: true }));
+      
+      // CPU discards the first card
+      const discardIndex = 0;
+      gameService.discardCard(gameState.id, discardIndex)
+        .then((newState) => {
+          setGameState(newState);
+          playSound('discard');
+          cpuProcessingRef.current = false;
+          setLoadingStates(prev => ({ ...prev, cpuMoving: false }));
+        })
+        .catch((error) => {
+          console.error('CPU discard failed:', error);
+          cpuProcessingRef.current = false;
+          setLoadingStates(prev => ({ ...prev, cpuMoving: false }));
+        });
+    }
+  }, [gameState, gameService, playSound]);
 
   // Game actions
   const handleCreateLobby = async () => {
@@ -246,6 +319,7 @@ export function GameApp({
     try {
       const game = await gameService.createNewGame("cpu", playerName, numCPU);
       setGameState(game);
+      setGameId(game.id); // Set gameId for polling
       setCurrentPage('game');
       playSound('shuffle');
     } catch (error: any) {

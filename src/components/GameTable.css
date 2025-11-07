@@ -464,259 +464,41 @@
   }
 }
 
-/* Enhanced Draw Animation - Bottom Player (Default) */
-@keyframes cardDraw {
+/* ⬇️ REMOVED: All cardDraw keyframes (cardDraw, cardDrawTop, cardDrawLeft, cardDrawRight)
+   are replaced by the new flyFromDeck keyframe later */
+
+
+/* ⬇️ REPLACED: This is now a single, dynamic keyframe using CSS variables */
+@keyframes cardDiscard {
   0% {
-    /* Start from deck position (center of table) */
-    transform: translateX(0) translateY(-15vh) rotate(0) scale(0.9);
-    opacity: 0;
-  }
-  15% {
-    /* Card becomes visible */
-    opacity: 1;
-    transform: translateX(0) translateY(-12vh) rotate(-2deg) scale(0.95);
-  }
-  40% {
-    /* Mid-flight descent */
-    transform: translateX(0) translateY(-8vh) rotate(-3deg) scale(1);
-  }
-  70% {
-    /* Approaching bottom hand */
-    transform: translateX(0) translateY(-4vh) rotate(-2deg) scale(1.02);
-  }
-  85% {
-    /* Almost in hand */
-    transform: translateX(0) translateY(-1vh) rotate(-1deg) scale(1.01);
-  }
-  100% {
-    /* Final position in bottom hand */
+    /* Start at its initial position */
     transform: translateX(0) translateY(0) rotate(0) scale(1);
     opacity: 1;
   }
-}
-
-/* Draw Animation - Top Player */
-@keyframes cardDrawTop {
-  0% {
-    /* Start from deck position */
-    transform: translateX(0) translateY(0) rotate(0) scale(0.9);
-    opacity: 0;
-  }
-  15% {
-    opacity: 1;
-    transform: translateX(0) translateY(-3vh) rotate(2deg) scale(0.95);
-  }
-  40% {
-    /* Moving toward top */
-    transform: translateX(0) translateY(-8vh) rotate(3deg) scale(1);
-  }
-  70% {
-    /* Approaching top hand */
-    transform: translateX(0) translateY(-12vh) rotate(2deg) scale(1.02);
-  }
-  85% {
-    transform: translateX(0) translateY(-14vh) rotate(1deg) scale(1.01);
-  }
-  100% {
-    /* Final position in top hand */
-    transform: translateX(0) translateY(-16vh) rotate(0) scale(1);
-    opacity: 1;
-  }
-}
-
-/* Draw Animation - Left Player */
-@keyframes cardDrawLeft {
-  0% {
-    /* Start from deck position */
-    transform: translateX(0) translateY(0) rotate(0) scale(0.9);
-    opacity: 0;
-  }
-  15% {
-    opacity: 1;
-    transform: translateX(-2vw) translateY(0) rotate(-2deg) scale(0.95);
-  }
-  40% {
-    /* Moving toward left */
-    transform: translateX(-8vw) translateY(0) rotate(-3deg) scale(1);
-  }
-  70% {
-    /* Approaching left hand */
-    transform: translateX(-15vw) translateY(0) rotate(-2deg) scale(1.02);
-  }
-  85% {
-    transform: translateX(-18vw) translateY(0) rotate(-1deg) scale(1.01);
-  }
-  100% {
-    /* Final position in left hand */
-    transform: translateX(-20vw) translateY(0) rotate(0) scale(1);
-    opacity: 1;
-  }
-}
-
-/* Draw Animation - Right Player */
-@keyframes cardDrawRight {
-  0% {
-    /* Start from deck position */
-    transform: translateX(0) translateY(0) rotate(0) scale(0.9);
-    opacity: 0;
-  }
-  15% {
-    opacity: 1;
-    transform: translateX(2vw) translateY(0) rotate(2deg) scale(0.95);
-  }
-  40% {
-    /* Moving toward right */
-    transform: translateX(8vw) translateY(0) rotate(3deg) scale(1);
-  }
-  70% {
-    /* Approaching right hand */
-    transform: translateX(15vw) translateY(0) rotate(2deg) scale(1.02);
-  }
-  85% {
-    transform: translateX(18vw) translateY(0) rotate(1deg) scale(1.01);
-  }
-  100% {
-    /* Final position in right hand */
-    transform: translateX(20vw) translateY(0) rotate(0) scale(1);
-    opacity: 1;
-  }
-}
-
-/* Enhanced Discard Animation - Bottom Player (Default) */
-@keyframes cardDiscard {
-  0% {
-    /* Start from bottom hand position */
-    transform: translateY(0) translateX(0) rotate(0) scale(1);
-    opacity: 1;
-  }
-  25% {
-    /* Lift toward discard pile */
-    transform: translateY(-4vh) translateX(0) rotate(2deg) scale(0.98);
-    opacity: 1;
-  }
   50% {
-    /* Midway to discard pile */
-    transform: translateY(-8vh) translateX(0) rotate(5deg) scale(0.92);
+    /* Create an arc by moving halfway to the destination */
+    /* and adding a little lift (e.g., -40px) */
+    transform: 
+      translateX(calc(var(--dest-x, 0px) * 0.5)) 
+      translateY(calc(var(--dest-y, 0px) * 0.5 - 40px)) 
+      rotate(8deg) 
+      scale(0.8);
     opacity: 1;
   }
-  75% {
-    /* Approaching discard pile */
-    transform: translateY(-12vh) translateX(0) rotate(8deg) scale(0.7);
-    opacity: 0.8;
-  }
-  90% {
-    /* Almost at discard pile */
-    transform: translateY(-14vh) translateX(0) rotate(10deg) scale(0.5);
-    opacity: 0.4;
-  }
   100% {
-    /* Land on discard pile */
-    transform: translateY(-16vh) translateX(0) rotate(12deg) scale(0.45);
+    /* End at the final destination, shrunk and faded */
+    transform: 
+      translateX(var(--dest-x, 0px)) 
+      translateY(var(--dest-y, 0px)) 
+      rotate(15deg) 
+      scale(0.45);
     opacity: 0;
   }
 }
 
-/* Discard Animation - Top Player */
-@keyframes cardDiscardTop {
-  0% {
-    /* Start from top hand position */
-    transform: translateY(-16vh) translateX(0) rotate(0) scale(1);
-    opacity: 1;
-  }
-  25% {
-    /* Move toward discard pile */
-    transform: translateY(-14vh) translateX(0) rotate(-2deg) scale(0.98);
-    opacity: 1;
-  }
-  50% {
-    /* Midway to discard pile */
-    transform: translateY(-12vh) translateX(0) rotate(-5deg) scale(0.92);
-    opacity: 1;
-  }
-  75% {
-    /* Approaching discard pile */
-    transform: translateY(-8vh) translateX(0) rotate(-8deg) scale(0.7);
-    opacity: 0.8;
-  }
-  90% {
-    /* Almost at discard pile */
-    transform: translateY(-6vh) translateX(0) rotate(-10deg) scale(0.5);
-    opacity: 0.4;
-  }
-  100% {
-    /* Land on discard pile */
-    transform: translateY(-4vh) translateX(0) rotate(-12deg) scale(0.45);
-    opacity: 0;
-  }
-}
+/* ⬇️ REMOVED: All other cardDiscard keyframes (Top, Left, Right)
+   are no longer needed as the one above is dynamic. */
 
-/* Discard Animation - Left Player */
-@keyframes cardDiscardLeft {
-  0% {
-    /* Start from left hand position */
-    transform: translateY(0) translateX(-20vw) rotate(0) scale(1);
-    opacity: 1;
-  }
-  25% {
-    /* Move toward discard pile */
-    transform: translateY(0) translateX(-15vw) rotate(2deg) scale(0.98);
-    opacity: 1;
-  }
-  50% {
-    /* Midway to discard pile */
-    transform: translateY(0) translateX(-10vw) rotate(5deg) scale(0.92);
-    opacity: 1;
-  }
-  75% {
-    /* Approaching discard pile */
-    transform: translateY(0) translateX(-5vw) rotate(8deg) scale(0.7);
-    opacity: 0.8;
-  }
-  90% {
-    /* Almost at discard pile */
-    transform: translateY(0) translateX(-2vw) rotate(10deg) scale(0.5);
-    opacity: 0.4;
-  }
-  100% {
-    /* Land on discard pile */
-    transform: translateY(0) translateX(0) rotate(12deg) scale(0.45);
-    opacity: 0;
-  }
-}
-
-/* Discard Animation - Right Player */
-@keyframes cardDiscardRight {
-  0% {
-    /* Start from right hand position */
-    transform: translateY(0) translateX(20vw) rotate(0) scale(1);
-    opacity: 1;
-  }
-  25% {
-    /* Move toward discard pile */
-    transform: translateY(0) translateX(15vw) rotate(-2deg) scale(0.98);
-    opacity: 1;
-  }
-  50% {
-    /* Midway to discard pile */
-    transform: translateY(0) translateX(10vw) rotate(-5deg) scale(0.92);
-    opacity: 1;
-  }
-  75% {
-    /* Approaching discard pile */
-    transform: translateY(0) translateX(5vw) rotate(-8deg) scale(0.7);
-    opacity: 0.8;
-  }
-  90% {
-    /* Almost at discard pile */
-    transform: translateY(0) translateX(2vw) rotate(-10deg) scale(0.5);
-    opacity: 0.4;
-  }
-  100% {
-    /* Land on discard pile */
-    transform: translateY(0) translateX(0) rotate(-12deg) scale(0.45);
-    opacity: 0;
-  }
-}
 
 /* Animation Classes */
 .card-shuffling {
@@ -749,60 +531,11 @@
   animation-name: dealCard; /* Default bottom animation */
 }
 
-.card-drawing {
-  /* Enhanced draw animation: 1.4s for smooth, visible movement */
-  animation: cardDraw 1.4s cubic-bezier(0.25, 0.46, 0.45, 0.94) forwards;
-  will-change: transform, opacity;
-  backface-visibility: hidden;
-}
+/* ⬇️ REMOVED: All .card-drawing classes and animations are no longer needed. */
 
-.card-discarding {
-  /* Enhanced discard animation with smooth easing */
-  animation: cardDiscard 1.2s cubic-bezier(0.25, 0.46, 0.45, 0.94) forwards;
-  position: absolute !important;
-  z-index: 1000;
-  pointer-events: none;
-  will-change: transform, opacity;
-  backface-visibility: hidden;
-}
 
-/* Position-specific draw animations */
-.top .card-drawing {
-  animation-name: cardDrawTop;
-}
-
-.left .card-drawing {
-  animation-name: cardDrawLeft;
-}
-
-.right .card-drawing {
-  animation-name: cardDrawRight;
-}
-
-.bottom .card-drawing {
-  animation-name: cardDraw; /* Default bottom animation */
-}
-
-/* Position-specific discard animations */
-.top .card-discarding,
-.top .discard-animation-overlay {
-  animation-name: cardDiscardTop;
-}
-
-.left .card-discarding,
-.left .discard-animation-overlay {
-  animation-name: cardDiscardLeft;
-}
-
-.right .card-discarding,
-.right .discard-animation-overlay {
-  animation-name: cardDiscardRight;
-}
-
-.bottom .card-discarding,
-.bottom .discard-animation-overlay {
-  animation-name: cardDiscard; /* Default bottom animation */
-}
+/* ⬇️ REMOVED: .card-discarding class is no longer needed for animation.
+   The overlay .discard-animation-overlay handles it. */
 
 /* Respect user's reduced motion preference */
 @media (prefers-reduced-motion: reduce) {
@@ -811,6 +544,7 @@
   .card-shuffling,
   .card-dealing,
   .discard-animation-overlay,
+  .draw-animation-overlay, /* ⬅️ ADDED */
   .deck-shuffling {
     animation: none !important;
     transition: opacity 0.2s ease !important;
@@ -828,53 +562,83 @@
   to { opacity: 1; }
 }
 
-/* Mobile-First Hand Stability - No Card Movement During Animations */
+/* Mobile-First Hand Stability */
 .bottom .hand {
   position: relative;
   transition: none !important; /* Prevent any hand movement */
-  /* Mobile-first height for portrait */
   min-height: 65px; /* Mobile card height */
-  /* Ensure stable layout */
   display: flex;
   align-items: center;
   justify-content: center;
-  /* Prevent layout shifts */
   contain: layout;
 }
 
 .bottom .card {
   position: relative;
-  /* Only allow hover/select transforms, no layout changes */
   transition: transform 0.2s ease-out;
-  /* Ensure cards stay in place during animations */
   flex-shrink: 0;
 }
 
-/* Mobile-Optimized Discard Placeholder */
+/* ⬇️ REPLACED: Simplified placeholder logic.
+   The card is now hidden with `visibility: hidden` in GameTable.tsx */
 .bottom .card.card-discarding {
-  /* Keep exact space in layout - invisible placeholder */
-  opacity: 0 !important;
-  visibility: hidden !important; /* Completely invisible on mobile */
+  /* This class is now just a placeholder */
+  opacity: 1 !important;
+  visibility: hidden !important; /* This hides the card, maintaining layout */
   pointer-events: none;
-  /* Maintain exact dimensions */
-  width: 45px; /* Mobile card width */
-  height: 65px; /* Mobile card height */
-  /* No transforms - keep layout stable */
   transform: none !important;
-  /* Prevent any movement */
   position: static !important;
 }
 
-/* Animated overlay card for discard effect */
+/* ⬇️ MODIFIED: Animated overlay card for discard effect */
 .discard-animation-overlay {
   position: fixed;
   z-index: 1001;
   pointer-events: none;
+  /* ⬇️ MODIFIED: Animation now uses the dynamic keyframe */
   animation: cardDiscard 1.2s cubic-bezier(0.25, 0.46, 0.45, 0.94) forwards;
   will-change: transform, opacity;
   backface-visibility: hidden;
   transform-style: preserve-3d;
 }
+
+/* ⬇️ ADDED: New overlay for draw animation */
+.draw-animation-overlay {
+  position: fixed;
+  z-index: 1001;
+  pointer-events: none;
+  animation: flyFromDeck 1.4s cubic-bezier(0.25, 0.46, 0.45, 0.94) forwards;
+  will-change: transform, opacity;
+  transform: translateZ(0); /* GPU acceleration */
+  backface-visibility: hidden;
+}
+
+/* ⬇️ ADDED: New keyframe for drawing */
+@keyframes flyFromDeck {
+  0% {
+    transform: translateX(0) translateY(0) rotate(0) scale(1); /* Starts at deck size */
+    opacity: 1;
+  }
+  50% {
+    /* Arc towards hand */
+    transform: 
+      translateX(calc(var(--dest-x, 0px) * 0.5)) 
+      translateY(calc(var(--dest-y, 0px) * 0.5 - 40px)) 
+      rotate(-8deg) 
+      scale(1.1); /* Grow to full card size */
+    opacity: 1;
+  }
+  100% {
+    /* Arrive at hand */
+    transform: 
+      translateX(var(--dest-x, 0px)) 
+      translateY(var(--dest-y, 0px)) 
+      rotate(0deg) 
+      scale(1.1);
+    opacity: 0; /* Fade out as the real card appears */
+  }
+}
+
 
 /* Deck shuffling state */
 .deck-shuffling {
@@ -895,7 +659,8 @@
 .card-discarding,
 .card-shuffling,
 .card-dealing,
-.discard-animation-overlay {
+.discard-animation-overlay,
+.draw-animation-overlay /* ⬅️ ADDED */ {
   /* GPU acceleration for smooth animations */
   transform: translateZ(0);
   will-change: transform, opacity;
@@ -1156,15 +921,15 @@
     height: 18px;
     right: -40px;
   }
-  /* Mobile Portrait Animation Optimizations */
-  .card-drawing {
-    animation-duration: 1.8s; /* Perfect timing for mobile portrait draw */
-    animation-timing-function: cubic-bezier(0.2, 0.1, 0.3, 1); /* Smooth easing */
+
+  /* Mobile-first animation timing overrides */
+  .draw-animation-overlay {
+    animation-duration: 1.8s;
+    animation-timing-function: cubic-bezier(0.2, 0.1, 0.3, 1);
   }
-  .card-discarding,
   .discard-animation-overlay {
-    animation-duration: 1.8s; /* Optimized for mobile portrait discard */
-    animation-timing-function: cubic-bezier(0.25, 0.1, 0.25, 1); /* Natural arc */
+    animation-duration: 1.8s;
+    animation-timing-function: cubic-bezier(0.25, 0.1, 0.25, 1);
   }
   .card-shuffling {
     animation-duration: 2s; /* Slower shuffle on mobile */
@@ -1172,212 +937,10 @@
   .card-dealing {
     animation-duration: 2.2s; /* Much slower dealing on mobile for visibility */
   }
-  /* Mobile Portrait Animations - All Players */
- 
-  /* Bottom Player Draw (Mobile) */
-  @keyframes cardDraw {
-    0% {
-      transform: translateX(0) translateY(-15vh) rotate(0) scale(0.9);
-      opacity: 0;
-    }
-    15% {
-      opacity: 1;
-      transform: translateX(0) translateY(-12vh) rotate(-2deg) scale(0.95);
-    }
-    40% {
-      transform: translateX(0) translateY(-8vh) rotate(-3deg) scale(1);
-    }
-    70% {
-      transform: translateX(0) translateY(-4vh) rotate(-2deg) scale(1.02);
-    }
-    85% {
-      transform: translateX(0) translateY(-1vh) rotate(-1deg) scale(1.01);
-    }
-    100% {
-      transform: translateX(0) translateY(0) rotate(0) scale(1);
-      opacity: 1;
-    }
-  }
-  /* Top Player Draw (Mobile) */
-  @keyframes cardDrawTop {
-    0% {
-      transform: translateX(0) translateY(0) rotate(0) scale(0.9);
-      opacity: 0;
-    }
-    15% {
-      opacity: 1;
-      transform: translateX(0) translateY(-2vh) rotate(2deg) scale(0.95);
-    }
-    40% {
-      transform: translateX(0) translateY(-6vh) rotate(3deg) scale(1);
-    }
-    70% {
-      transform: translateX(0) translateY(-10vh) rotate(2deg) scale(1.02);
-    }
-    85% {
-      transform: translateX(0) translateY(-12vh) rotate(1deg) scale(1.01);
-    }
-    100% {
-      transform: translateX(0) translateY(-14vh) rotate(0) scale(1);
-      opacity: 1;
-    }
-  }
-  /* Left Player Draw (Mobile) */
-  @keyframes cardDrawLeft {
-    0% {
-      transform: translateX(0) translateY(0) rotate(0) scale(0.9);
-      opacity: 0;
-    }
-    15% {
-      opacity: 1;
-      transform: translateX(-2vw) translateY(0) rotate(-2deg) scale(0.95);
-    }
-    40% {
-      transform: translateX(-6vw) translateY(0) rotate(-3deg) scale(1);
-    }
-    70% {
-      transform: translateX(-12vw) translateY(0) rotate(-2deg) scale(1.02);
-    }
-    85% {
-      transform: translateX(-15vw) translateY(0) rotate(-1deg) scale(1.01);
-    }
-    100% {
-      transform: translateX(-18vw) translateY(0) rotate(0) scale(1);
-      opacity: 1;
-    }
-  }
-  /* Right Player Draw (Mobile) */
-  @keyframes cardDrawRight {
-    0% {
-      transform: translateX(0) translateY(0) rotate(0) scale(0.9);
-      opacity: 0;
-    }
-    15% {
-      opacity: 1;
-      transform: translateX(2vw) translateY(0) rotate(2deg) scale(0.95);
-    }
-    40% {
-      transform: translateX(6vw) translateY(0) rotate(3deg) scale(1);
-    }
-    70% {
-      transform: translateX(12vw) translateY(0) rotate(2deg) scale(1.02);
-    }
-    85% {
-      transform: translateX(15vw) translateY(0) rotate(1deg) scale(1.01);
-    }
-    100% {
-      transform: translateX(18vw) translateY(0) rotate(0) scale(1);
-      opacity: 1;
-    }
-  }
-  /* Bottom Player Discard (Mobile) */
-  @keyframes cardDiscard {
-    0% {
-      transform: translateY(0) translateX(0) rotate(0) scale(1);
-      opacity: 1;
-    }
-    25% {
-      transform: translateY(-3vh) translateX(0) rotate(2deg) scale(0.98);
-      opacity: 1;
-    }
-    50% {
-      transform: translateY(-6vh) translateX(0) rotate(5deg) scale(0.92);
-      opacity: 1;
-    }
-    75% {
-      transform: translateY(-10vh) translateX(0) rotate(8deg) scale(0.7);
-      opacity: 0.8;
-    }
-    90% {
-      transform: translateY(-12vh) translateX(0) rotate(10deg) scale(0.5);
-      opacity: 0.4;
-    }
-    100% {
-      transform: translateY(-14vh) translateX(0) rotate(12deg) scale(0.45);
-      opacity: 0;
-    }
-  }
-  /* Top Player Discard (Mobile) */
-  @keyframes cardDiscardTop {
-    0% {
-      transform: translateY(-14vh) translateX(0) rotate(0) scale(1);
-      opacity: 1;
-    }
-    25% {
-      transform: translateY(-12vh) translateX(0) rotate(-2deg) scale(0.98);
-      opacity: 1;
-    }
-    50% {
-      transform: translateY(-10vh) translateX(0) rotate(-5deg) scale(0.92);
-      opacity: 1;
-    }
-    75% {
-      transform: translateY(-6vh) translateX(0) rotate(-8deg) scale(0.7);
-      opacity: 0.8;
-    }
-    90% {
-      transform: translateY(-4vh) translateX(0) rotate(-10deg) scale(0.5);
-      opacity: 0.4;
-    }
-    100% {
-      transform: translateY(-2vh) translateX(0) rotate(-12deg) scale(0.45);
-      opacity: 0;
-    }
-  }
-  /* Left Player Discard (Mobile) */
-  @keyframes cardDiscardLeft {
-    0% {
-      transform: translateY(0) translateX(-18vw) rotate(0) scale(1);
-      opacity: 1;
-    }
-    25% {
-      transform: translateY(0) translateX(-14vw) rotate(2deg) scale(0.98);
-      opacity: 1;
-    }
-    50% {
-      transform: translateY(0) translateX(-8vw) rotate(5deg) scale(0.92);
-      opacity: 1;
-    }
-    75% {
-      transform: translateY(0) translateX(-4vw) rotate(8deg) scale(0.7);
-      opacity: 0.8;
-    }
-    90% {
-      transform: translateY(0) translateX(-1vw) rotate(10deg) scale(0.5);
-      opacity: 0.4;
-    }
-    100% {
-      transform: translateY(0) translateX(0) rotate(12deg) scale(0.45);
-      opacity: 0;
-    }
-  }
-  /* Right Player Discard (Mobile) */
-  @keyframes cardDiscardRight {
-    0% {
-      transform: translateY(0) translateX(18vw) rotate(0) scale(1);
-      opacity: 1;
-    }
-    25% {
-      transform: translateY(0) translateX(14vw) rotate(-2deg) scale(0.98);
-      opacity: 1;
-    }
-    50% {
-      transform: translateY(0) translateX(8vw) rotate(-5deg) scale(0.92);
-      opacity: 1;
-    }
-    75% {
-      transform: translateY(0) translateX(4vw) rotate(-8deg) scale(0.7);
-      opacity: 0.8;
-    }
-    90% {
-      transform: translateY(0) translateX(1vw) rotate(-10deg) scale(0.5);
-      opacity: 0.4;
-    }
-    100% {
-      transform: translateY(0) translateX(0) rotate(-12deg) scale(0.45);
-      opacity: 0;
-    }
-  }
+  
+  /* ⬇️ REMOVED all mobile-specific @keyframes for cardDraw and cardDiscard.
+     The single dynamic keyframes handle all screen sizes now. */
+
   /* Smaller glow for mobile performance */
   @keyframes pulsating-glow {
     0% {
@@ -1527,11 +1090,9 @@
   .bottom .hand {
     min-height: 100px; /* Desktop card height */
   }
-  .bottom .card.card-discarding {
-    /* Desktop card dimensions for placeholder */
-    width: 70px; /* Desktop card width */
-    height: 100px; /* Desktop card height */
-  }
+  /* ⬇️ REMOVED: .bottom .card.card-discarding no longer needed
+     The `visibility: hidden` logic in the .bottom .card rule inside
+     GameTable.tsx handles the placeholder sizing automatically. */
 }
 
 /* Additional from provided: initial hidden and deal animation */
@@ -1555,13 +1116,4 @@
   }
 }
 
-@keyframes drawCard {
-  from {
-    transform: translateY(-50px);
-    opacity: 0;
-  }
-  to {
-    transform: translateY(0);
-    opacity: 1;
-  }
-}
+/* ⬇️ REMOVED: @keyframes drawCard is no longer used */

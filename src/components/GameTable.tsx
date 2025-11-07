@@ -52,10 +52,23 @@ export const GameTable: React.FC<GameTableProps> = ({
   const [selectedCardIndex, setSelectedCardIndex] = useState<number | null>(null)
   const [showDeckHighlight, setShowDeckHighlight] = useState(false)
   const [discardingCardIndex, setDiscardingCardIndex] = useState<number | null>(null)
-  const [animatingCard, setAnimatingCard] = useState<{card: CardType, position: {x: number, y: number}} | null>(null)
+  
+  // ⬇️ MODIFIED: This state will hold coordinates for the discard animation
+  const [animatingDiscard, setAnimatingDiscard] = useState<{
+    card: CardType,
+    start: { x: number, y: number, width: number, height: number },
+    destination: { x: number, y: number }
+  } | null>(null)
+  
+  // ⬇️ ADDED: New state for the draw animation overlay
+  const [animatingDraw, setAnimatingDraw] = useState<{
+    start: { x: number, y: number, width: number, height: number },
+    destination: { x: number, y: number }
+  } | null>(null)
+
   const [isShuffling, setIsShuffling] = useState(false)
   const [dealingCards, setDealingCards] = useState<boolean[]>([])
-  const [drawingCard, setDrawingCard] = useState(false)
+  // const [drawingCard, setDrawingCard] = useState(false) // ⬅️ REMOVED: We now use animatingDraw
 
   const yourPlayer = state.players.find((p) => p?.name === playerName)
   const gameCurrentPlayerIndex = state.current_player ?? 0
@@ -75,8 +88,9 @@ export const GameTable: React.FC<GameTableProps> = ({
       setShowDeckHighlight(false)
       setSelectedCardIndex(null)
       setDiscardingCardIndex(null)
-      setAnimatingCard(null)
-      setDrawingCard(false)
+      setAnimatingDiscard(null)
+      setAnimatingDraw(null)
+      // setDrawingCard(false) // ⬅️ REMOVED
     }
   }, [state, playerName])
 
@@ -135,68 +149,112 @@ export const GameTable: React.FC<GameTableProps> = ({
     return playerId === playerName && !state.has_drawn && !isGameOver
   }
 
+  // ⬇️ REPLACED: Updated handleCardClick for precise animation
   const handleCardClick = (index: number) => {
     if (selectedCardIndex === index) {
-      const cardElement = document.querySelector(`[data-card-index="${index}"]`) as HTMLElement
-      if (cardElement && yourPlayer) {
-        const rect = cardElement.getBoundingClientRect()
-        const card = yourPlayer.hand[index]
+      const cardElement = document.querySelector(`[data-card-index="${index}"]`) as HTMLElement;
+      
+      // Find the destination element (the discard pile)
+      const discardPileEl = document.querySelector('.discard-area .discard-top') 
+                         || document.querySelector('.discard-area .discard-empty');
+
+      if (cardElement && yourPlayer && discardPileEl) {
+        const startRect = cardElement.getBoundingClientRect(); // START
+        const discardRect = discardPileEl.getBoundingClientRect(); // END
+
+        // Calculate the difference (delta) to travel
+        // We aim for the center of the elements for a smoother look
+        const deltaX = (discardRect.left + discardRect.width / 2) - (startRect.left + startRect.width / 2);
+        const deltaY = (discardRect.top + discardRect.height / 2) - (startRect.top + startRect.height / 2);
         
-        // Play discard sound
-        playSound('discard')
+        const card = yourPlayer.hand[index];
         
-        // Enhanced haptic feedback for card discard
+        playSound('discard');
+        
         if (navigator.vibrate) {
-          // Stronger vibration pattern for discard action
-          navigator.vibrate([100, 50, 100]) // Strong-short-strong pattern
+          navigator.vibrate([100, 50, 100]);
         }
         
-        // Create animated overlay card positioned exactly where the original card is
-        setAnimatingCard({
+        // Set the state with start position AND destination deltas
+        setAnimatingDiscard({
           card,
-          position: { x: rect.left, y: rect.top }
-        })
+          start: { 
+            x: startRect.left, 
+            y: startRect.top,
+            width: startRect.width,
+            height: startRect.height
+          },
+          destination: { x: deltaX, y: deltaY } // ⬅️ SET THE DELTAS
+        });
         
         // Mark this card as discarding to prevent layout shift
-        setDiscardingCardIndex(index)
+        setDiscardingCardIndex(index);
         
         // Mobile-first optimized animation duration
         const animationDuration = window.innerWidth <= 768 ? 1800 : 1200;
         setTimeout(() => {
-          onDiscard(index)
-          setDiscardingCardIndex(null)
-          setAnimatingCard(null)
-        }, animationDuration)
+          onDiscard(index);
+          setDiscardingCardIndex(null);
+          setAnimatingDiscard(null);
+        }, animationDuration);
       }
-      setSelectedCardIndex(null)
+      setSelectedCardIndex(null);
     } else {
-      setSelectedCardIndex(index)
+      setSelectedCardIndex(index);
       
       // Enhanced haptic feedback for card selection
       if (navigator.vibrate) {
         // Gentle vibration for selection
-        navigator.vibrate([30, 20, 30]) // Gentle-short-gentle pattern
+        navigator.vibrate([30, 20, 30]); // Gentle-short-gentle pattern
       }
     }
   }
 
-  // Enhanced draw animation handling
+  // ⬇️ REPLACED: Enhanced draw animation handling with overlay
   const handleDraw = () => {
-    // Play draw sound
-    playSound('draw')
+    playSound('draw');
     
-    // Enhanced haptic feedback for card draw
     if (navigator.vibrate) {
-      // Satisfying vibration pattern for draw action
-      navigator.vibrate([80, 30, 80]) // Medium-short-medium pattern
+      navigator.vibrate([80, 30, 80]);
     }
     
-    setDrawingCard(true)
-    onDraw()
+    // Get START (deck) and END (hand) positions
+    const deckEl = document.querySelector('.deck-area .card');
+    const handEl = document.querySelector('.player-seat.bottom .hand'); // Approximate hand area
+
+    if (deckEl && handEl) {
+      const deckRect = deckEl.getBoundingClientRect();
+      const handRect = handEl.getBoundingClientRect();
+      
+      // Calculate destination: center of the hand
+      // We subtract half the DECK card's size, as that's what we're animating
+      const destX = (handRect.left + handRect.width / 2) - (deckRect.width / 2);
+      const destY = (handRect.top + handRect.height / 2) - (deckRect.height / 2);
+
+      // Calculate deltas
+      const deltaX = destX - deckRect.left;
+      const deltaY = destY - deckRect.top;
+
+      // Set the overlay state to trigger the animation
+      setAnimatingDraw({
+        start: { 
+          x: deckRect.left, 
+          y: deckRect.top,
+          width: deckRect.width,
+          height: deckRect.height
+        },
+        destination: { x: deltaX, y: deltaY }
+      });
+    }
+
+    // Call the original game logic
+    onDraw();
+    
     // Reset drawing state after mobile-optimized animation completes
+    const animationDuration = window.innerWidth <= 768 ? 1800 : 1400;
     setTimeout(() => {
-      setDrawingCard(false)
-    }, window.innerWidth <= 768 ? 1800 : 1400)
+      setAnimatingDraw(null);
+    }, animationDuration);
   }
 
   const canDraw = !loadingStates.drawing && currentPlayer.name === playerName && !isGameOver && !state.has_drawn
@@ -316,7 +374,8 @@ export const GameTable: React.FC<GameTableProps> = ({
             facedown
             value=""
             suit=""
-            className={`${drawingCard || loadingStates.drawing ? "card-drawing" : ""} ${isShuffling ? "card-shuffling" : ""}`}
+            // ⬇️ REMOVED: No longer need the drawing class on the deck itself
+            className={`${isShuffling ? "card-shuffling" : ""}`}
             style={{
               cursor: canDraw ? "pointer" : "default",
             }}
@@ -357,10 +416,14 @@ export const GameTable: React.FC<GameTableProps> = ({
                   discardingCardIndex !== null ||
                   isDealing
                 }
-                className={`${discardingCardIndex === i ? "card-discarding" : ""} ${isDealing ? `card-dealing ${delayClass}` : ""}`}
+                // ⬇️ MODIFIED: We now use `discardingCardIndex` to hide the card
+                className={`${isDealing ? `card-dealing ${delayClass}` : ""}`}
                 highlight={isWinner(yourPlayer)}
                 selected={selectedCardIndex === i}
-                style={{}}
+                style={{
+                  // ⬇️ ADDED: This hides the original card while the overlay animates
+                  visibility: discardingCardIndex === i ? 'hidden' : 'visible'
+                }}
                 data-card-index={i}
               />
             )
@@ -368,17 +431,38 @@ export const GameTable: React.FC<GameTableProps> = ({
         </div>
       </div>
       
-      {/* Animated overlay card for discard effect */}
-      {animatingCard && (
+      {/* ⬇️ MODIFIED: Animated overlay card for discard effect */}
+      {animatingDiscard && (
         <Card
-          {...animatingCard.card}
+          {...animatingDiscard.card}
           className="discard-animation-overlay"
           style={{
-            left: animatingCard.position.x,
-            top: animatingCard.position.y,
-            width: '70px', // Match card width
-            height: '100px', // Match card height
-          }}
+            left: animatingDiscard.start.x,
+            top: animatingDiscard.start.y,
+            width: animatingDiscard.start.width,
+            height: animatingDiscard.start.height,
+            // ⬇️ ADDED: Pass coordinate deltas as CSS variables
+            '--dest-x': `${animatingDiscard.destination.x}px`,
+            '--dest-y': `${animatingDiscard.destination.y}px`,
+          } as React.CSSProperties & { [key: `--${string}`]: string }}
+        />
+      )}
+
+      {/* ⬇️ ADDED: Animated overlay card for draw effect */}
+      {animatingDraw && (
+        <Card
+          facedown
+          value=""
+          suit=""
+          className="draw-animation-overlay"
+          style={{
+            left: animatingDraw.start.x,
+            top: animatingDraw.start.y,
+            width: animatingDraw.start.width,
+            height: animatingDraw.start.height,
+            '--desñt-x': `${animatingDraw.destination.x}px`,
+            '--dest-y': `${animatingDraw.destination.y}px`,
+          } as React.CSSProperties & { [key: `--${string}`]: string }}
         />
       )}
     </div>
