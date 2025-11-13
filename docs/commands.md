@@ -91,7 +91,6 @@ npm install -g firebase-tools
 firebase login
 firebase logout
 firebase init
-firebase init functions # In your project directory
 firebase emulators:start --only functions
 taskkill /F /IM java.exe #to kill the emulators
 netstat -aon | findstr "8080" #To Listen to Which Ports Are in Use

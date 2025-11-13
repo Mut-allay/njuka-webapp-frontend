@@ -145,39 +145,67 @@ export function GameApp({
     const currentPlayer = gameState.players[gameState.current_player];
     if (!currentPlayer || !currentPlayer.is_cpu) return; // Not a CPU turn
 
+    console.log(`CPU turn detected: ${currentPlayer.name}, has_drawn: ${gameState.has_drawn}`);
+
     // Check if CPU needs to draw
     if (!gameState.has_drawn) {
       cpuProcessingRef.current = true;
       setLoadingStates(prev => ({ ...prev, cpuMoving: true }));
       
+      console.log(`CPU ${currentPlayer.name} drawing card...`);
+      
       // CPU draws a card
       gameService.drawCard(gameState.id)
         .then((newState) => {
+          console.log(`CPU ${currentPlayer.name} drew card. New state - has_drawn: ${newState.has_drawn}, current_player: ${newState.current_player}`);
           setGameState(newState);
           playSound('draw');
           
           // After drawing, CPU needs to discard
           // Wait a bit for visual feedback, then discard
+          // Use the gameId from the current state to avoid stale closures
+          const gameIdToUse = newState.id;
+          const currentPlayerIndex = newState.current_player;
+          
           setTimeout(() => {
-            if (newState.has_drawn && newState.players[newState.current_player].hand.length > 0) {
-              // CPU discards the first card (simple strategy)
-              const discardIndex = 0;
-              return gameService.discardCard(newState.id, discardIndex)
-                .then((finalState) => {
-                  setGameState(finalState);
-                  playSound('discard');
+            // Fetch latest state before discarding to avoid stale data
+            gameService.getGame(gameIdToUse)
+              .then((latestState) => {
+                // Verify it's still the CPU's turn and they have drawn
+                const latestCurrentPlayer = latestState.players[latestState.current_player];
+                if (latestCurrentPlayer && latestCurrentPlayer.is_cpu && 
+                    latestState.current_player === currentPlayerIndex &&
+                    latestState.has_drawn && 
+                    latestState.players[latestState.current_player].hand.length > 0) {
+                  
+                  // CPU discards the first card (simple strategy)
+                  const discardIndex = 0;
+                  console.log(`CPU ${latestCurrentPlayer.name} discarding card at index ${discardIndex}...`);
+                  
+                  return gameService.discardCard(gameIdToUse, discardIndex)
+                    .then((finalState) => {
+                      console.log(`CPU ${latestCurrentPlayer.name} discarded. New current_player: ${finalState.current_player}`);
+                      setGameState(finalState);
+                      playSound('discard');
+                      cpuProcessingRef.current = false;
+                      setLoadingStates(prev => ({ ...prev, cpuMoving: false }));
+                    })
+                    .catch((error) => {
+                      console.error('CPU discard failed:', error);
+                      cpuProcessingRef.current = false;
+                      setLoadingStates(prev => ({ ...prev, cpuMoving: false }));
+                    });
+                } else {
+                  console.log('CPU turn state changed, skipping discard');
                   cpuProcessingRef.current = false;
                   setLoadingStates(prev => ({ ...prev, cpuMoving: false }));
-                })
-                .catch((error) => {
-                  console.error('CPU discard failed:', error);
-                  cpuProcessingRef.current = false;
-                  setLoadingStates(prev => ({ ...prev, cpuMoving: false }));
-                });
-            } else {
-              cpuProcessingRef.current = false;
-              setLoadingStates(prev => ({ ...prev, cpuMoving: false }));
-            }
+                }
+              })
+              .catch((error) => {
+                console.error('Failed to fetch latest game state for CPU discard:', error);
+                cpuProcessingRef.current = false;
+                setLoadingStates(prev => ({ ...prev, cpuMoving: false }));
+              });
           }, 1500); // 1.5 second delay between draw and discard
         })
         .catch((error) => {
@@ -190,10 +218,13 @@ export function GameApp({
       cpuProcessingRef.current = true;
       setLoadingStates(prev => ({ ...prev, cpuMoving: true }));
       
+      console.log(`CPU ${currentPlayer.name} discarding card (already drawn)...`);
+      
       // CPU discards the first card
       const discardIndex = 0;
       gameService.discardCard(gameState.id, discardIndex)
         .then((newState) => {
+          console.log(`CPU ${currentPlayer.name} discarded. New current_player: ${newState.current_player}`);
           setGameState(newState);
           playSound('discard');
           cpuProcessingRef.current = false;
