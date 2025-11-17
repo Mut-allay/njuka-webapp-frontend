@@ -3,55 +3,96 @@ import type { GameState, LobbyGame } from '../types/game';
 const API = "https://njuka-webapp-backend.onrender.com";
 export const WS_API = API.replace('https://', 'wss://');  // WebSocket API
 
+// Log backend configuration on module load
+console.log('[GameService] Backend API:', API);
+console.log('[GameService] WebSocket API:', WS_API);
+
 export class GameService {
-  async createLobby(host: string, maxPlayers: number): Promise<LobbyGame> {
-    const response = await fetch(`${API}/lobby/create`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ host, max_players: maxPlayers }),
-    });
-    if (!response.ok) throw new Error('Failed to create lobby');
+  private async handleResponse(response: Response, operation: string): Promise<any> {
+    if (!response.ok) {
+      const errorText = await response.text().catch(() => 'Unknown error');
+      const errorMessage = `${operation} failed: ${response.status} ${response.statusText} - ${errorText}`;
+      console.error(`[GameService] ${errorMessage}`);
+      console.error(`[GameService] URL: ${response.url}`);
+      throw new Error(errorMessage);
+    }
     return await response.json();
+  }
+
+  private async fetchWithErrorHandling(url: string, options: RequestInit, operation: string): Promise<any> {
+    try {
+      console.log(`[GameService] ${operation} - Requesting: ${url}`);
+      const response = await fetch(url, options);
+      return await this.handleResponse(response, operation);
+    } catch (error: any) {
+      console.error(`[GameService] ${operation} - Network error:`, error);
+      if (error instanceof TypeError && error.message.includes('fetch')) {
+        throw new Error(`Network error: Unable to reach backend at ${API}. Is the server running?`);
+      }
+      throw error;
+    }
+  }
+
+  async createLobby(host: string, maxPlayers: number): Promise<LobbyGame> {
+    return this.fetchWithErrorHandling(
+      `${API}/lobby/create`,
+      {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ host, max_players: maxPlayers }),
+      },
+      'createLobby'
+    );
   }
 
   async joinLobby(lobbyId: string, player: string): Promise<LobbyGame> {
-    const response = await fetch(`${API}/lobby/${lobbyId}/join`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ player }),
-    });
-    if (!response.ok) throw new Error('Failed to join lobby');
-    return await response.json();
+    return this.fetchWithErrorHandling(
+      `${API}/lobby/${lobbyId}/join`,
+      {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ player }),
+      },
+      'joinLobby'
+    );
   }
 
   async getLobbies(): Promise<{ lobbies: LobbyGame[] }> {
-    const response = await fetch(`${API}/lobbies`);
-    if (!response.ok) throw new Error('Failed to fetch lobbies');
-    return await response.json();
+    return this.fetchWithErrorHandling(
+      `${API}/lobbies`,
+      { method: 'GET' },
+      'getLobbies'
+    );
   }
 
   async getGame(gameId: string): Promise<GameState> {
-    const response = await fetch(`${API}/game/${gameId}`);
-    if (!response.ok) throw new Error('Failed to fetch game state');
-    return await response.json();
+    return this.fetchWithErrorHandling(
+      `${API}/game/${gameId}`,
+      { method: 'GET' },
+      'getGame'
+    );
   }
 
   async drawCard(gameId: string): Promise<GameState> {
-    const response = await fetch(`${API}/game/${gameId}/draw`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-    });
-    if (!response.ok) throw new Error('Failed to draw card');
-    return await response.json();
+    return this.fetchWithErrorHandling(
+      `${API}/game/${gameId}/draw`,
+      {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+      },
+      'drawCard'
+    );
   }
 
   async discardCard(gameId: string, cardIndex: number): Promise<GameState> {
-    const response = await fetch(`${API}/game/${gameId}/discard?card_index=${cardIndex}`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-    });
-    if (!response.ok) throw new Error('Failed to discard card');
-    return await response.json();
+    return this.fetchWithErrorHandling(
+      `${API}/game/${gameId}/discard?card_index=${cardIndex}`,
+      {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+      },
+      'discardCard'
+    );
   }
 
   async createNewGame(
@@ -60,30 +101,32 @@ export class GameService {
     cpuCount: number = 1,
     maxPlayers: number = 4
   ): Promise<GameState> {
-    const response = await fetch(
+    return this.fetchWithErrorHandling(
       `${API}/new_game?mode=${mode}&player_name=${encodeURIComponent(playerName)}&cpu_count=${cpuCount}&max_players=${maxPlayers}`,
       {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-      }
+      },
+      'createNewGame'
     );
-    if (!response.ok) throw new Error('Failed to create game');
-    return await response.json();
   }
 
   async joinGame(gameId: string, playerName: string): Promise<GameState> {
-    const response = await fetch(`${API}/join_game?game_id=${gameId}&player_name=${encodeURIComponent(playerName)}`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-    });
-    if (!response.ok) throw new Error('Failed to join game');
-    return await response.json();
+    return this.fetchWithErrorHandling(
+      `${API}/join_game?game_id=${gameId}&player_name=${encodeURIComponent(playerName)}`,
+      {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+      },
+      'joinGame'
+    );
   }
 
   async cancelLobby(lobbyId: string, hostName: string): Promise<void> {
-    const response = await fetch(`${API}/lobby/cancel?lobby_id=${lobbyId}&host_name=${encodeURIComponent(hostName)}`, {
-      method: 'POST',
-    });
-    if (!response.ok) throw new Error('Failed to cancel lobby');
+    await this.fetchWithErrorHandling(
+      `${API}/lobby/cancel?lobby_id=${lobbyId}&host_name=${encodeURIComponent(hostName)}`,
+      { method: 'POST' },
+      'cancelLobby'
+    );
   }
 }
