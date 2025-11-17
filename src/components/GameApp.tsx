@@ -138,18 +138,38 @@ export function GameApp({
 
   // CPU turn processing - automatically handle CPU moves
   const cpuProcessingRef = useRef(false);
+  const processingPlayerRef = useRef<number | null>(null);
+  
   useEffect(() => {
-    if (!gameState || gameState.mode !== 'cpu' || gameState.game_over) return;
-    if (cpuProcessingRef.current) return; // Prevent concurrent CPU processing
+    if (!gameState || gameState.mode !== 'cpu' || gameState.game_over) {
+      cpuProcessingRef.current = false;
+      processingPlayerRef.current = null;
+      return;
+    }
 
     const currentPlayer = gameState.players[gameState.current_player];
-    if (!currentPlayer || !currentPlayer.is_cpu) return; // Not a CPU turn
+    if (!currentPlayer || !currentPlayer.is_cpu) {
+      // Not a CPU turn - reset processing flags
+      cpuProcessingRef.current = false;
+      processingPlayerRef.current = null;
+      return;
+    }
+
+    // Check if we're already processing this specific player's turn
+    const currentPlayerIndex = gameState.current_player;
+    if (cpuProcessingRef.current && processingPlayerRef.current === currentPlayerIndex) {
+      // Already processing this player's turn
+      return;
+    }
+
+    // New CPU turn - mark as processing
+    cpuProcessingRef.current = true;
+    processingPlayerRef.current = currentPlayerIndex;
 
     console.log(`CPU turn detected: ${currentPlayer.name}, has_drawn: ${gameState.has_drawn}`);
 
     // Check if CPU needs to draw
     if (!gameState.has_drawn) {
-      cpuProcessingRef.current = true;
       setLoadingStates(prev => ({ ...prev, cpuMoving: true }));
       
       console.log(`CPU ${currentPlayer.name} drawing card...`);
@@ -188,22 +208,26 @@ export function GameApp({
                       setGameState(finalState);
                       playSound('discard');
                       cpuProcessingRef.current = false;
+                      processingPlayerRef.current = null;
                       setLoadingStates(prev => ({ ...prev, cpuMoving: false }));
                     })
                     .catch((error) => {
                       console.error('CPU discard failed:', error);
                       cpuProcessingRef.current = false;
+                      processingPlayerRef.current = null;
                       setLoadingStates(prev => ({ ...prev, cpuMoving: false }));
                     });
                 } else {
                   console.log('CPU turn state changed, skipping discard');
                   cpuProcessingRef.current = false;
+                  processingPlayerRef.current = null;
                   setLoadingStates(prev => ({ ...prev, cpuMoving: false }));
                 }
               })
               .catch((error) => {
                 console.error('Failed to fetch latest game state for CPU discard:', error);
                 cpuProcessingRef.current = false;
+                processingPlayerRef.current = null;
                 setLoadingStates(prev => ({ ...prev, cpuMoving: false }));
               });
           }, 1500); // 1.5 second delay between draw and discard
@@ -211,11 +235,11 @@ export function GameApp({
         .catch((error) => {
           console.error('CPU draw failed:', error);
           cpuProcessingRef.current = false;
+          processingPlayerRef.current = null;
           setLoadingStates(prev => ({ ...prev, cpuMoving: false }));
         });
     } else {
       // CPU has drawn but needs to discard
-      cpuProcessingRef.current = true;
       setLoadingStates(prev => ({ ...prev, cpuMoving: true }));
       
       console.log(`CPU ${currentPlayer.name} discarding card (already drawn)...`);
@@ -228,11 +252,13 @@ export function GameApp({
           setGameState(newState);
           playSound('discard');
           cpuProcessingRef.current = false;
+          processingPlayerRef.current = null;
           setLoadingStates(prev => ({ ...prev, cpuMoving: false }));
         })
         .catch((error) => {
           console.error('CPU discard failed:', error);
           cpuProcessingRef.current = false;
+          processingPlayerRef.current = null;
           setLoadingStates(prev => ({ ...prev, cpuMoving: false }));
         });
     }

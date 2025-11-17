@@ -63,9 +63,8 @@ app = FastAPI()
 
 # Configure CORS
 origins = [
-    "https://njuka-webapp-frontend.vercel.app",
-    "https://njuka.vercel.app",
     "https://njuka-king.web.app",  # Firebase hosting domain
+    "https://njuka-king.firebaseapp.com",  # Alternative Firebase domain
     "http://localhost:3000",
     "http://localhost:5173"
 ]
