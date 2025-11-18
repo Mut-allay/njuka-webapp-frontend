@@ -373,7 +373,7 @@ def is_winning_combination(cards: List[Card]) -> bool:
     count = {}
     for v in vals:
         count[v] = count.get(v, 0) + 1
-    pairs = sum(1 for c == 2 for c in count.values())
+    pairs = sum(1 for c in count.values() if c == 2)
     if pairs != 1:
         return False
     pair_val = [k for k, v in count.items() if v == 2][0]
