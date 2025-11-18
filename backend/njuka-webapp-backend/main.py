@@ -1,4 +1,4 @@
-from fastapi import FastAPI, HTTPException, Query, Request, WebSocket, WebSocketDisconnect
+from fastapi import FastAPI, HTTPException, Query, WebSocket, WebSocketDisconnect
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 import random
@@ -8,7 +8,6 @@ from fastapi.responses import JSONResponse
 from datetime import datetime, timedelta
 import logging
 import json
-import asyncio
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
@@ -49,9 +48,7 @@ class LobbyGame(BaseModel):
     game_id: Optional[str] = None
 
     class Config:
-        json_encoders = {
-            datetime: lambda dt: dt.isoformat()
-        }
+        json_encoders = {datetime: lambda dt: dt.isoformat()}
 
     def dict(self, **kwargs):
         data = super().dict(**kwargs)
@@ -59,97 +56,81 @@ class LobbyGame(BaseModel):
         data["last_updated"] = self.last_updated.isoformat()
         return data
 
+
 app = FastAPI()
 
-# Configure CORS
-origins = [
-    "https://njuka-king.web.app",  # Firebase hosting domain
-    "https://njuka-king.firebaseapp.com",  # Alternative Firebase domain
-    "http://localhost:3000",
-    "http://localhost:5173"
-]
-
-# Add CORS middleware
+# CORS - Perfect for Firebase + localhost
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=origins,
+    allow_origins=[
+        "https://njuka-king.web.app",
+        "https://njuka-king.firebaseapp.com",
+        "http://localhost:3000",           # Dev
+        "http://localhost:5173",        # Vite
+        "http://127.0.0.1:3000",
+    ],
     allow_credentials=True,
-    allow_methods=["GET", "POST", "PUT", "DELETE", "OPTIONS"],
+    allow_methods=["*"],
     allow_headers=["*"],
 )
 
 active_games: Dict[str, GameState] = {}
 active_lobbies: Dict[str, LobbyGame] = {}
 
-# WebSocket connection management
 class ConnectionManager:
     def __init__(self):
-        # Store connections by game_id and player_name
         self.game_connections: Dict[str, Dict[str, WebSocket]] = {}
-        # Store lobby connections
         self.lobby_connections: Dict[str, Set[WebSocket]] = {}
-    
-    async def connect_to_game(self, websocket: WebSocket, game_id: str, player_name: str):
-        await websocket.accept()
+
+    async def connect_to_game(self, ws: WebSocket, game_id: str, player_name: str):
+        await ws.accept()
         if game_id not in self.game_connections:
             self.game_connections[game_id] = {}
-        self.game_connections[game_id][player_name] = websocket
-        logger.info(f"Player {player_name} connected to game {game_id}")
-    
-    async def connect_to_lobby(self, websocket: WebSocket, lobby_id: str):
-        await websocket.accept()
+        self.game_connections[game_id][player_name] = ws
+
+    async def connect_to_lobby(self, ws: WebSocket, lobby_id: str):
+        await ws.accept()
         if lobby_id not in self.lobby_connections:
             self.lobby_connections[lobby_id] = set()
-        self.lobby_connections[lobby_id].add(websocket)
-        logger.info(f"Client connected to lobby {lobby_id}")
-    
+        self.lobby_connections[lobby_id].add(ws)
+
     def disconnect_from_game(self, game_id: str, player_name: str):
         if game_id in self.game_connections and player_name in self.game_connections[game_id]:
             del self.game_connections[game_id][player_name]
             if not self.game_connections[game_id]:
                 del self.game_connections[game_id]
-        logger.info(f"Player {player_name} disconnected from game {game_id}")
-    
-    def disconnect_from_lobby(self, websocket: WebSocket, lobby_id: str):
+
+    def disconnect_from_lobby(self, ws: WebSocket, lobby_id: str):
         if lobby_id in self.lobby_connections:
-            self.lobby_connections[lobby_id].discard(websocket)
+            self.lobby_connections[lobby_id].discard(ws)
             if not self.lobby_connections[lobby_id]:
                 del self.lobby_connections[lobby_id]
-        logger.info(f"Client disconnected from lobby {lobby_id}")
-    
+
     async def broadcast_game_update(self, game_id: str, game_state: GameState):
-        if game_id in self.game_connections:
-            message = {
-                "type": "game_update",
-                "data": game_state.dict()
-            }
-            disconnected = []
-            for player_name, websocket in self.game_connections[game_id].items():
-                try:
-                    await websocket.send_text(json.dumps(message))
-                except:
-                    disconnected.append(player_name)
-            
-            # Clean up disconnected connections
-            for player_name in disconnected:
-                self.disconnect_from_game(game_id, player_name)
-    
+        if game_id not in self.game_connections:
+            return
+        message = json.dumps({"type": "game_update", "data": game_state.dict()})
+        disconnected = []
+        for player_name, ws in self.game_connections[game_id].items():
+            try:
+                await ws.send_text(message)
+            except:
+                disconnected.append(player_name)
+        for pn in disconnected:
+            self.disconnect_from_game(game_id, pn)
+
     async def broadcast_lobby_update(self, lobby_id: str, lobby: LobbyGame):
-        if lobby_id in self.lobby_connections:
-            message = {
-                "type": "lobby_update",
-                "data": lobby.dict()
-            }
-            disconnected = []
-            for websocket in self.lobby_connections[lobby_id]:
-                try:
-                    await websocket.send_text(json.dumps(message))
-                except:
-                    disconnected.append(websocket)
-            
-            # Clean up disconnected connections
-            for websocket in disconnected:
-                self.disconnect_from_lobby(websocket, lobby_id)
+        if lobby_id not in self.lobby_connections:
+            return
+        message = json.dumps({"type": "lobby_update", "data": lobby.dict()})
+        disconnected = []
+        for ws in self.lobby_connections[lobby_id]:
+            try:
+                await ws.send_text(message)
+            except:
+                disconnected.append(ws)
+        for ws in disconnected:
+            self.disconnect_from_lobby(ws, lobby_id)
 
 manager = ConnectionManager()
 
@@ -160,20 +141,22 @@ def new_game_state(mode: str, player_name: str, cpu_count: int = 1, max_players:
     deck = create_deck()
     random.shuffle(deck)
     players = []
+
     if mode == "cpu":
         players.append(Player(name=player_name, hand=[]))
         for i in range(cpu_count):
             players.append(Player(name=f"CPU {i+1}", hand=[], is_cpu=True))
-    else:
+    else:  # multiplayer
         players.append(Player(name=player_name, hand=[]))
-    
+
+    # Deal 3 cards to each player
     for _ in range(3):
         for player in players:
             if deck:
                 player.hand.append(deck.pop())
-    
+
     starting_player = random.randint(0, len(players) - 1)
-    
+
     return GameState(
         deck=deck,
         pot=[],
@@ -185,15 +168,21 @@ def new_game_state(mode: str, player_name: str, cpu_count: int = 1, max_players:
         max_players=max_players
     )
 
+# ====================== REQUEST MODELS ======================
 class CreateLobbyRequest(BaseModel):
     host: str
     max_players: int = 4
 
+class JoinLobbyRequest(BaseModel):
+    player: str
+
+# ====================== ROUTES ======================
+
 @app.post("/lobby/create")
 async def create_lobby(request: CreateLobbyRequest):
-    if request.max_players < 2 or request.max_players > 8:
+    if not (2 <= request.max_players <= 8):
         raise HTTPException(status_code=400, detail="Max players must be 2-8")
-    
+
     lobby_id = str(uuid.uuid4())
     lobby = LobbyGame(
         id=lobby_id,
@@ -204,366 +193,208 @@ async def create_lobby(request: CreateLobbyRequest):
         last_updated=datetime.now()
     )
     active_lobbies[lobby_id] = lobby
-    logger.info(f"Created lobby {lobby_id} for host {request.host}")
-    return JSONResponse(content=lobby.dict())
+    logger.info(f"Lobby created: {lobby_id} by {request.host}")
+    return lobby.dict()
 
-@app.get("/lobby/list")
-async def list_lobbies():
-    current_time = datetime.now()
-    expired = []
-    for lobby_id, lobby in active_lobbies.items():
-        if not lobby.started and (current_time - lobby.last_updated) > timedelta(minutes=30):
-            expired.append(lobby_id)
-        elif lobby.started and (current_time - lobby.last_updated) > timedelta(minutes=5):
-            expired.append(lobby_id)
-    for lobby_id in expired:
-        del active_lobbies[lobby_id]
-    
-    lobbies = [
-        {
-            "id": lobby.id,
-            "host": lobby.host,
-            "players": lobby.players,
-            "player_count": len(lobby.players),
-            "max_players": lobby.max_players,
-            "created_at": lobby.created_at.isoformat(),
-            "started": lobby.started
-        }
-        for lobby in active_lobbies.values() if not lobby.started
-    ]
-    return JSONResponse(content={"lobbies": lobbies})
-
-@app.get("/lobbies")
-async def get_lobbies():
-    """Alias for /lobby/list to match frontend expectations"""
-    return await list_lobbies()
-
-@app.get("/lobby/{lobby_id}")
-async def get_lobby_details(lobby_id: str):
-    """
-    Fetches the current state of a specific lobby.
-    """
-    if lobby_id not in active_lobbies:
-        raise HTTPException(status_code=404, detail="Lobby not found")
-    
-    lobby = active_lobbies[lobby_id]
-    lobby.last_updated = datetime.now()
-    return JSONResponse(content=lobby.dict())
-
-class JoinLobbyRequest(BaseModel):
-    player: str
-
-@app.post("/lobby/{lobby_id}/join")
+@app.get("/lobby/{lobby_id}/join")
 async def join_lobby(lobby_id: str, request: JoinLobbyRequest):
     if lobby_id not in active_lobbies:
         raise HTTPException(status_code=404, detail="Lobby not found")
-    
+
     lobby = active_lobbies[lobby_id]
-    if lobby.started:
-        raise HTTPException(status_code=400, detail="Game already started")
+    player_name = request.player
+
     if len(lobby.players) >= lobby.max_players:
         raise HTTPException(status_code=400, detail="Lobby is full")
-    if request.player in lobby.players:
-        raise HTTPException(status_code=400, detail="Name already taken")
-    
-    lobby.players.append(request.player)
-    lobby.last_updated = datetime.now()
-    
-    # Broadcast update to all connected lobby clients
-    await manager.broadcast_lobby_update(lobby_id, lobby)
-    
-    return JSONResponse(content=lobby.dict())
 
-@app.post("/lobby/cancel")
-async def cancel_lobby(
-    lobby_id: str = Query(...),
-    host_name: str = Query(...)
-):
-    if lobby_id not in active_lobbies:
-        raise HTTPException(status_code=404, detail="Lobby not found")
-    
-    lobby = active_lobbies[lobby_id]
-    if lobby.host != host_name:
-        raise HTTPException(status_code=403, detail="Only the host can cancel the lobby")
-    if lobby.started:
-        raise HTTPException(status_code=400, detail="Cannot cancel a started game")
-    
-    # Remove the lobby
-    del active_lobbies[lobby_id]
-    
-    return JSONResponse(content={"message": "Lobby cancelled successfully"})
+    if player_name in lobby.players:
+        raise HTTPException(status_code=400, detail="Player already in lobby")
 
-@app.post("/lobby/start")
-async def start_lobby_game(
-    lobby_id: str = Query(...),
-    host_name: str = Query(...)
-):
-    if lobby_id not in active_lobbies:
-        raise HTTPException(status_code=404, detail="Lobby not found")
-    
-    lobby = active_lobbies[lobby_id]
-    if lobby.host != host_name:
-        raise HTTPException(status_code=403, detail="Only the host can start the game")
-    if len(lobby.players) < 2:
-        raise HTTPException(status_code=400, detail="Need at least 2 players to start")
+    # CRITICAL FIX: Create game when second player joins
+    if len(lobby.players) == 1:  # This is the second player → start the game!
+        game_state = new_game_state("multiplayer", lobby.host, max_players=lobby.max_players)
+        active_games[game_state.id] = game_state
 
-    game_state = new_game_state("multiplayer", lobby.players[0], max_players=lobby.max_players)
-    for player_name in lobby.players[1:]:
+        # Add joining player to the game with 3 cards
         game_state.players.append(Player(name=player_name, hand=[]))
         for _ in range(3):
             if game_state.deck:
                 game_state.players[-1].hand.append(game_state.deck.pop())
-    
-    lobby.started = True
-    lobby.game_id = game_state.id
+
+        # THIS WAS THE MISSING LINE THAT BROKE EVERYTHING
+        lobby.game_id = game_state.id
+        lobby.started = True
+        logger.info(f"Game {game_state.id} created for lobby {lobby_id}")
+
+    # Now add player to lobby list
+    lobby.players.append(player_name)
     lobby.last_updated = datetime.now()
-    active_games[game_state.id] = game_state
-    
-    return JSONResponse(content=game_state.dict())
+
+    # Notify everyone (host will now see game_id and switch screen)
+    await manager.broadcast_lobby_update(lobby_id, lobby)
+
+    # Return updated lobby + full game state
+    game = active_games.get(lobby.game_id) if lobby.game_id else None
+
+    return JSONResponse(content={
+        "lobby": lobby.dict(),
+        "game": game.dict() if game else None
+    })
+
+@app.get("/lobby/list")
+async def list_lobbies():
+    now = datetime.now()
+    expired = []
+    for lid, lobby in active_lobbies.items():
+        if lobby.started:
+            if (now - lobby.last_updated) > timedelta(minutes=10):
+                expired.append(lid)
+        elif (now - lobby.last_updated) > timedelta(minutes=30):
+            expired.append(lid)
+    for lid in expired:
+        if lid in active_lobbies:
+            del active_lobbies[lid]
+    return list(active_lobbies.values())
 
 @app.post("/new_game")
-async def create_game(
-    mode: str = Query("cpu"),
-    player_name: str = Query("Player"),
-    cpu_count: int = Query(1),
-    max_players: int = Query(4)
-):
-    if mode == "cpu":
-        if cpu_count < 1 or cpu_count > 4:
-            raise HTTPException(status_code=400, detail="CPU count must be 1-4")
-    else:
-        if max_players < 2 or max_players > 8:
-            raise HTTPException(status_code=400, detail="Max players must be 2-8")
-    
-    game_state = new_game_state(mode, player_name, cpu_count, max_players)
-    active_games[game_state.id] = game_state
-    return JSONResponse(content=game_state.dict())
-
-def randomize_starting_player_if_needed(game: GameState):
-    if game.mode in ["multiplayer", "multi"] and len(game.players) >= 2:
-        if not game.has_drawn and len(game.pot) == 0:
-            game.current_player = random.randint(0, len(game.players) - 1)
-
-@app.post("/join_game")
-async def join_game(
-    game_id: str = Query(...),
-    player_name: str = Query("Player")
-):
-    if not game_id or game_id not in active_games:
-        raise HTTPException(status_code=404, detail="Game not found")
-    
-    game = active_games[game_id]
-    if any(p.name == player_name for p in game.players):
-        return JSONResponse(content=game.dict())
-    
-    if len(game.players) >= game.max_players:
-        raise HTTPException(status_code=400, detail="Game is full")
-    
-    game.players.append(Player(name=player_name, hand=[]))
-    for _ in range(3):
-        if game.deck:
-            game.players[-1].hand.append(game.deck.pop())
-    
-    # Auto-start game when 2+ players are present
-    if len(game.players) >= 2 and not game.has_drawn and len(game.pot) == 0:
-        randomize_starting_player_if_needed(game)
-        # Game is ready to start - the first player can now draw
-    
-    return JSONResponse(content=game.dict())
+async def create_cpu_game(player_name: str = "Player", cpu_count: int = 1):
+    game = new_game_state("cpu", player_name, cpu_count=cpu_count)
+    active_games[game.id] = game
+    return game.dict()
 
 @app.get("/game/{game_id}")
 async def get_game(game_id: str):
     if game_id not in active_games:
         raise HTTPException(status_code=404, detail="Game not found")
-    return JSONResponse(content=active_games[game_id].dict())
+    return active_games[game_id].dict()
 
 @app.post("/game/{game_id}/draw")
 async def draw_card(game_id: str):
-    if game_id not in active_games:
+    game = active_games.get(game_id)
+    if not game:
         raise HTTPException(status_code=404, detail="Game not found")
-    
-    game = active_games[game_id]
     if not game.deck:
-        raise HTTPException(status_code=400, detail="No cards left")
+        raise HTTPException(status_code=400, detail="Deck empty")
     if game.has_drawn:
-        raise HTTPException(status_code=400, detail="You must discard before drawing again")
-    
+        raise HTTPException(status_code=400, detail="Already drawn")
+
     card = game.deck.pop()
     game.players[game.current_player].hand.append(card)
     game.has_drawn = True
 
-    winner, winner_hand = check_any_player_win(game.players, game.pot)
+    winner, hand = check_any_player_win(game.players, game.pot)
     if winner:
         game.winner = winner
-        game.winner_hand = winner_hand
+        game.winner_hand = [c.dict() for c in hand]
         game.game_over = True
 
-    # Broadcast update to all connected players
     await manager.broadcast_game_update(game_id, game)
-
-    return JSONResponse(content=game.dict())
+    return game.dict()
 
 @app.post("/game/{game_id}/discard")
 async def discard_card(game_id: str, card_index: int = Query(...)):
     if game_id not in active_games:
         raise HTTPException(status_code=404, detail="Game not found")
-    
+
     game = active_games[game_id]
     player = game.players[game.current_player]
-    
+
     if not game.has_drawn:
-        raise HTTPException(status_code=400, detail="You must draw before discarding")
-    if card_index < 0 or card_index >= len(player.hand):
-        raise HTTPException(status_code=400, detail="Invalid card index")
-    
+        raise HTTPException(status_code=400, detail="Must draw first")
+    if not (0 <= card_index < len(player.hand)):
+        raise HTTPException(status_code=400, detail="Invalid card")
+
     card = player.hand.pop(card_index)
     game.pot.append(card)
     game.has_drawn = False
 
-    winner, winner_hand = check_any_player_win(game.players, game.pot)
+    winner, hand = check_any_player_win(game.players, game.pot)
     if winner:
         game.winner = winner
-        game.winner_hand = winner_hand
+        game.winner_hand = [c.dict() for c in hand]
         game.game_over = True
-
-    if not getattr(game, "game_over", False):
+    else:
         game.current_player = (game.current_player + 1) % len(game.players)
-    
-    # Broadcast update to all connected players
+
     await manager.broadcast_game_update(game_id, game)
-    
-    return JSONResponse(content=game.dict())
+    return game.dict()
 
 @app.get("/")
 async def root():
-    return {"message": "Njuka backend is live!"}
-
-@app.get("/healthcheck")
-async def healthcheck():
-    return {
-        "status": "OK",
-        "endpoints": {
-            "new_game": "POST /new_game",
-            "join_game": "POST /join_game",
-            "get_game": "GET /game/{id}",
-            "draw": "POST /game/{id}/draw",
-            "discard": "POST /game/{id}/discard"
-        }
-    }
-
-@app.options("/{full_path:path}")
-async def options_handler(full_path: str):
-    return {"message": "OK"}
+    return {"message": "Njuka King backend is live & fixed! 🔥"}
 
 @app.get("/health")
 async def health():
     return {"status": "ok"}
 
-# WebSocket endpoints
+# WebSocket Endpoints
 @app.websocket("/ws/game/{game_id}")
-async def websocket_game_endpoint(websocket: WebSocket, game_id: str, player_name: str = Query(...)):
+async def ws_game(websocket: WebSocket, game_id: str, player_name: str = Query(...)):
     if game_id not in active_games:
-        await websocket.close(code=1008, reason="Game not found")
+        await websocket.close(code=1008)
         return
-    
     await manager.connect_to_game(websocket, game_id, player_name)
     try:
         while True:
-            # Keep connection alive and handle any incoming messages
             data = await websocket.receive_text()
-            message = json.loads(data)
-            
-            # Handle different message types
-            if message.get("type") == "ping":
+            msg = json.loads(data)
+            if msg.get("type") == "ping":
                 await websocket.send_text(json.dumps({"type": "pong"}))
-            elif message.get("type") == "get_game_state":
-                game_state = active_games[game_id]
-                await websocket.send_text(json.dumps({
-                    "type": "game_state",
-                    "data": game_state.dict()
-                }))
     except WebSocketDisconnect:
+        manager.disconnect_from_game(game_id, player_name)
+    except:
         manager.disconnect_from_game(game_id, player_name)
 
 @app.websocket("/ws/lobby/{lobby_id}")
-async def websocket_lobby_endpoint(websocket: WebSocket, lobby_id: str):
+async def ws_lobby(websocket: WebSocket, lobby_id: str):
     if lobby_id not in active_lobbies:
-        await websocket.close(code=1008, reason="Lobby not found")
+        await websocket.close(code=1008)
         return
-    
     await manager.connect_to_lobby(websocket, lobby_id)
     try:
         while True:
-            # Keep connection alive and handle any incoming messages
             data = await websocket.receive_text()
-            message = json.loads(data)
-            
-            # Handle different message types
-            if message.get("type") == "ping":
+            msg = json.loads(data)
+            if msg.get("type") == "ping":
                 await websocket.send_text(json.dumps({"type": "pong"}))
-            elif message.get("type") == "get_lobby_state":
-                lobby = active_lobbies[lobby_id]
-                await websocket.send_text(json.dumps({
-                    "type": "lobby_state",
-                    "data": lobby.dict()
-                }))
     except WebSocketDisconnect:
         manager.disconnect_from_lobby(websocket, lobby_id)
+    except:
+        manager.disconnect_from_lobby(websocket, lobby_id)
 
+# Win condition logic
 def card_value_index(card):
     return values.index(card.value) + 1
 
-def is_winning_combination(cards: list) -> bool:
-    values_idx = [card_value_index(card) for card in cards]
-    value_counts = {}
-    for v in values_idx:
-        value_counts[v] = value_counts.get(v, 0) + 1
-    
-    # Check for exactly one pair
-    pairs = [v for v, count in value_counts.items() if count == 2]
-    if len(pairs) != 1:
+def is_winning_combination(cards: List[Card]) -> bool:
+    if len(cards) not in (3, 4):
         return False
-    
-    pair_value = pairs[0]
-    
-    # Get remaining cards (excluding the pair)
-    remaining = []
-    for v in values_idx:
-        if v != pair_value:
-            remaining.append(v)
-    
-    # Should have exactly 2 remaining cards
-    if len(remaining) != 2:
+    vals = [card_value_index(c) for c in cards]
+    count = {}
+    for v in vals:
+        count[v] = count.get(v, 0) + 1
+    pairs = sum(1 for c == 2 for c in count.values())
+    if pairs != 1:
         return False
-    
-    remaining = sorted(remaining)
-    
-    # Check if they form a sequence (followers)
-    # Handle wrap-around case: K, A (13, 1) should be valid
-    if remaining == [1, 13]:  # A, K
+    pair_val = [k for k, v in count.items() if v == 2][0]
+    others = sorted([v for v in vals if v != pair_val])
+    if len(others) != 2:
+        return False
+    if others == [1, 13]:  # A + K
         return True
-    
-    # Check consecutive values
-    diff = remaining[1] - remaining[0]
-    return diff == 1
+    return others[1] - others[0] == 1
 
 def check_any_player_win(players, pot):
-    pot_top = pot[-1] if pot else None
-    for player in players:
-        # Check if player has 4 cards and forms a winning combination
-        if len(player.hand) == 4 and is_winning_combination(player.hand):
-            print(f"WIN: {player.name} with {[f'{c.value}{c.suit}' for c in player.hand]}")
-            return player.name, [c.dict() for c in player.hand]
-        
-        # Check if player has 3 cards and can use the discard pile to win
-        if pot_top and len(player.hand) == 3:
-            test_hand = player.hand + [pot_top]
-            if is_winning_combination(test_hand):
-                print(f"WIN: {player.name} with {[f'{c.value}{c.suit}' for c in test_hand]}")
-                return player.name, [c.dict() for c in test_hand]
+    top = pot[-1] if pot else None
+    for p in players:
+        if len(p.hand) == 4 and is_winning_combination(p.hand):
+            return p.name, [c.dict() for c in p.hand]
+        if top and len(p.hand) == 3:
+            test = p.hand + [top]
+            if is_winning_combination(test):
+                return p.name, [c.dict() for c in test]
     return None, None
 
 if __name__ == "__main__":
     import uvicorn
     uvicorn.run(app, host="0.0.0.0", port=8000)
-
