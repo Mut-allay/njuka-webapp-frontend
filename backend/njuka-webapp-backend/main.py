@@ -59,16 +59,17 @@ class LobbyGame(BaseModel):
 
 app = FastAPI()
 
-# CORS - Perfect for Firebase + localhost
+# CORS - Configured for Vercel frontend + localhost development
 app.add_middleware(
     CORSMiddleware,
     allow_origins=[
-        "https://njuka-king.web.app",
-        "https://njuka-king.firebaseapp.com",
-        "http://localhost:3000",           # Dev
-        "http://localhost:5173",        # Vite
+        "https://njuka-webapp-frontend.vercel.app",  # Vercel production
+        "http://localhost:3000",  # Dev
+        "http://localhost:5173",  # Vite dev server
         "http://127.0.0.1:3000",
+        "http://127.0.0.1:5173",
     ],
+    allow_origin_regex=r"https://.*\.vercel\.app",  # Vercel preview deployments (wildcard)
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],

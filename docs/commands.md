@@ -86,17 +86,6 @@ git config --get remote.origin.url # See the remote URL
 git branch -a # Show all local and remote branches
 git rev-parse --abbrev-ref HEAD # Show current branch name
 
-🔥 FIREBASE
-npm install -g firebase-tools
-firebase login
-firebase logout
-firebase init
-firebase emulators:start --only functions
-taskkill /F /IM java.exe #to kill the emulators
-netstat -aon | findstr "8080" #To Listen to Which Ports Are in Use
-firebase use project_id
-firebase projects:list
-
 ☁️ GOOGLE CLOUD
 gcloud auth login
 gcloud config set project YOUR_PROJECT_ID
@@ -104,11 +93,9 @@ gcloud config set project YOUR_PROJECT_ID
 💻 DEVELOPMENT
 General
 pnpm run build
-pnpm exec firebase deploy --only hosting
 pnpm run build:staging
 pnpm run server
-npm run dev:emulator
-firebase deploy --only functions
+npm run dev
 
 Blog Functions
 Bash
