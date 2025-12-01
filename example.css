@@ -240,7 +240,7 @@ h1, h2, h4, button { /* <-- Added h4 back to this rule */
 
 .App {
   text-align: center;
-  background-image: url('/images/10013144.jpg');
+  background-image: url('https://i.ibb.co/6csxbFY3/10013144.jpg');
   background-size: cover;
   background-position: center;
   background-repeat: no-repeat;
