@@ -35,6 +35,7 @@ njuka-ui-ux-assessment.md
 main.py
 Procfile
 pyproject.toml
+requirements.txt
 
 
 # Firebase files (removed - using Vercel now)
