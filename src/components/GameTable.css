@@ -6,8 +6,7 @@
   max-width: 900px;
   max-height: 600px;
   margin: 20px auto;
-  background: #2d5016; /* Green table color matching the image */
-  background: radial-gradient(ellipse at center, #2d5016 0%, #1a3a0a 100%);
+  background: radial-gradient(ellipse at center, #0d4a24 0%, #0d4a24 100%);
   border-radius: 50% / 40%; /* Horizontal oval shape */
   border: 15px solid #5d4037;
   box-shadow: 0 0 40px rgba(0, 0, 0, 0.8), inset 0 0 30px rgba(0, 0, 0, 0.6);
@@ -15,7 +14,6 @@
   justify-content: center;
   align-items: center;
   overflow: hidden;
-  z-index: 1;
 }
 
 .poker-table::before {
@@ -35,8 +33,7 @@
   left: 50%;
   transform: translate(-50%, -50%);
   display: flex;
-  flex-direction: column;
-  gap: 20px;
+  gap: 60px;
   z-index: 2;
   align-items: center;
 }
@@ -221,16 +218,6 @@
   background: url("https://i.ibb.co/d49LvQ2d/Background-Red.png") no-repeat center center;
   background-size: cover;
   border-radius: 6px;
-  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
-}
-
-/* Stack effect for face-down cards */
-.hand .card.facedown:not(:first-child) {
-  margin-left: -15px; /* Overlap cards to create stack effect */
-}
-
-.hand.horizontal .card.facedown:not(:first-child) {
-  margin-left: -15px;
 }
 
 .card.facedown .card-back {
@@ -629,40 +616,25 @@
 /* ⬇️ ADDED: New keyframe for drawing */
 @keyframes flyFromDeck {
   0% {
-    /* Start at deck position and size (deck cards are scaled to 0.85) */
-    transform: translateX(0) translateY(0) rotate(0) scale(0.85);
-    opacity: 1;
-  }
-  20% {
-    /* Lift off from deck with slight rotation */
-    transform: translateX(0) translateY(-20px) rotate(-5deg) scale(0.9);
+    transform: translateX(0) translateY(0) rotate(0) scale(1); /* Starts at deck size */
     opacity: 1;
   }
   50% {
-    /* Arc towards hand - mid flight */
+    /* Arc towards hand */
     transform: 
       translateX(calc(var(--dest-x, 0px) * 0.5)) 
-      translateY(calc(var(--dest-y, 0px) * 0.5 - 50px)) 
+      translateY(calc(var(--dest-y, 0px) * 0.5 - 40px)) 
       rotate(-8deg) 
-      scale(1.0); /* Grow to full card size */
-    opacity: 1;
-  }
-  80% {
-    /* Approaching destination */
-    transform: 
-      translateX(calc(var(--dest-x, 0px) * 0.9)) 
-      translateY(calc(var(--dest-y, 0px) * 0.9 - 10px)) 
-      rotate(-2deg) 
-      scale(1.0);
+      scale(1.1); /* Grow to full card size */
     opacity: 1;
   }
   100% {
-    /* Arrive at hand position */
+    /* Arrive at hand */
     transform: 
       translateX(var(--dest-x, 0px)) 
       translateY(var(--dest-y, 0px)) 
       rotate(0deg) 
-      scale(1.0);
+      scale(1.1);
     opacity: 0; /* Fade out as the real card appears */
   }
 }
@@ -784,38 +756,32 @@
 .discard-area::before {
   content: "";
   position: absolute;
-  top: -20px;
-  color: white;
-  font-size: 0.85em;
+  top: -15px;
+  color: rgba(248, 213, 107, 0.7);
+  font-size: 0.8em;
   font-weight: bold;
-  text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.8);
-  white-space: nowrap;
 }
 
 .discard-area::before {
   content: "DISCARD";
-  color: white; /* White text matching the image */
-  font-weight: bold;
-  text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.8);
 }
 
 .deck-count {
   position: absolute;
   top: 50%;
-  right: -50px;
+  right: -45px;
   transform: translateY(-50%);
-  background: #ffd700; /* Yellow/gold color matching the image */
+  background: rgba(248, 213, 107, 0.9);
   color: #2a3439;
-  border-radius: 50%; /* Make it oval/circular */
-  width: 45px;
-  height: 30px;
+  border-radius: 20px;
+  width: 35px;
+  height: 20px;
   display: flex;
   justify-content: center;
   align-items: center;
   font-weight: bold;
-  font-size: 0.9em;
-  border: 2px solid #f8d56b;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
+  font-size: 0.8em;
+  border: 1px solid #f8d56b;
 }
 
 .discard-top {
@@ -876,7 +842,7 @@
 
   .table-center {
     flex-direction: column;
-    gap: 15px;
+    gap: 20px;
     top: 42%;
   }
 
@@ -950,12 +916,10 @@
     transform: scale(0.85);
   }
   .deck-count {
-    font-size: 0.8em;
-    width: 40px;
-    height: 25px;
-    right: -45px;
-    background: #ffd700; /* Yellow/gold color matching the image */
-    border-radius: 50%; /* Make it oval/circular */
+    font-size: 0.7em;
+    width: 30px;
+    height: 18px;
+    right: -40px;
   }
 
   /* Mobile-first animation timing overrides */

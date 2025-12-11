@@ -63,13 +63,12 @@ export const GameTable: React.FC<GameTableProps> = ({
   // ⬇️ ADDED: New state for the draw animation overlay
   const [animatingDraw, setAnimatingDraw] = useState<{
     start: { x: number, y: number, width: number, height: number },
-    destination: { x: number, y: number },
-    cardIndex: number // Track which card index is being drawn
+    destination: { x: number, y: number }
   } | null>(null)
 
   const [isShuffling, setIsShuffling] = useState(false)
   const [dealingCards, setDealingCards] = useState<boolean[]>([])
-  // const [drawingCard, setDrawingCard] = useState(false) // ⬅️ REMOVED: We now use animatingDraw
+  const [drawingCardIndex, setDrawingCardIndex] = useState<number | null>(null) // Track which card is being drawn
 
   const yourPlayer = state.players.find((p) => p?.name === playerName)
   const gameCurrentPlayerIndex = state.current_player ?? 0
@@ -219,88 +218,61 @@ export const GameTable: React.FC<GameTableProps> = ({
       navigator.vibrate([80, 30, 80]);
     }
     
-    // Get the current hand size to know where the new card will appear
+    // Get the current hand size to know which index the new card will be
     const currentHandSize = yourPlayer?.hand?.length || 0;
     const newCardIndex = currentHandSize; // The new card will be at this index
     
-    // Get START (deck) position
-    const deckEl = document.querySelector('.deck-area .card');
+    // Mark which card index is being drawn BEFORE calling onDraw
+    setDrawingCardIndex(newCardIndex);
     
+    // Get START (deck) position BEFORE the card is added
+    const deckEl = document.querySelector('.deck-area .card');
+    const handEl = document.querySelector('.player-seat.bottom .hand');
+    
+    let deckRect: DOMRect | null = null;
     if (deckEl) {
-      const deckRect = deckEl.getBoundingClientRect();
-      
-      // Call the game logic first to add the card to the hand
-      onDraw();
-      
-      // Use requestAnimationFrame to ensure DOM has updated, then get actual card position
-      requestAnimationFrame(() => {
-        requestAnimationFrame(() => {
-          const newCardEl = document.querySelector(`[data-card-index="${newCardIndex}"]`) as HTMLElement;
-          
-          if (newCardEl) {
-            const newCardRect = newCardEl.getBoundingClientRect();
-            
-            // Calculate deltas from deck center to new card center
-            const deckCenterX = deckRect.left + deckRect.width / 2;
-            const deckCenterY = deckRect.top + deckRect.height / 2;
-            const cardCenterX = newCardRect.left + newCardRect.width / 2;
-            const cardCenterY = newCardRect.top + newCardRect.height / 2;
-            
-            const deltaX = cardCenterX - deckCenterX;
-            const deltaY = cardCenterY - deckCenterY;
-
-            // Set the overlay state to trigger the animation
-            setAnimatingDraw({
-              start: { 
-                x: deckRect.left, 
-                y: deckRect.top,
-                width: deckRect.width,
-                height: deckRect.height
-              },
-              destination: { x: deltaX, y: deltaY },
-              cardIndex: newCardIndex
-            });
-          } else {
-            // Fallback: estimate position if card element not found
-            const handEl = document.querySelector('.player-seat.bottom .hand');
-            if (handEl) {
-              const handRect = handEl.getBoundingClientRect();
-              // Cards overlap by 20px (negative margin), so effective spacing is 50px
-              const cardWidth = 70;
-              const overlap = 20; // -10px margin on each side
-              const effectiveSpacing = cardWidth - overlap;
-              const estimatedCardLeft = handRect.left + (newCardIndex * effectiveSpacing);
-              const estimatedCardTop = handRect.top + (handRect.height / 2) - 50;
-              
-              const deckCenterX = deckRect.left + deckRect.width / 2;
-              const deckCenterY = deckRect.top + deckRect.height / 2;
-              
-              setAnimatingDraw({
-                start: { 
-                  x: deckRect.left, 
-                  y: deckRect.top,
-                  width: deckRect.width,
-                  height: deckRect.height
-                },
-                destination: { 
-                  x: (estimatedCardLeft + cardWidth / 2) - deckCenterX, 
-                  y: estimatedCardTop - deckCenterY 
-                },
-                cardIndex: newCardIndex
-              });
-            }
-          }
-        });
-      });
-    } else {
-      // If we can't find deck, just call onDraw without animation
-      onDraw();
+      deckRect = deckEl.getBoundingClientRect();
     }
+
+    // Call the original game logic FIRST (this adds the card to the hand)
+    onDraw();
+    
+    // Now wait for React to render the new card, then get its position
+    // Use requestAnimationFrame to ensure DOM is updated
+    requestAnimationFrame(() => {
+      requestAnimationFrame(() => {
+        if (!deckRect || !handEl) return;
+        
+        // Find the newly added card (it will be the last one)
+        const handCards = handEl.querySelectorAll('.card');
+        const newCardEl = handCards[handCards.length - 1] as HTMLElement;
+        
+        if (newCardEl) {
+          const newCardRect = newCardEl.getBoundingClientRect();
+          
+          // Calculate destination: position of the new card relative to deck
+          const destX = newCardRect.left - deckRect.left;
+          const destY = newCardRect.top - deckRect.top;
+
+          // Set the overlay state to trigger the animation
+          setAnimatingDraw({
+            start: { 
+              x: deckRect.left, 
+              y: deckRect.top,
+              width: deckRect.width,
+              height: deckRect.height
+            },
+            destination: { x: destX, y: destY }
+          });
+        }
+      });
+    });
     
     // Reset drawing state after mobile-optimized animation completes
     const animationDuration = window.innerWidth <= 768 ? 1800 : 1400;
     setTimeout(() => {
       setAnimatingDraw(null);
+      setDrawingCardIndex(null);
     }, animationDuration);
   }
 
@@ -449,7 +421,7 @@ export const GameTable: React.FC<GameTableProps> = ({
           {yourPlayer.hand?.map((card, i) => {
             const isDealing = dealingCards[i] || false
             const delayClass = isDealing ? `deal-delay-${Math.min(i + 1, 7)}` : ""
-            const isDrawing = animatingDraw?.cardIndex === i // Hide card being drawn
+            const isDrawing = drawingCardIndex === i // Check if this is the card being drawn
             
             return (
               <Card
@@ -465,13 +437,15 @@ export const GameTable: React.FC<GameTableProps> = ({
                   isDealing ||
                   isDrawing
                 }
-                // ⬇️ MODIFIED: We now use `discardingCardIndex` and `isDrawing` to hide the card
-                className={`${isDealing ? `card-dealing ${delayClass}` : ""}`}
+                className={`${isDealing ? `card-dealing ${delayClass}` : ""} ${isDrawing ? "card-drawing" : ""}`}
                 highlight={isWinner(yourPlayer)}
                 selected={selectedCardIndex === i}
                 style={{
-                  // ⬇️ ADDED: Hide card while discard or draw animation is playing
-                  visibility: (discardingCardIndex === i || isDrawing) ? 'hidden' : 'visible'
+                  // ⬇️ ADDED: Hide the card while it's being drawn (overlay shows it)
+                  // Also hide if discarding
+                  opacity: (isDrawing && animatingDraw) || discardingCardIndex === i ? 0 : 1,
+                  visibility: discardingCardIndex === i ? 'hidden' : 'visible',
+                  transition: isDrawing && !animatingDraw ? 'opacity 0.3s ease-in' : 'none'
                 }}
                 data-card-index={i}
               />
@@ -498,11 +472,9 @@ export const GameTable: React.FC<GameTableProps> = ({
       )}
 
       {/* ⬇️ ADDED: Animated overlay card for draw effect */}
-      {animatingDraw && (
+      {animatingDraw && drawingCardIndex !== null && yourPlayer?.hand?.[drawingCardIndex] && (
         <Card
-          facedown
-          value=""
-          suit=""
+          {...yourPlayer.hand[drawingCardIndex]}
           className="draw-animation-overlay"
           style={{
             left: animatingDraw.start.x,

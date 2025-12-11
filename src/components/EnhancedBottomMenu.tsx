@@ -1,25 +1,28 @@
 import { useState } from 'react';
+import { useNavigate, useLocation } from 'react-router-dom';
 import { Settings, Info, Home, Volume2, VolumeX, BookOpen } from 'lucide-react';
+import { useGame } from '../contexts/GameContext';
 
 interface EnhancedBottomMenuProps {
-  quitGameToMenu?: () => void;
   soundsEnabled: boolean;
   toggleSounds: () => void;
   playSound: (soundType: 'button') => void;
-  onShowRules: () => void;
-  onGoHome: () => void;
 }
 
 export const EnhancedBottomMenu = ({
-  quitGameToMenu,
   soundsEnabled,
   toggleSounds,
   playSound,
-  onShowRules,
-  onGoHome
 }: EnhancedBottomMenuProps) => {
+  const navigate = useNavigate();
+  const location = useLocation();
+  const { gameState, quitGame } = useGame();
   const [settingsExpanded, setSettingsExpanded] = useState(false);
   const [infoExpanded, setInfoExpanded] = useState(false);
+
+  // Check if we're in a game
+  const isInGame = location.pathname.startsWith('/game/');
+  const showQuitButton = isInGame && gameState;
 
   const handleButtonClick = (action: () => void) => {
     playSound('button');
@@ -43,7 +46,7 @@ export const EnhancedBottomMenu = ({
     <div className="enhanced-bottom-menu">
       {settingsExpanded && (
         <div className="expanded-panel settings-panel">
-          <button 
+          <button
             onClick={() => handleButtonClick(toggleSounds)}
             className="panel-button"
           >
@@ -55,8 +58,8 @@ export const EnhancedBottomMenu = ({
 
       {infoExpanded && (
         <div className="expanded-panel info-panel">
-          <button 
-            onClick={() => handleButtonClick(onShowRules)}
+          <button
+            onClick={() => handleButtonClick(() => navigate('/rules'))}
             className="panel-button"
           >
             <BookOpen size={20} />
@@ -66,15 +69,15 @@ export const EnhancedBottomMenu = ({
       )}
 
       <div className="main-menu-bar">
-        <button 
-          onClick={() => handleButtonClick(onGoHome)}
+        <button
+          onClick={() => handleButtonClick(() => navigate('/'))}
           className="menu-button"
         >
           <Home size={20} />
           <span>Home</span>
         </button>
 
-        <button 
+        <button
           onClick={() => handleButtonClick(toggleSettings)}
           className={`menu-button ${settingsExpanded ? 'active' : ''}`}
         >
@@ -82,7 +85,7 @@ export const EnhancedBottomMenu = ({
           <span>Settings</span>
         </button>
 
-        <button 
+        <button
           onClick={() => handleButtonClick(toggleInfo)}
           className={`menu-button ${infoExpanded ? 'active' : ''}`}
         >
@@ -90,9 +93,12 @@ export const EnhancedBottomMenu = ({
           <span>Info</span>
         </button>
 
-        {quitGameToMenu && (
-          <button 
-            onClick={() => handleButtonClick(quitGameToMenu)}
+        {showQuitButton && (
+          <button
+            onClick={() => handleButtonClick(() => {
+              quitGame();
+              navigate('/');
+            })}
             className="menu-button quit-button"
           >
             <span>Quit</span>
