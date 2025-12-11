@@ -23,7 +23,7 @@ dist-ssr
 *.sln
 *.sw?
 
-
+docs/
 commands.md
 prompt.md
 roadmap.md
@@ -35,7 +35,7 @@ njuka-ui-ux-assessment.md
 main.py
 Procfile
 pyproject.toml
-requirements.txt
+
 
 # Firebase files (removed - using Vercel now)
 firebase.json
