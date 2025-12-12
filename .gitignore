@@ -32,10 +32,7 @@ njuka-ui-ux-assessment.md
 
 # Backend files (should only exist in backend/ directory)
 # Prevent accidental commits of backend files at root
-main.py
-Procfile
-pyproject.toml
-requirements.txt
+
 
 
 # Firebase files (removed - using Vercel now)
