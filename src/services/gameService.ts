@@ -59,7 +59,7 @@ export class GameService {
 
   async getLobbies(): Promise<{ lobbies: LobbyGame[] }> {
     return this.fetchWithErrorHandling(
-      `${API}/lobbies`,
+      `${API}/lobby/list`,
       { method: 'GET' },
       'getLobbies'
     );
