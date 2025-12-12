@@ -173,10 +173,11 @@ export const GameProvider = ({ children, playerName, setPlayerName }: GameProvid
             const newLobby = await gameService.createLobby(playerName, numPlayers);
             setLobby(newLobby);
 
-            // Immediately create a game and join it
-            const game = await gameService.createNewGame("multiplayer", playerName, 0, numPlayers);
-            setGameId(game.id);
-            setGameState(game);
+            // WE DO NOT START THE GAME HERE
+            // The backend will trigger the game start via WebSocket when the second player joins.
+            // We just wait in the lobby.
+            setGameId(null);
+            setGameState(null);
         } catch (error: any) {
             setError(error.message || "Failed to create game");
             throw error;
@@ -189,28 +190,17 @@ export const GameProvider = ({ children, playerName, setPlayerName }: GameProvid
         setLoadingStates(prev => ({ ...prev, joining: true }));
         setError(null);
         try {
-            // Join the lobby first
-            const joinedLobby = await gameService.joinLobby(lobbyId, playerName);
-            setLobby(joinedLobby);
+            // Join the lobby
+            const response = await gameService.joinLobby(lobbyId, playerName);
+            setLobby(response.lobby);
 
-            // Check if the lobby already has a game, if not create one
-            let game;
-            if (joinedLobby.game_id) {
-                // Join existing game
-                game = await gameService.joinGame(joinedLobby.game_id, playerName);
-            } else {
-                // Create new game for this lobby
-                game = await gameService.createNewGame("multiplayer", joinedLobby.host, 0, joinedLobby.max_players);
-                // Add all lobby players to the game
-                for (const player of joinedLobby.players) {
-                    if (player !== joinedLobby.host) {
-                        await gameService.joinGame(game.id, player);
-                    }
-                }
+            // If the backend returned a game (meaning we are the 2nd player triggering start), use it
+            if (response.game) {
+                setGameState(response.game);
+                setGameId(response.game.id);
             }
 
-            setGameId(game.id);
-            setGameState(game);
+            // Otherwise, we just wait in the lobby for the WebSocket update
         } catch (error: any) {
             setError(error.message || "Failed to join game");
             throw error;

@@ -45,7 +45,7 @@ export class GameService {
     );
   }
 
-  async joinLobby(lobbyId: string, player: string): Promise<LobbyGame> {
+  async joinLobby(lobbyId: string, player: string): Promise<{ lobby: LobbyGame; game: GameState | null }> {
     return this.fetchWithErrorHandling(
       `${API}/lobby/${lobbyId}/join`,
       {
