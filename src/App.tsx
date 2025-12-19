@@ -16,7 +16,10 @@ const NotFoundPage = lazy(() => import('./routes/NotFoundPage').then(module => (
 
 // 🎵 SOUND MANAGER HOOK - Handles all game audio
 const useSoundManager = () => {
-  const [soundsEnabled, setSoundsEnabled] = useState(true);
+  const [soundsEnabled, setSoundsEnabled] = useState(() => {
+    const saved = localStorage.getItem('soundsEnabled');
+    return saved === null ? true : saved === 'true';
+  });
 
   // 🎵 Programmatic fallback sound generator with mobile compatibility
   const createFallbackSound = useCallback((frequency: number, duration: number, type: OscillatorType = 'sine') => {
@@ -115,7 +118,7 @@ const useSoundManager = () => {
     } catch (fallbackError) {
       console.log(`Fallback sound also failed for ${soundType}:`, fallbackError);
     }
-  }, [createFallbackSound]);
+  }, [createFallbackSound, sounds]);
 
   const playSound = useCallback((soundType: keyof typeof sounds) => {
     if (soundsEnabled) {
@@ -143,7 +146,11 @@ const useSoundManager = () => {
   }, [soundsEnabled, sounds, createFallbackSoundForType]);
 
   const toggleSounds = useCallback(() => {
-    setSoundsEnabled(prev => !prev);
+    setSoundsEnabled(prev => {
+      const next = !prev;
+      localStorage.setItem('soundsEnabled', String(next));
+      return next;
+    });
   }, []);
 
   // Enable audio on first user interaction (required for mobile)
@@ -202,6 +209,7 @@ function App() {
             <Routes>
               <Route path="/" element={<HomePage />} />
               <Route path="/multiplayer" element={<MultiplayerLobbyPage />} />
+              <Route path="/lobby/:lobbyId" element={<GameRoomPage playSound={playSound} />} />
               <Route path="/cpu" element={<CPUGameSetupPage />} />
               <Route path="/game/:gameId" element={<GameRoomPage playSound={playSound} />} />
               <Route path="/rules" element={<RulesPage />} />

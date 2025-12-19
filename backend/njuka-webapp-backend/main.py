@@ -59,17 +59,10 @@ class LobbyGame(BaseModel):
 
 app = FastAPI()
 
-# CORS - Configured for Vercel frontend + localhost development
+# CORS - Relaxed for development and cross-device testing
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=[
-        "https://njuka-webapp-frontend.vercel.app",  # Vercel production
-        "http://localhost:3000",  # Dev
-        "http://localhost:5173",  # Vite dev server
-        "http://127.0.0.1:3000",
-        "http://127.0.0.1:5173",
-    ],
-    allow_origin_regex=r"https://.*\.vercel\.app",  # Vercel preview deployments (wildcard)
+    allow_origins=["*"],
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
@@ -197,7 +190,7 @@ async def create_lobby(request: CreateLobbyRequest):
     logger.info(f"Lobby created: {lobby_id} by {request.host}")
     return lobby.dict()
 
-@app.get("/lobby/{lobby_id}/join")
+@app.post("/lobby/{lobby_id}/join")
 async def join_lobby(lobby_id: str, request: JoinLobbyRequest):
     if lobby_id not in active_lobbies:
         raise HTTPException(status_code=404, detail="Lobby not found")

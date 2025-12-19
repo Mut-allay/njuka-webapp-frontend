@@ -85,21 +85,32 @@ export const Card = React.memo(function Card({
 }: CardProps) {
   const [isHovered, setIsHovered] = useState(false)
   const [touchStart, setTouchStart] = useState(0)
+  const [touchStartTime, setTouchStartTime] = useState(0)
 
   // ⬇️ REFACTORED LOGIC TO USE THE MAP ⬇️
   const imageUrl = cardImageMap[value + suit];
 
   const handleTouchStart = (e: React.TouchEvent) => {
     setTouchStart(e.touches[0].clientX)
+    setTouchStartTime(Date.now())
   }
 
   const handleTouchEnd = (e: React.TouchEvent) => {
     if (!onClick || disabled) return
     
     const touchEnd = e.changedTouches[0].clientX
-    if (Math.abs(touchStart - touchEnd) > 30) {
-      // Swipe detected
+    const touchDuration = Date.now() - touchStartTime
+    const swipeDistance = Math.abs(touchStart - touchEnd)
+    
+    // Enhanced gesture detection
+    if (swipeDistance > 30 || touchDuration < 200) {
+      // Swipe detected or quick tap
       onClick()
+      
+      // 📱 Haptic feedback for gesture actions
+      if (navigator.vibrate) {
+        navigator.vibrate([40, 20, 40]) // Quick tap pattern
+      }
     }
   }
 

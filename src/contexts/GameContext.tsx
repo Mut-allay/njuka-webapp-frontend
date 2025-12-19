@@ -27,7 +27,7 @@ interface GameContextType {
     gameWS: WebSocket | null;
 
     // Game actions
-    createLobby: (numPlayers: number) => Promise<void>;
+    createLobby: (numPlayers: number) => Promise<LobbyGame>;
     joinLobby: (lobbyId: string) => Promise<void>;
     startCPUGame: (numCPU: number) => Promise<void>;
     drawCard: () => Promise<void>;
@@ -178,6 +178,7 @@ export const GameProvider = ({ children, playerName, setPlayerName }: GameProvid
             // We just wait in the lobby.
             setGameId(null);
             setGameState(null);
+            return newLobby;
         } catch (error: any) {
             setError(error.message || "Failed to create game");
             throw error;
@@ -269,8 +270,8 @@ export const GameProvider = ({ children, playerName, setPlayerName }: GameProvid
 
     const refreshLobbies = useCallback(async () => {
         try {
-            const response = await gameService.getLobbies();
-            setLobbies(response.lobbies || []);
+            const lobbies = await gameService.getLobbies();
+            setLobbies(lobbies || []);
         } catch (error: any) {
             setError(error.message || "Failed to fetch lobbies");
             setLobbies([]);

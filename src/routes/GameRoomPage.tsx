@@ -1,8 +1,9 @@
 import { useNavigate } from 'react-router-dom';
-import { useEffect, useRef } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { useGame } from '../contexts/GameContext';
 import LazyGameTable from '../components/LazyGameTable';
 import LazyGameOverModal from '../components/LazyGameOverModal';
+import LazyTutorialModal from '../components/LazyTutorialModal';
 import ErrorModal from '../components/ErrorModal';
 import LoadingOverlay from '../components/LoadingOverlay';
 
@@ -25,6 +26,15 @@ export const GameRoomPage = ({ playSound }: GameRoomPageProps) => {
         quitGame,
         gameService,
     } = useGame();
+
+    const [showTutorial, setShowTutorial] = useState(() => {
+        return localStorage.getItem('tutorialShown') !== 'true';
+    });
+
+    const handleCloseTutorial = () => {
+        setShowTutorial(false);
+        localStorage.setItem('tutorialShown', 'true');
+    };
 
     // CPU turn processing refs
     const cpuProcessingRef = useRef(false);
@@ -155,8 +165,8 @@ export const GameRoomPage = ({ playSound }: GameRoomPageProps) => {
         playSound('draw');
     };
 
-    // If no game state, show loading or redirect
-    if (!gameState) {
+    // If no game state AND no lobby state, show loading or redirect
+    if (!gameState && !lobby) {
         return (
             <LoadingOverlay
                 isVisible={true}
@@ -182,7 +192,7 @@ export const GameRoomPage = ({ playSound }: GameRoomPageProps) => {
             />
 
             {/* WebSocket Status Indicator for Multiplayer */}
-            {gameState.mode === 'multiplayer' && (
+            {gameState && gameState.mode === 'multiplayer' && (
                 <div className="websocket-status" style={{
                     position: 'fixed',
                     top: '10px',
@@ -199,7 +209,7 @@ export const GameRoomPage = ({ playSound }: GameRoomPageProps) => {
             )}
 
             {/* Debug Info for Multiplayer */}
-            {gameState.mode === 'multiplayer' && (
+            {gameState && gameState.mode === 'multiplayer' && (
                 <div style={{
                     position: 'fixed',
                     top: '10px',
@@ -221,27 +231,26 @@ export const GameRoomPage = ({ playSound }: GameRoomPageProps) => {
                 </div>
             )}
 
-            {/* Game Waiting State - Show cancel button for host when game hasn't started */}
-            {gameState.mode === 'multiplayer' &&
-                lobby &&
-                lobby.host === playerName &&
-                gameState.players.length < 2 &&
-                !gameState.has_drawn &&
-                gameState.pot.length === 0 && (
-                    <div className="game-waiting-overlay" style={{
-                        position: 'fixed',
-                        top: '50%',
-                        left: '50%',
-                        transform: 'translate(-50%, -50%)',
-                        background: 'rgba(0, 0, 0, 0.8)',
-                        color: 'white',
-                        padding: '20px',
-                        borderRadius: '10px',
-                        textAlign: 'center',
-                        zIndex: 1001
-                    }}>
-                        <h3>Waiting for players to join...</h3>
-                        <p>Players: {gameState.players.length}/{gameState.max_players}</p>
+            {/* Game Waiting State */}
+            {(!gameState && lobby) && (
+                <div className="game-waiting-overlay" style={{
+                    position: 'fixed',
+                    top: '50%',
+                    left: '50%',
+                    transform: 'translate(-50%, -50%)',
+                    background: 'rgba(0, 0, 0, 0.8)',
+                    color: 'white',
+                    padding: '20px',
+                    borderRadius: '10px',
+                    textAlign: 'center',
+                    zIndex: 1001,
+                    minWidth: '300px'
+                }}>
+                    <h3>Waiting for players to join...</h3>
+                    <div style={{ margin: '20px 0', fontSize: '1.2em' }}>
+                        Players: {lobby.players.length}/{lobby.max_players}
+                    </div>
+                    {lobby.host === playerName && (
                         <button
                             onClick={handleQuitGame}
                             disabled={loadingStates.starting}
@@ -257,24 +266,34 @@ export const GameRoomPage = ({ playSound }: GameRoomPageProps) => {
                         >
                             {loadingStates.starting ? "Cancelling..." : "Cancel Game"}
                         </button>
-                    </div>
-                )}
+                    )}
+                </div>
+            )}
 
-            <LazyGameTable
-                state={gameState}
-                playerName={playerName}
-                onDiscard={handleDiscard}
-                onDraw={handleDraw}
-                loadingStates={loadingStates}
-                playSound={playSound}
-            />
+            {gameState && (
+                <LazyGameTable
+                    state={gameState}
+                    playerName={playerName}
+                    onDiscard={handleDiscard}
+                    onDraw={handleDraw}
+                    loadingStates={loadingStates}
+                    playSound={playSound}
+                />
+            )}
 
+            {gameState && (
             <LazyGameOverModal
                 isOpen={!!gameState.game_over}
                 onClose={handleQuitGame}
                 winner={gameState.winner || 'Unknown'}
                 winnerHand={gameState.winner_hand}
                 onNewGame={handleQuitGame}
+            />
+            )}
+
+            <LazyTutorialModal 
+                isOpen={showTutorial}
+                onClose={handleCloseTutorial}
             />
         </div>
     );

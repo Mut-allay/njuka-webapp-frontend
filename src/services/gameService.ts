@@ -1,7 +1,7 @@
 import type { GameState, LobbyGame } from '../types/game';
 
-const API = "https://njuka-webapp-backend.onrender.com";
-export const WS_API = API.replace('https://', 'wss://');  // WebSocket API
+const API = import.meta.env.VITE_API_URL || "https://njuka-webapp-backend.onrender.com";
+export const WS_API = API.replace('https://', 'wss://').replace('http://', 'ws://');  // WebSocket API
 
 // Log backend configuration on module load
 console.log('[GameService] Backend API:', API);
@@ -57,7 +57,7 @@ export class GameService {
     );
   }
 
-  async getLobbies(): Promise<{ lobbies: LobbyGame[] }> {
+  async getLobbies(): Promise<LobbyGame[]> {
     return this.fetchWithErrorHandling(
       `${API}/lobby/list`,
       { method: 'GET' },

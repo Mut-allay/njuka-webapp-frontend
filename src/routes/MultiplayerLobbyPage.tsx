@@ -17,10 +17,10 @@ export const MultiplayerLobbyPage = () => {
 
     const [numPlayers, setNumPlayers] = useState(2);
 
-    // Auto-refresh lobbies every 10 seconds
+    // Auto-refresh lobbies every 2 seconds
     useEffect(() => {
         refreshLobbies();
-        const interval = setInterval(refreshLobbies, 10000);
+        const interval = setInterval(refreshLobbies, 2000);
         return () => clearInterval(interval);
     }, [refreshLobbies]);
 
@@ -33,8 +33,10 @@ export const MultiplayerLobbyPage = () => {
 
     const handleCreateLobby = async () => {
         try {
-            await createLobby(numPlayers);
-            // Navigation happens via useEffect above
+            const newLobby = await createLobby(numPlayers);
+            if (newLobby) {
+                navigate(`/lobby/${newLobby.id}`);
+            }
         } catch (error) {
             console.error('Failed to create lobby:', error);
         }
