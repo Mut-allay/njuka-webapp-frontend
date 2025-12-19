@@ -57,7 +57,7 @@ class LobbyGame(BaseModel):
         return data
 
 
-app = FastAPI()
+app = FastAPI(debug=True)
 
 # CORS - Relaxed for development and cross-device testing
 app.add_middleware(
@@ -66,7 +66,17 @@ app.add_middleware(
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
+    expose_headers=["*"],
 )
+
+@app.exception_handler(Exception)
+async def global_exception_handler(request, exc):
+    logger.error(f"Global error: {exc}", exc_info=True)
+    return JSONResponse(
+        status_code=500,
+        content={"detail": str(exc)},
+        headers={"Access-Control-Allow-Origin": "*"}
+    )
 
 active_games: Dict[str, GameState] = {}
 active_lobbies: Dict[str, LobbyGame] = {}
@@ -77,16 +87,24 @@ class ConnectionManager:
         self.lobby_connections: Dict[str, Set[WebSocket]] = {}
 
     async def connect_to_game(self, ws: WebSocket, game_id: str, player_name: str):
-        await ws.accept()
-        if game_id not in self.game_connections:
-            self.game_connections[game_id] = {}
-        self.game_connections[game_id][player_name] = ws
+        try:
+            await ws.accept()
+            if game_id not in self.game_connections:
+                self.game_connections[game_id] = {}
+            self.game_connections[game_id][player_name] = ws
+            logger.info(f"Player {player_name} connected to game {game_id}")
+        except Exception as e:
+            logger.error(f"Failed to connect player {player_name} to game {game_id}: {e}")
 
     async def connect_to_lobby(self, ws: WebSocket, lobby_id: str):
-        await ws.accept()
-        if lobby_id not in self.lobby_connections:
-            self.lobby_connections[lobby_id] = set()
-        self.lobby_connections[lobby_id].add(ws)
+        try:
+            await ws.accept()
+            if lobby_id not in self.lobby_connections:
+                self.lobby_connections[lobby_id] = set()
+            self.lobby_connections[lobby_id].add(ws)
+            logger.info(f"Client connected to lobby {lobby_id}")
+        except Exception as e:
+            logger.error(f"Failed to connect client to lobby {lobby_id}: {e}")
 
     def disconnect_from_game(self, game_id: str, player_name: str):
         if game_id in self.game_connections and player_name in self.game_connections[game_id]:
@@ -279,7 +297,7 @@ async def draw_card(game_id: str):
     winner, hand = check_any_player_win(game.players, game.pot)
     if winner:
         game.winner = winner
-        game.winner_hand = [c.dict() for c in hand]
+        game.winner_hand = hand
         game.game_over = True
 
     await manager.broadcast_game_update(game_id, game)
@@ -305,7 +323,7 @@ async def discard_card(game_id: str, card_index: int = Query(...)):
     winner, hand = check_any_player_win(game.players, game.pot)
     if winner:
         game.winner = winner
-        game.winner_hand = [c.dict() for c in hand]
+        game.winner_hand = hand
         game.game_over = True
     else:
         game.current_player = (game.current_player + 1) % len(game.players)
@@ -382,11 +400,11 @@ def check_any_player_win(players, pot):
     top = pot[-1] if pot else None
     for p in players:
         if len(p.hand) == 4 and is_winning_combination(p.hand):
-            return p.name, [c.dict() for c in p.hand]
+            return p.name, p.hand
         if top and len(p.hand) == 3:
             test = p.hand + [top]
             if is_winning_combination(test):
-                return p.name, [c.dict() for c in test]
+                return p.name, test
     return None, None
 
 if __name__ == "__main__":
