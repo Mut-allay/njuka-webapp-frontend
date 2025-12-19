@@ -1,4 +1,4 @@
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useParams } from 'react-router-dom';
 import { useEffect, useRef, useState } from 'react';
 import { useGame } from '../contexts/GameContext';
 import LazyGameTable from '../components/LazyGameTable';
@@ -13,10 +13,15 @@ interface GameRoomPageProps {
 
 export const GameRoomPage = ({ playSound }: GameRoomPageProps) => {
     const navigate = useNavigate();
+    const { lobbyId, gameId: urlGameId } = useParams();
     const {
         gameState,
+        setGameState,
         playerName,
         lobby,
+        setLobby,
+        gameId,
+        setGameId,
         loadingStates,
         error,
         setError,
@@ -35,6 +40,40 @@ export const GameRoomPage = ({ playSound }: GameRoomPageProps) => {
         setShowTutorial(false);
         localStorage.setItem('tutorialShown', 'true');
     };
+
+    // Initial state sync from URL params
+    useEffect(() => {
+        const syncState = async () => {
+            try {
+                // If we have a lobbyId in URL but no lobby in context
+                if (lobbyId && (!lobby || lobby.id !== lobbyId)) {
+                    console.log(`[GameRoom] Syncing lobby: ${lobbyId}`);
+                    const allLobbies = await gameService.getLobbies();
+                    const foundLobby = allLobbies.find(l => l.id === lobbyId);
+                    if (foundLobby) {
+                        setLobby(foundLobby);
+                        if (foundLobby.game_id) {
+                            setGameId(foundLobby.game_id);
+                        }
+                    }
+                }
+
+                // If we have a gameId in URL (or derived from lobby) but no state
+                const targetGameId = urlGameId || gameId || lobby?.game_id;
+                if (targetGameId && (!gameState || gameState.id !== targetGameId)) {
+                    console.log(`[GameRoom] Syncing game: ${targetGameId}`);
+                    const fetchedGame = await gameService.getGame(targetGameId);
+                    setGameState(fetchedGame);
+                    setGameId(targetGameId);
+                }
+            } catch (err: any) {
+                console.error('[GameRoom] Sync error:', err);
+                // Don't show full screen error for background sync
+            }
+        };
+
+        syncState();
+    }, [lobbyId, urlGameId, lobby?.id, gameId, gameState?.id, gameService, setLobby, setGameId, setGameState]);
 
     // CPU turn processing refs
     const cpuProcessingRef = useRef(false);

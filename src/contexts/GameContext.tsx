@@ -35,6 +35,11 @@ interface GameContextType {
     quitGame: () => void;
     refreshLobbies: () => Promise<void>;
 
+    // State setters
+    setGameState: (state: GameState | null) => void;
+    setGameId: (id: string | null) => void;
+    setLobby: (lobby: LobbyGame | null) => void;
+
     // Game service
     gameService: GameService;
 }
@@ -76,10 +81,11 @@ export const GameProvider = ({ children, playerName, setPlayerName }: GameProvid
     // Initialize game service (use useMemo to avoid recreating on every render)
     const gameService = useMemo(() => new GameService(), []);
 
-    // WebSocket connection for lobby updates
+    // WebSocket connection for lobby room updates
+    const lobbyIdForWS = lobby?.id;
     useEffect(() => {
-        if (lobby) {
-            const ws = new WebSocket(`${WS_API}/ws/lobby/${lobby.id}`);
+        if (lobbyIdForWS) {
+            const ws = new WebSocket(`${WS_API}/ws/lobby/${lobbyIdForWS}`);
             ws.onopen = () => {
                 console.log('Connected to lobby WebSocket');
                 setLobbyWS(ws);
@@ -89,6 +95,7 @@ export const GameProvider = ({ children, playerName, setPlayerName }: GameProvid
                 if (message.type === 'lobby_update') {
                     setLobby(message.data);
                     if (message.data.started && message.data.game_id) {
+                        setGameId(message.data.game_id);
                         gameService.getGame(message.data.game_id)
                             .then(setGameState)
                             .catch(error => setError(error.message));
@@ -109,12 +116,13 @@ export const GameProvider = ({ children, playerName, setPlayerName }: GameProvid
                 setLobbyWS(null);
             };
         }
-    }, [lobby, gameService]);
+    }, [lobbyIdForWS, gameService]);
 
     // WebSocket connection for game updates (multiplayer only)
+    const gameStateIdForWS = gameState?.id;
     useEffect(() => {
-        if (gameState && gameState.mode === 'multiplayer' && playerName) {
-            const ws = new WebSocket(`${WS_API}/ws/game/${gameState.id}?player_name=${encodeURIComponent(playerName)}`);
+        if (gameStateIdForWS && gameState?.mode === 'multiplayer' && playerName) {
+            const ws = new WebSocket(`${WS_API}/ws/game/${gameStateIdForWS}?player_name=${encodeURIComponent(playerName)}`);
             ws.onopen = () => {
                 console.log('Connected to game WebSocket');
                 setGameWS(ws);
@@ -123,6 +131,9 @@ export const GameProvider = ({ children, playerName, setPlayerName }: GameProvid
                 const message = JSON.parse(event.data);
                 if (message.type === 'game_update') {
                     setGameState(message.data);
+                    if (message.data.id) {
+                        setGameId(message.data.id);
+                    }
                 }
             };
             ws.onclose = () => {
@@ -139,30 +150,45 @@ export const GameProvider = ({ children, playerName, setPlayerName }: GameProvid
                 setGameWS(null);
             };
         }
-    }, [gameState, playerName]);
+    }, [gameStateIdForWS, gameState?.mode, playerName]);
 
-    // Poll game state as fallback when WebSocket is not available
-    // For CPU games, always poll since they don't use WebSocket
+    // Combined polling fallback for both Lobby and Game states
     useEffect(() => {
-        if (!gameId) return;
-
-        // For CPU games, always poll. For multiplayer, only poll if WebSocket is not connected
-        const isCPUGame = gameState?.mode === 'cpu';
-        const shouldPoll = isCPUGame || !gameWS || gameWS.readyState !== WebSocket.OPEN;
-
-        if (!shouldPoll) return;
+        if (!lobby && !gameId) return;
 
         const interval = setInterval(async () => {
             try {
-                const game = await gameService.getGame(gameId);
-                setGameState(game);
+                // Poll lobby if in waiting room
+                if (lobby && !gameState) {
+                    const allLobbies = await gameService.getLobbies();
+                    const currentLobby = allLobbies.find(l => l.id === lobby.id);
+                    if (currentLobby) {
+                        setLobby(currentLobby);
+                        if (currentLobby.started && currentLobby.game_id) {
+                            setGameId(currentLobby.game_id);
+                            const game = await gameService.getGame(currentLobby.game_id);
+                            setGameState(game);
+                        }
+                    }
+                }
+
+                // Poll game if in progress
+                if (gameId) {
+                    const isCPUGame = gameState?.mode === 'cpu';
+                    const isMultiplayerWithoutWS = gameState?.mode === 'multiplayer' && (!gameWS || gameWS.readyState !== WebSocket.OPEN);
+                    
+                    if (isCPUGame || isMultiplayerWithoutWS) {
+                        const game = await gameService.getGame(gameId);
+                        setGameState(game);
+                    }
+                }
             } catch (error: any) {
-                console.error('Failed to fetch game state:', error);
+                console.error('Polling failed:', error);
             }
-        }, gameState?.mode === 'multiplayer' ? 1000 : 2000); // More frequent for multiplayer
+        }, 3000); // Poll every 3 seconds for better reliability
 
         return () => clearInterval(interval);
-    }, [gameId, gameWS, gameState?.mode, gameService]);
+    }, [lobby, gameId, gameWS, gameState, gameService]);
 
     // Game actions
     const createLobby = useCallback(async (numPlayers: number) => {
@@ -282,8 +308,11 @@ export const GameProvider = ({ children, playerName, setPlayerName }: GameProvid
         playerName,
         setPlayerName,
         gameState,
+        setGameState,
         gameId,
+        setGameId,
         lobby,
+        setLobby,
         lobbies,
         loadingStates,
         error,
