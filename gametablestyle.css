@@ -1,0 +1,203 @@
+/* ===== POKER TABLE & LAYOUT ===== */
+.poker-table {
+  position: relative; /* Critical for getRelativePos calculations */
+  width: 95vw;
+  height: 65vh;
+  max-width: 900px;
+  max-height: 600px;
+  margin: 20px auto;
+  background: radial-gradient(ellipse at center, #0d4a24 0%, #0d4a24 100%);
+  border-radius: 50% / 40%;
+  border: 15px solid #5d4037;
+  box-shadow: 0 0 40px rgba(0, 0, 0, 0.8), inset 0 0 30px rgba(0, 0, 0, 0.6);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  overflow: hidden;
+  user-select: none;
+  font-family: sans-serif;
+}
+
+.poker-table::before {
+  content: "";
+  position: absolute;
+  top: 0; left: 0; width: 100%; height: 100%;
+  background: radial-gradient(circle at center, rgba(255, 255, 255, 0.2) 0%, transparent 70%);
+  pointer-events: none;
+}
+
+.table-center {
+  position: absolute;
+  top: 45%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  display: flex;
+  gap: 60px;
+  z-index: 2;
+  align-items: center;
+}
+
+/* ===== SEATS ===== */
+.player-seat {
+  position: absolute;
+  border-radius: 15px;
+  padding: 5px 10px;
+  text-align: center;
+  min-width: 120px;
+  backdrop-filter: blur(5px);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  z-index: 10;
+}
+
+.player-name, .player-seat h3 {
+  font-size: 1.2em;
+  margin: 0 0 8px 0;
+  color: #f8d56b;
+  text-shadow: 1px 1px 2px black;
+}
+.player-seat h3 { font-size: 0.9em; color: white; }
+
+.bottom { bottom: 10px; left: 50%; transform: translateX(-50%); width: fit-content; max-width: 300px; }
+.top { top: -25px; left: 50%; transform: translateX(-50%); width: 50%; max-width: 250px; }
+.left { left: -25px; top: 50%; transform: translateY(-50%); width: 120px; }
+.right { right: -25px; top: 50%; transform: translateY(-50%); width: 120px; }
+
+/* ===== HANDS ===== */
+.hand {
+  display: flex;
+  justify-content: center;
+  transition: all 0.3s ease;
+  width: fit-content;
+}
+
+.left .hand { transform: rotate(-90deg); }
+.right .hand { transform: rotate(90deg); }
+
+/* Card Spacing */
+.bottom .card { margin: 0 2px; }
+.bottom .card + .card { margin-left: -20px; } /* Overlap fan effect */
+.bottom .card:hover { margin: 0 15px; z-index: 20; } /* Spacing on hover */
+
+/* ===== CARD COMPONENT ===== */
+.card {
+  display: inline-flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  width: 70px;
+  height: 100px;
+  background: linear-gradient(135deg, #ffffff, #f5f5f5);
+  border-radius: 6px;
+  border: 1px solid rgba(0, 0, 0, 0.1);
+  position: relative;
+  cursor: pointer;
+  transition: transform 0.2s ease, margin 0.2s ease;
+  z-index: 1;
+  box-shadow: 2px 2px 5px rgba(0,0,0,0.3);
+}
+
+.card.small-card { width: 50px; height: 75px; font-size: 0.8em; }
+
+.card.highlight-card { transform: translateY(-5px); z-index: 10; border: 2px solid gold; }
+.card-selected { transform: translateY(-15px) !important; z-index: 100 !important; box-shadow: 0 10px 20px rgba(0,0,0,0.5); }
+
+.card.red { color: #d32f2f; }
+.card.black { color: #222; }
+
+.card-inner { text-align: center; }
+.card-value { font-weight: bold; font-size: 1.2em; }
+.card-suit { font-size: 1.5em; line-height: 1; }
+
+.card.facedown {
+  background: repeating-linear-gradient(45deg, #b71c1c, #b71c1c 10px, #c62828 10px, #c62828 20px);
+  border: 2px solid white;
+}
+
+/* ===== ANIMATION OVERLAYS ===== */
+.discard-animation-overlay,
+.draw-animation-overlay {
+  position: absolute; /* Relative to poker-table */
+  z-index: 1000;
+  pointer-events: none;
+  transform-origin: center center;
+  will-change: transform, opacity;
+  box-shadow: 0 15px 30px rgba(0,0,0,0.4);
+}
+
+/* 1. DISCARD ANIMATION */
+.discard-animation-overlay {
+  animation: flyToDiscard 0.6s cubic-bezier(0.2, 0.8, 0.2, 1) forwards;
+}
+
+@keyframes flyToDiscard {
+  0% {
+    transform: translate(0, 0) scale(1) rotate(0deg);
+    opacity: 1;
+  }
+  60% {
+    transform: translate(calc(var(--dest-x) * 0.6), calc(var(--dest-y) * 0.6 - 50px)) scale(1.1) rotate(5deg);
+    opacity: 1;
+  }
+  100% {
+    transform: translate(var(--dest-x), var(--dest-y)) scale(0.9) var(--rotation, rotate(10deg));
+    opacity: 0;
+  }
+}
+
+/* 2. DRAW ANIMATION */
+.draw-animation-overlay {
+  animation: flyToHand 0.7s cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
+}
+
+@keyframes flyToHand {
+  0% {
+    transform: translate(0, 0) scale(0.85);
+  }
+  50% {
+    transform: translate(calc(var(--dest-x) * 0.5), calc(var(--dest-y) * 0.5 - 60px)) scale(1.1) rotateY(0deg);
+  }
+  100% {
+    transform: translate(var(--dest-x), var(--dest-y)) scale(1) rotateY(180deg);
+  }
+}
+
+/* ===== UTILITIES ===== */
+.sr-only {
+  position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px;
+  overflow: hidden; clip: rect(0, 0, 0, 0); white-space: nowrap; border-width: 0;
+}
+
+.deck-count {
+  position: absolute; top: 50%; right: -45px; transform: translateY(-50%);
+  background: rgba(248, 213, 107, 0.9); color: #2a3439;
+  border-radius: 20px; padding: 2px 8px; font-weight: bold;
+}
+
+.deck-highlight .card {
+  box-shadow: 0 0 15px 3px rgba(248, 213, 107, 0.7);
+  animation: pulse-glow 1.5s infinite alternate;
+}
+
+.discard-empty {
+  width: 70px; height: 100px;
+  border: 2px dashed rgba(255,255,255,0.3);
+  border-radius: 6px;
+  display: flex; align-items: center; justify-content: center;
+  color: rgba(255,255,255,0.5); font-size: 0.8em;
+}
+
+@keyframes pulse-glow {
+  0% { box-shadow: 0 0 8px 2px rgba(248, 213, 107, 0.5); }
+  100% { box-shadow: 0 0 18px 6px rgba(248, 213, 107, 0.8); }
+}
+
+@media (max-width: 768px) {
+  .poker-table { width: 100vw; height: 50vh; border: 8px solid #5d4037; }
+  .card { width: 50px; height: 75px; }
+  .bottom .card + .card { margin-left: -15px; }
+  .table-center { top: 40%; gap: 30px; }
+  .discard-animation-overlay, .draw-animation-overlay { animation-duration: 0.5s; }
+}
