@@ -41,9 +41,13 @@ export const GameRoomPage = ({ playSound }: GameRoomPageProps) => {
         localStorage.setItem('tutorialShown', 'true');
     };
 
+    // Track if we are in the process of quitting to prevent re-sync
+    const isQuittingRef = useRef(false);
+
     // Initial state sync from URL params
     useEffect(() => {
         const syncState = async () => {
+            if (isQuittingRef.current) return;
             try {
                 // If we have a lobbyId in URL but no lobby in context
                 if (lobbyId && (!lobby || lobby.id !== lobbyId)) {
@@ -190,8 +194,11 @@ export const GameRoomPage = ({ playSound }: GameRoomPageProps) => {
     }, [gameState, gameService, playSound]);
 
     const handleQuitGame = () => {
+        console.log('[GameRoom] User quitting game');
+        isQuittingRef.current = true;
         quitGame();
-        navigate('/');
+        // Clear potential lingering URL params matching
+        navigate('/', { replace: true });
     };
 
     const handleDiscard = async (index: number) => {

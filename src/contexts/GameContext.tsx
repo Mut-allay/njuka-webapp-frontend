@@ -192,6 +192,11 @@ export const GameProvider = ({ children, playerName, setPlayerName }: GameProvid
 
     // Game actions
     const createLobby = useCallback(async (numPlayers: number) => {
+        // ⬇️ FORCE RESET: Clear previous game state
+        setGameState(null);
+        setGameId(null);
+        setLobby(null);
+        
         setLoadingStates(prev => ({ ...prev, starting: true }));
         setError(null);
         try {
@@ -237,14 +242,54 @@ export const GameProvider = ({ children, playerName, setPlayerName }: GameProvid
     }, [playerName, gameService]);
 
     const startCPUGame = useCallback(async (numCPU: number) => {
+        console.log(`[GameContext] startCPUGame called for ${numCPU} CPUs`);
+        // ⬇️ FORCE RESET: Clear previous game state
+        setGameState(null);
+        setGameId(null);
+        setLobby(null);
+
         setLoadingStates(prev => ({ ...prev, starting: true }));
         try {
-            const game = await gameService.createNewGame("cpu", playerName, numCPU);
+            console.log("[GameContext] Requesting createNewGame...");
+            let game = await gameService.createNewGame("cpu", playerName, numCPU);
+            console.log("[GameContext] createNewGame response:", JSON.stringify(game));
+            
+            // ⬇️ WORKAROUND: If backend returns a finished game (sticky session), try to flush it
+            // CHECK: game_over might be missing or false, so also check if 'winner' is present
+            const isFinished = game.game_over === true || !!game.winner;
+            
+            if (isFinished) {
+                console.warn(`[GameContext] Backend returned a finished game (game_over=${game.game_over}, winner=${game.winner}). Attempting to flush session...`);
+                try {
+                    // Attempt to 'cancel' the stuck game ID to clear it from backend memory
+                    console.log(`[GameContext] Cancelling stuck game ID: ${game.id}`);
+                    await gameService.cancelLobby(game.id, playerName).catch((e) => console.warn("cancelLobby failed safely:", e));
+                    
+                    // Small delay to allow backend to process
+                    await new Promise(resolve => setTimeout(resolve, 500));
+                    
+                    // Retry creating the game
+                    console.log("[GameContext] Retrying new game creation...");
+                    game = await gameService.createNewGame("cpu", playerName, numCPU);
+                    console.log("[GameContext] Retry response:", JSON.stringify(game));
+                    
+                    const isRetryFinished = game.game_over === true || !!game.winner;
+                    if (isRetryFinished) {
+                        throw new Error(`Unable to start new game: Server returned finished game ID ${game.id}. Please refresh the page.`);
+                    }
+                } catch (retryError: any) {
+                    console.error("[GameContext] Retry failed:", retryError);
+                    throw retryError; // Re-throw to be caught by outer block
+                }
+            }
+
             setGameState(game);
             setGameId(game.id);
         } catch (error: any) {
+            console.error("[GameContext] startCPUGame error:", error);
             setError(error.message || "Failed to create game");
-            throw error;
+            // Do NOT re-throw here if we want the ErrorModal to show the error state set above
+            // But the UI needs to know to stop loading
         } finally {
             setLoadingStates(prev => ({ ...prev, starting: false }));
         }
@@ -279,6 +324,7 @@ export const GameProvider = ({ children, playerName, setPlayerName }: GameProvid
     }, [gameState, gameService]);
 
     const quitGame = useCallback(() => {
+        console.log("[GameContext] Quitting game - clearing all state");
         // Close WebSocket connections
         if (gameWS) {
             gameWS.close();
@@ -289,9 +335,11 @@ export const GameProvider = ({ children, playerName, setPlayerName }: GameProvid
             setLobbyWS(null);
         }
 
+        // ⬇️ FORCE CLEAR EVERYTHING
         setGameState(null);
         setLobby(null);
         setGameId(null);
+        setError(null);
     }, [gameWS, lobbyWS]);
 
     const refreshLobbies = useCallback(async () => {

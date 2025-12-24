@@ -21,8 +21,23 @@ export class GameService {
 
   private async fetchWithErrorHandling(url: string, options: RequestInit, operation: string): Promise<any> {
     try {
+      // ⬇️ ADDED: Prevent browser caching
+      const noCacheHeaders = {
+        'Cache-Control': 'no-store, no-cache, must-revalidate, proxy-revalidate',
+        'Pragma': 'no-cache',
+        'Expires': '0',
+      };
+
+      const finalOptions = {
+        ...options,
+        headers: {
+          ...options.headers,
+          ...noCacheHeaders,
+        }
+      };
+
       console.log(`[GameService] ${operation} - Requesting: ${url}`);
-      const response = await fetch(url, options);
+      const response = await fetch(url, finalOptions);
       return await this.handleResponse(response, operation);
     } catch (error: any) {
       console.error(`[GameService] ${operation} - Network error:`, error);

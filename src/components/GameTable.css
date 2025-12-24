@@ -684,32 +684,36 @@
 
 .player-seat.active .hand {
   animation: pulsating-glow 1.5s infinite alternate;
-  border-radius: 8px;
-  padding: 3px;
+  border-radius: 8px; /* Match close to card radius */
   position: relative;
+  /* Removed padding to ensure tight fit */
 }
 
 .player-seat.active .hand::before {
   content: '';
   position: absolute;
-  top: -2px;
-  left: -2px;
-  right: -2px;
-  bottom: -2px;
+  top: -4px;
+  left: -4px;
+  right: -4px;
+  bottom: -4px;
   border-radius: 10px;
-  background: linear-gradient(45deg, rgba(248, 213, 107, 0.3), rgba(248, 213, 107, 0.1), rgba(248, 213, 107, 0.3));
+  border: 2px solid rgba(248, 213, 107, 0.8);
+  box-shadow: 0 0 10px rgba(248, 213, 107, 0.6), inset 0 0 5px rgba(248, 213, 107, 0.4);
   z-index: -1;
   animation: pulsating-glow-border 1.5s infinite alternate;
+  pointer-events: none;
 }
 
 @keyframes pulsating-glow-border {
   0% {
-    opacity: 0.4;
+    opacity: 0.6;
+    box-shadow: 0 0 5px rgba(248, 213, 107, 0.4), inset 0 0 2px rgba(248, 213, 107, 0.2);
     transform: scale(1);
   }
   100% {
-    opacity: 0.8;
-    transform: scale(1.02);
+    opacity: 1;
+    box-shadow: 0 0 15px rgba(248, 213, 107, 0.8), inset 0 0 8px rgba(248, 213, 107, 0.5);
+    transform: scale(1.01);
   }
 }
 
