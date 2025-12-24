@@ -326,7 +326,7 @@ export const GameTable: React.FC<GameTableProps> = ({
       });
     });
     
-    const animationDuration = window.innerWidth <= 768 ? 1000 : 800;
+    const animationDuration = window.innerWidth <= 768 ? 1000 : 1000;
     setTimeout(() => {
       setAnimatingDraw(null);
       setDrawingCardIndex(null);
@@ -512,7 +512,7 @@ export const GameTable: React.FC<GameTableProps> = ({
                 style={{
                   opacity: (isDrawing && animatingDraw) || discardingCardIndex === i ? 0 : 1,
                   visibility: discardingCardIndex === i ? 'hidden' : 'visible',
-                  transition: isDrawing && !animatingDraw ? 'opacity 0.3s ease-in' : 'none'
+                  transition: 'none'
                 }}
                 data-card-index={i}
               />
