@@ -70,14 +70,14 @@ export const GameRoomPage = ({ playSound }: GameRoomPageProps) => {
                     setGameState(fetchedGame);
                     setGameId(targetGameId);
                 }
-            } catch (err: any) {
+            } catch (err) {
                 console.error('[GameRoom] Sync error:', err);
                 // Don't show full screen error for background sync
             }
         };
 
         syncState();
-    }, [lobbyId, urlGameId, lobby?.id, gameId, gameState?.id, gameService, setLobby, setGameId, setGameState]);
+    }, [lobbyId, urlGameId, lobby, gameId, gameState, gameService, setLobby, setGameId, setGameState]);
 
     // CPU turn processing refs
     const cpuProcessingRef = useRef(false);

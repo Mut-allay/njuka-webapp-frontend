@@ -34,19 +34,35 @@ export const EnhancedBottomMenu = ({
 
   const toggleSettings = () => {
     setSettingsExpanded(!settingsExpanded);
-    setInfoExpanded(false);
+    setInfoExpanded(false); // Close info if open
   };
 
   const toggleInfo = () => {
     setInfoExpanded(!infoExpanded);
-    setSettingsExpanded(false);
+    setSettingsExpanded(false); // Close settings if open
+  };
+
+  const handleGoHome = () => {
+    handleButtonClick(() => navigate('/'));
+  };
+
+  const handleShowRules = () => {
+    handleButtonClick(() => navigate('/rules'));
+  };
+
+  const handleQuit = () => {
+    handleButtonClick(() => {
+      quitGame();
+      navigate('/');
+    });
   };
 
   return (
     <div className="enhanced-bottom-menu">
+      {/* Expandable Settings Panel */}
       {settingsExpanded && (
         <div className="expanded-panel settings-panel">
-          <button
+          <button 
             onClick={() => handleButtonClick(toggleSounds)}
             className="panel-button"
           >
@@ -56,10 +72,11 @@ export const EnhancedBottomMenu = ({
         </div>
       )}
 
+      {/* Expandable Info Panel */}
       {infoExpanded && (
         <div className="expanded-panel info-panel">
-          <button
-            onClick={() => handleButtonClick(() => navigate('/rules'))}
+          <button 
+            onClick={handleShowRules}
             className="panel-button"
           >
             <BookOpen size={20} />
@@ -68,25 +85,26 @@ export const EnhancedBottomMenu = ({
         </div>
       )}
 
+      {/* Main Menu Bar */}
       <div className="main-menu-bar">
-        <button
-          onClick={() => handleButtonClick(() => navigate('/'))}
+        <button 
+          onClick={handleGoHome}
           className="menu-button"
         >
           <Home size={20} />
           <span>Home</span>
         </button>
 
-        <button
-          onClick={() => handleButtonClick(toggleSettings)}
+        <button 
+          onClick={toggleSettings}
           className={`menu-button ${settingsExpanded ? 'active' : ''}`}
         >
           <Settings size={20} />
           <span>Settings</span>
         </button>
 
-        <button
-          onClick={() => handleButtonClick(toggleInfo)}
+        <button 
+          onClick={toggleInfo}
           className={`menu-button ${infoExpanded ? 'active' : ''}`}
         >
           <Info size={20} />
@@ -94,11 +112,8 @@ export const EnhancedBottomMenu = ({
         </button>
 
         {showQuitButton && (
-          <button
-            onClick={() => handleButtonClick(() => {
-              quitGame();
-              navigate('/');
-            })}
+          <button 
+            onClick={handleQuit}
             className="menu-button quit-button"
           >
             <span>Quit</span>
