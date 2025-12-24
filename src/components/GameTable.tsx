@@ -130,7 +130,18 @@ export const GameTable: React.FC<GameTableProps> = ({
 
   // Detect Opponent Draws
   const prevHandLengths = useRef<Record<string, number>>({})
+  const prevYourHandLength = useRef(yourPlayer?.hand.length || 0)
+
   useEffect(() => {
+    // 1. Clear discarding state when your hand changes
+    const currentHandLength = yourPlayer?.hand.length || 0;
+    if (currentHandLength !== prevYourHandLength.current) {
+      setDiscardingCardIndex(null);
+      setAnimatingDiscard(null);
+      prevYourHandLength.current = currentHandLength;
+    }
+
+    // 2. Detect opponent draws
     state.players.forEach((player) => {
       if (player.name === playerName) return // Skip yourself, handleDraw does it
       
@@ -249,8 +260,15 @@ export const GameTable: React.FC<GameTableProps> = ({
         const animationDuration = window.innerWidth <= 768 ? 1200 : 800;
         setTimeout(() => {
           onDiscard(index);
-          setDiscardingCardIndex(null);
-          setAnimatingDiscard(null);
+          // ⬇️ MODIFIED: We no longer clear discarding states here
+          // This prevents the card from "flickering" back into the hand
+          // before the backend state update arrives.
+          // Safety fallback: Clear discarding state after 4 seconds 
+          // if hand update doesn't arrive (prevents permanent hidden card)
+          setTimeout(() => {
+            setDiscardingCardIndex(prev => prev === index ? null : prev);
+            setAnimatingDiscard(prev => prev?.card === card ? null : prev);
+          }, 4000);
         }, animationDuration);
       }
       setSelectedCardIndex(null);
