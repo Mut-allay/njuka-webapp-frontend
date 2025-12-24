@@ -590,52 +590,52 @@
   position: static !important;
 }
 
-/* ⬇️ MODIFIED: Animated overlay card for discard effect */
-.discard-animation-overlay {
-  position: fixed;
-  z-index: 1001;
-  pointer-events: none;
-  /* ⬇️ MODIFIED: Animation now uses the dynamic keyframe */
-  animation: cardDiscard 1.2s cubic-bezier(0.25, 0.46, 0.45, 0.94) forwards;
-  will-change: transform, opacity;
-  backface-visibility: hidden;
-  transform-style: preserve-3d;
-}
-
-/* ⬇️ ADDED: New overlay for draw animation */
+.discard-animation-overlay,
 .draw-animation-overlay {
-  position: fixed;
-  z-index: 1001;
+  position: absolute;
+  z-index: 1000;
   pointer-events: none;
-  animation: flyFromDeck 1.4s cubic-bezier(0.25, 0.46, 0.45, 0.94) forwards;
+  transform-origin: center center;
   will-change: transform, opacity;
-  transform: translateZ(0); /* GPU acceleration */
-  backface-visibility: hidden;
+  box-shadow: 0 15px 30px rgba(0,0,0,0.4);
 }
 
-/* ⬇️ ADDED: New keyframe for drawing */
-@keyframes flyFromDeck {
+.discard-animation-overlay {
+  animation: flyToDiscard 0.8s cubic-bezier(0.2, 0.8, 0.2, 1) forwards;
+}
+
+@keyframes flyToDiscard {
   0% {
-    transform: translateX(0) translateY(0) rotate(0) scale(1); /* Starts at deck size */
+    transform: translate(0, 0) scale(1) rotate(0deg);
     opacity: 1;
   }
-  50% {
-    /* Arc towards hand */
-    transform: 
-      translateX(calc(var(--dest-x, 0px) * 0.5)) 
-      translateY(calc(var(--dest-y, 0px) * 0.5 - 40px)) 
-      rotate(-8deg) 
-      scale(1.1); /* Grow to full card size */
+  60% {
+    transform: translate(calc(var(--dest-x) * 0.6), calc(var(--dest-y) * 0.6 - 50px)) scale(1.1) rotate(5deg);
     opacity: 1;
   }
   100% {
-    /* Arrive at hand */
-    transform: 
-      translateX(var(--dest-x, 0px)) 
-      translateY(var(--dest-y, 0px)) 
-      rotate(0deg) 
-      scale(1.1);
-    opacity: 0; /* Fade out as the real card appears */
+    transform: translate(var(--dest-x), var(--dest-y)) scale(0.9) var(--rotation, rotate(10deg));
+    opacity: 0;
+  }
+}
+
+/* 2. DRAW ANIMATION */
+.draw-animation-overlay {
+  animation: flyToHand 0.8s cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
+}
+
+@keyframes flyToHand {
+  0% {
+    transform: translate(0, 0) scale(0.85);
+    opacity: 1;
+  }
+  70% {
+    transform: translate(calc(var(--dest-x) * 0.7), calc(var(--dest-y) * 0.7 - 60px)) scale(1.1);
+    opacity: 1;
+  }
+  100% {
+    transform: translate(var(--dest-x), var(--dest-y)) scale(1);
+    opacity: 0;
   }
 }
 

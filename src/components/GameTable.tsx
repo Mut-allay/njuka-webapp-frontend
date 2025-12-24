@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react'
+import React, { useState, useEffect, useRef, useCallback } from 'react'
 import Card from './Card'
 import './GameTable.css'
 
@@ -49,26 +49,26 @@ export const GameTable: React.FC<GameTableProps> = ({
   loadingStates,
   playSound
 }) => {
+  const tableRef = useRef<HTMLDivElement>(null)
   const [selectedCardIndex, setSelectedCardIndex] = useState<number | null>(null)
   const [showDeckHighlight, setShowDeckHighlight] = useState(false)
   const [discardingCardIndex, setDiscardingCardIndex] = useState<number | null>(null)
   
-  // ⬇️ MODIFIED: This state will hold coordinates for the discard animation
+  // Animation States
   const [animatingDiscard, setAnimatingDiscard] = useState<{
     card: CardType,
-    start: { x: number, y: number, width: number, height: number },
-    destination: { x: number, y: number }
+    style: React.CSSProperties
   } | null>(null)
   
-  // ⬇️ ADDED: New state for the draw animation overlay
   const [animatingDraw, setAnimatingDraw] = useState<{
-    start: { x: number, y: number, width: number, height: number },
-    destination: { x: number, y: number }
+    card: CardType,
+    style: React.CSSProperties,
+    playerName: string
   } | null>(null)
 
   const [isShuffling, setIsShuffling] = useState(false)
   const [dealingCards, setDealingCards] = useState<boolean[]>([])
-  const [drawingCardIndex, setDrawingCardIndex] = useState<number | null>(null) // Track which card is being drawn
+  const [drawingCardIndex, setDrawingCardIndex] = useState<number | null>(null)
 
   const yourPlayer = state.players.find((p) => p?.name === playerName)
   const gameCurrentPlayerIndex = state.current_player ?? 0
@@ -76,12 +76,96 @@ export const GameTable: React.FC<GameTableProps> = ({
   const isGameOver = state.game_over
 
   // All useEffect hooks must be called before any early returns
+  // --- COORDINATE SYSTEM HELPER ---
+  const getRelativePos = useCallback((element: Element) => {
+    if (!tableRef.current) return { x: 0, y: 0, width: 0, height: 0, centerX: 0, centerY: 0 };
+    const elRect = element.getBoundingClientRect();
+    const tableRect = tableRef.current.getBoundingClientRect();
+
+    return {
+      x: elRect.left - tableRect.left,
+      y: elRect.top - tableRect.top,
+      width: elRect.width,
+      height: elRect.height,
+      centerX: (elRect.left - tableRect.left) + (elRect.width / 2),
+      centerY: (elRect.top - tableRect.top) + (elRect.height / 2)
+    };
+  }, []);
+
+  const currentPlayerIndex = state.players.findIndex((p) => p?.name === playerName)
+
+  const getSeatPlayers = () => {
+    const players = state.players
+    const currentIndex = currentPlayerIndex
+    
+    if (currentIndex === -1) return { top: null, left: null, right: null, bottom: null }
+    
+    const bottom = players[currentIndex]
+    const otherPlayers = players.filter((_, index) => index !== currentIndex)
+    
+    return {
+      top: otherPlayers[0] || null,
+      left: otherPlayers[1] || null,
+      right: otherPlayers[2] || null,
+      bottom: bottom
+    }
+  }
+
+  const seatPlayers = getSeatPlayers()
+
+  const getSeatPos = useCallback((name: string) => {
+    // Determine seat position by name
+    if (seatPlayers.top?.name === name) return 'top'
+    if (seatPlayers.left?.name === name) return 'left'
+    if (seatPlayers.right?.name === name) return 'right'
+    return 'bottom'
+  }, [seatPlayers.top?.name, seatPlayers.left?.name, seatPlayers.right?.name]);
+
   useEffect(() => {
     const timer = setTimeout(() => {
       setShowDeckHighlight(true)
     }, 3000)
     return () => clearTimeout(timer)
   }, [])
+
+  // Detect Opponent Draws
+  const prevHandLengths = useRef<Record<string, number>>({})
+  useEffect(() => {
+    state.players.forEach((player) => {
+      if (player.name === playerName) return // Skip yourself, handleDraw does it
+      
+      const prevLength = prevHandLengths.current[player.name] ?? 0
+      const currentLength = player.hand.length
+      
+      if (currentLength > prevLength && prevLength > 0) {
+        // Opponent drew a card
+        const deckEl = document.querySelector('.deck-area .card')
+        const handEl = document.querySelector(`.player-seat.${getSeatPos(player.name)} .hand`)
+        
+        if (deckEl && handEl) {
+          const startPos = getRelativePos(deckEl)
+          // For opponents, we can just aim for the center of their hand
+          const endPos = getRelativePos(handEl)
+          
+          setAnimatingDraw({
+            card: { value: '', suit: '' }, // Handled as facedown in UI
+            playerName: player.name,
+            style: {
+              left: `${startPos.x}px`,
+              top: `${startPos.y}px`,
+              width: `${startPos.width}px`,
+              height: `${startPos.height}px`,
+              '--dest-x': `${endPos.centerX - startPos.centerX}px`,
+              '--dest-y': `${endPos.centerY - startPos.centerY}px`,
+            } as React.CSSProperties
+          })
+          
+          setTimeout(() => setAnimatingDraw(null), 1000)
+        }
+      }
+      prevHandLengths.current[player.name] = currentLength
+    })
+  }, [state.players, playerName, getRelativePos, getSeatPos])
 
   useEffect(() => {
     if (state?.current_player !== state?.players.findIndex((p) => p?.name === playerName)) {
@@ -116,31 +200,6 @@ export const GameTable: React.FC<GameTableProps> = ({
     return <div className="error">Player data not available</div>
   }
 
-  // Get the current player's index in the players array
-  const currentPlayerIndex = state.players.findIndex((p) => p?.name === playerName)
-  
-  // Create seat mapping: current player is always bottom, others positioned relative to them
-  const getSeatPlayers = () => {
-    const players = state.players
-    const currentIndex = currentPlayerIndex
-    
-    if (currentIndex === -1) return { top: null, left: null, right: null, bottom: null }
-    
-    const bottom = players[currentIndex] // Current player always on bottom
-    
-    // Other players positioned relative to current player
-    const otherPlayers = players.filter((_, index) => index !== currentIndex)
-    
-    return {
-      top: otherPlayers[0] || null,      // First other player on top
-      left: otherPlayers[1] || null,     // Second other player on left  
-      right: otherPlayers[2] || null,    // Third other player on right
-      bottom: bottom
-    }
-  }
-
-  const seatPlayers = getSeatPlayers()
-
   const isWinner = (player: Player) => isGameOver && state.winner === player.name
 
   const shouldShowPrompt = () => {
@@ -159,39 +218,35 @@ export const GameTable: React.FC<GameTableProps> = ({
                          || document.querySelector('.discard-area .discard-empty');
 
       if (cardElement && yourPlayer && discardPileEl) {
-        const startRect = cardElement.getBoundingClientRect(); // START
-        const discardRect = discardPileEl.getBoundingClientRect(); // END
+        const startPos = getRelativePos(cardElement);
+        const endPos = getRelativePos(discardPileEl);
 
-        // Calculate the difference (delta) to travel
-        // We aim for the center of the elements for a smoother look
-        const deltaX = (discardRect.left + discardRect.width / 2) - (startRect.left + startRect.width / 2);
-        const deltaY = (discardRect.top + discardRect.height / 2) - (startRect.top + startRect.height / 2);
+        const deltaX = endPos.centerX - startPos.centerX;
+        const deltaY = endPos.centerY - startPos.centerY;
         
         const card = yourPlayer.hand[index];
-        
         playSound('discard');
         
         if (navigator.vibrate) {
           navigator.vibrate([100, 50, 100]);
         }
         
-        // Set the state with start position AND destination deltas
         setAnimatingDiscard({
           card,
-          start: { 
-            x: startRect.left, 
-            y: startRect.top,
-            width: startRect.width,
-            height: startRect.height
-          },
-          destination: { x: deltaX, y: deltaY } // ⬅️ SET THE DELTAS
+          style: {
+            left: `${startPos.x}px`,
+            top: `${startPos.y}px`,
+            width: `${startPos.width}px`,
+            height: `${startPos.height}px`,
+            '--dest-x': `${deltaX}px`,
+            '--dest-y': `${deltaY}px`,
+            '--rotation': `${(Math.random() * 20) - 10}deg`
+          } as React.CSSProperties
         });
         
-        // Mark this card as discarding to prevent layout shift
         setDiscardingCardIndex(index);
         
-        // Mobile-first optimized animation duration
-        const animationDuration = window.innerWidth <= 768 ? 1800 : 1200;
+        const animationDuration = window.innerWidth <= 768 ? 1200 : 800;
         setTimeout(() => {
           onDiscard(index);
           setDiscardingCardIndex(null);
@@ -214,62 +269,46 @@ export const GameTable: React.FC<GameTableProps> = ({
   const handleDraw = () => {
     playSound('draw');
     
-    if (navigator.vibrate) {
-      navigator.vibrate([80, 30, 80]);
-    }
-    
-    // Get the current hand size to know which index the new card will be
-    const currentHandSize = yourPlayer?.hand?.length || 0;
-    const newCardIndex = currentHandSize; // The new card will be at this index
-    
-    // Mark which card index is being drawn BEFORE calling onDraw
-    setDrawingCardIndex(newCardIndex);
-    
-    // Get START (deck) position BEFORE the card is added
     const deckEl = document.querySelector('.deck-area .card');
-    const handEl = document.querySelector('.player-seat.bottom .hand');
-    
-    let deckRect: DOMRect | null = null;
-    if (deckEl) {
-      deckRect = deckEl.getBoundingClientRect();
+    if (!deckEl) {
+      onDraw();
+      return;
     }
+    const startPos = getRelativePos(deckEl);
 
-    // Call the original game logic FIRST (this adds the card to the hand)
+    const newCardIndex = yourPlayer.hand.length;
+    setDrawingCardIndex(newCardIndex);
+
     onDraw();
     
-    // Now wait for React to render the new card, then get its position
-    // Use requestAnimationFrame to ensure DOM is updated
     requestAnimationFrame(() => {
       requestAnimationFrame(() => {
-        if (!deckRect || !handEl) return;
+        const handEl = document.querySelector('.player-seat.bottom .hand');
+        if (!handEl) return;
         
-        // Find the newly added card (it will be the last one)
         const handCards = handEl.querySelectorAll('.card');
         const newCardEl = handCards[handCards.length - 1] as HTMLElement;
         
         if (newCardEl) {
-          const newCardRect = newCardEl.getBoundingClientRect();
+          const endPos = getRelativePos(newCardEl);
           
-          // Calculate destination: position of the new card relative to deck
-          const destX = newCardRect.left - deckRect.left;
-          const destY = newCardRect.top - deckRect.top;
-
-          // Set the overlay state to trigger the animation
           setAnimatingDraw({
-            start: { 
-              x: deckRect.left, 
-              y: deckRect.top,
-              width: deckRect.width,
-              height: deckRect.height
-            },
-            destination: { x: destX, y: destY }
+            card: { value: '', suit: '' }, // Facedown initially
+            playerName: playerName,
+            style: {
+              left: `${startPos.x}px`,
+              top: `${startPos.y}px`,
+              width: `${startPos.width}px`,
+              height: `${startPos.height}px`,
+              '--dest-x': `${endPos.x - startPos.x}px`,
+              '--dest-y': `${endPos.y - startPos.y}px`,
+            } as React.CSSProperties
           });
         }
       });
     });
     
-    // Reset drawing state after mobile-optimized animation completes
-    const animationDuration = window.innerWidth <= 768 ? 1800 : 1400;
+    const animationDuration = window.innerWidth <= 768 ? 1000 : 800;
     setTimeout(() => {
       setAnimatingDraw(null);
       setDrawingCardIndex(null);
@@ -279,7 +318,7 @@ export const GameTable: React.FC<GameTableProps> = ({
   const canDraw = !loadingStates.drawing && currentPlayer.name === playerName && !isGameOver && !state.has_drawn
 
   return (
-    <div className="poker-table">
+    <div className="poker-table" ref={tableRef}>
       {/* Screen reader announcements */}
       <div 
         id="game-announcements" 
@@ -307,16 +346,20 @@ export const GameTable: React.FC<GameTableProps> = ({
             {seatPlayers.top.is_cpu && " (CPU)"}
           </h3>
           <div className="hand horizontal" aria-label={`${seatPlayers.top.name}'s hand with ${seatPlayers.top.hand.length} cards`}>
-            {seatPlayers.top.hand.map((card, i) => (
-              <Card
-                key={`top-${i}`}
-                facedown={!isGameOver}
-                value={card.value}
-                suit={card.suit}
-                small={true}
-                highlight={isWinner(seatPlayers.top)}
-              />
-            ))}
+            {seatPlayers.top.hand.map((card, i) => {
+              const isDrawingCard = animatingDraw?.playerName === seatPlayers.top?.name && i === seatPlayers.top.hand.length - 1;
+              return (
+                <Card
+                  key={i}
+                  facedown={!isGameOver}
+                  value={card.value}
+                  suit={card.suit}
+                  small={true}
+                  highlight={isWinner(seatPlayers.top)}
+                  style={{ opacity: isDrawingCard ? 0 : 1 }}
+                />
+              )
+            })}
           </div>
         </div>
       )}
@@ -333,16 +376,20 @@ export const GameTable: React.FC<GameTableProps> = ({
             {seatPlayers.left.is_cpu && " (CPU)"}
           </h3>
           <div className="hand horizontal" aria-label={`${seatPlayers.left.name}'s hand with ${seatPlayers.left.hand.length} cards`}>
-            {seatPlayers.left.hand.map((card, i) => (
-              <Card
-                key={`left-${i}`}
-                facedown={!isGameOver}
-                value={card.value}
-                suit={card.suit}
-                small={true}
-                highlight={isWinner(seatPlayers.left)}
-              />
-            ))}
+            {seatPlayers.left.hand.map((card, i) => {
+              const isDrawingCard = animatingDraw?.playerName === seatPlayers.left?.name && i === seatPlayers.left.hand.length - 1;
+              return (
+                <Card
+                  key={`left-${i}`}
+                  facedown={!isGameOver}
+                  value={card.value}
+                  suit={card.suit}
+                  small={true}
+                  highlight={isWinner(seatPlayers.left)}
+                  style={{ opacity: isDrawingCard ? 0 : 1 }}
+                />
+              )
+            })}
           </div>
         </div>
       )}
@@ -359,16 +406,20 @@ export const GameTable: React.FC<GameTableProps> = ({
             {seatPlayers.right.is_cpu && " (CPU)"}
           </h3>
           <div className="hand horizontal" aria-label={`${seatPlayers.right.name}'s hand with ${seatPlayers.right.hand.length} cards`}>
-            {seatPlayers.right.hand.map((card, i) => (
-              <Card
-                key={`right-${i}`}
-                facedown={!isGameOver}
-                value={card.value}
-                suit={card.suit}
-                small={true}
-                highlight={isWinner(seatPlayers.right)}
-              />
-            ))}
+            {seatPlayers.right.hand.map((card, i) => {
+              const isDrawingCard = animatingDraw?.playerName === seatPlayers.right?.name && i === seatPlayers.right.hand.length - 1;
+              return (
+                <Card
+                  key={`right-${i}`}
+                  facedown={!isGameOver}
+                  value={card.value}
+                  suit={card.suit}
+                  small={true}
+                  highlight={isWinner(seatPlayers.right)}
+                  style={{ opacity: isDrawingCard ? 0 : 1 }}
+                />
+              )
+            })}
           </div>
         </div>
       )}
@@ -441,8 +492,6 @@ export const GameTable: React.FC<GameTableProps> = ({
                 highlight={isWinner(yourPlayer)}
                 selected={selectedCardIndex === i}
                 style={{
-                  // ⬇️ ADDED: Hide the card while it's being drawn (overlay shows it)
-                  // Also hide if discarding
                   opacity: (isDrawing && animatingDraw) || discardingCardIndex === i ? 0 : 1,
                   visibility: discardingCardIndex === i ? 'hidden' : 'visible',
                   transition: isDrawing && !animatingDraw ? 'opacity 0.3s ease-in' : 'none'
@@ -454,36 +503,23 @@ export const GameTable: React.FC<GameTableProps> = ({
         </div>
       </div>
       
-      {/* ⬇️ MODIFIED: Animated overlay card for discard effect */}
+      {/* Animated overlay card for discard effect */}
       {animatingDiscard && (
         <Card
           {...animatingDiscard.card}
           className="discard-animation-overlay"
-          style={{
-            left: animatingDiscard.start.x,
-            top: animatingDiscard.start.y,
-            width: animatingDiscard.start.width,
-            height: animatingDiscard.start.height,
-            // ⬇️ ADDED: Pass coordinate deltas as CSS variables
-            '--dest-x': `${animatingDiscard.destination.x}px`,
-            '--dest-y': `${animatingDiscard.destination.y}px`,
-          } as React.CSSProperties & { [key: `--${string}`]: string }}
+          style={animatingDiscard.style}
         />
       )}
-
-      {/* ⬇️ ADDED: Animated overlay card for draw effect */}
-      {animatingDraw && drawingCardIndex !== null && yourPlayer?.hand?.[drawingCardIndex] && (
+ 
+      {/* Animated overlay card for draw effect */}
+      {animatingDraw && (
         <Card
-          {...yourPlayer.hand[drawingCardIndex]}
+          facedown={true}
+          value=""
+          suit=""
           className="draw-animation-overlay"
-          style={{
-            left: animatingDraw.start.x,
-            top: animatingDraw.start.y,
-            width: animatingDraw.start.width,
-            height: animatingDraw.start.height,
-            '--dest-x': `${animatingDraw.destination.x}px`,
-            '--dest-y': `${animatingDraw.destination.y}px`,
-          } as React.CSSProperties & { [key: `--${string}`]: string }}
+          style={animatingDraw.style}
         />
       )}
     </div>
