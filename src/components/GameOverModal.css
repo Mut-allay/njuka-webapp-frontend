@@ -14,6 +14,7 @@
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
   position: relative;
   overflow: hidden;
+  flex-shrink: 0;
 }
 
 .simple-card.red {
@@ -91,26 +92,32 @@
   text-shadow: 0 0 10px rgba(248, 213, 107, 0.5);
 }
 
-.winning-hand-section {
+.revealed-hand-section {
   margin-top: 25px;
   padding: 20px;
   background: rgba(0, 0, 0, 0.3);
   border-radius: 10px;
   border: 1px solid rgba(248, 213, 107, 0.3);
+  overflow-x: auto;
+  max-width: 100%;
 }
 
-.winning-hand-section h4 {
+.revealed-hand-section h4 {
   color: #f8d56b;
   margin: 0 0 15px 0;
   font-size: 1.3em;
   font-weight: bold;
 }
 
-.winning-hand {
+.revealed-winning-hand {
   display: flex;
+  flex-direction: row;
   justify-content: center;
-  gap: 10px;
-  flex-wrap: wrap;
+  align-items: center;
+  gap: 15px;
+  flex-wrap: nowrap;
+  min-width: min-content;
+  padding: 10px 0;
 }
 
 .winning-card {
@@ -227,11 +234,11 @@
     font-size: 1.5em;
   }
   
-  .winning-hand-section {
+  .revealed-hand-section {
     padding: 15px;
   }
   
-  .winning-hand {
+  .revealed-winning-hand {
     gap: 8px;
   }
   
@@ -258,7 +265,7 @@
     background: rgba(248, 213, 107, 0.2);
   }
   
-  .winning-hand-section {
+  .revealed-hand-section {
     border-width: 2px;
   }
   

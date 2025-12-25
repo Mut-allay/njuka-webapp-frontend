@@ -61,9 +61,9 @@ export const GameOverModal: React.FC<GameOverModalProps> = ({
         </div>
         
         {winnerHand && winnerHand.length > 0 && (
-          <div className="winning-hand-section">
+          <div className="revealed-hand-section">
             <h4>Winning Hand:</h4>
-            <div className="winning-hand" role="img" aria-label={`Winning hand: ${winnerHand.map(card => `${card.value} of ${card.suit}`).join(', ')}`}>
+            <div className="revealed-winning-hand" role="img" aria-label={`Winning hand: ${winnerHand.map(card => `${card.value} of ${card.suit}`).join(', ')}`}>
               {winnerHand.map((card, i) => (
                 <SimpleCard
                   key={`winner-${i}`}

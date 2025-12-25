@@ -2888,11 +2888,11 @@ button:disabled {
 }
 
 .main-menu-bar {
-  background: rgba(0, 0, 0, 0.8);
+  background: rgba(20, 20, 20, 0.8);
   backdrop-filter: blur(10px);
   display: flex;
   justify-content: space-around;
-  padding: 14px 8px; /* Larger for mobile */
+  padding: 4px; /* Larger for mobile */
   border-top: 1px solid rgba(248, 213, 107, 0.3);
 }
 
@@ -3158,7 +3158,7 @@ button:disabled {
   }
 
   .main-menu-bar {
-    padding: 15px 10px;
+    padding: 0px;
   }
 
   .menu-button {
