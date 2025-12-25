@@ -5,7 +5,7 @@ import { useGame } from '../contexts/GameContext';
 
 export const CPUGameSetupPage = () => {
     const navigate = useNavigate();
-    const { startCPUGame, loadingStates, gameId } = useGame();
+    const { startCPUGame, loadingStates, gameId, entryFee, setEntryFee, playerWallet } = useGame();
     const [numCPU, setNumCPU] = useState(1);
 
     // Navigate to game when game is created
@@ -14,10 +14,9 @@ export const CPUGameSetupPage = () => {
             navigate(`/game/${gameId}`);
         }
     }, [gameId, navigate]);
-
     const handleStartGame = async () => {
         try {
-            await startCPUGame(numCPU);
+            await startCPUGame(numCPU, entryFee);
             // Navigation happens via useEffect above
         } catch (error) {
             console.error('Failed to start CPU game:', error);
@@ -35,6 +34,9 @@ export const CPUGameSetupPage = () => {
             numCPU={numCPU}
             setNumCPU={setNumCPU}
             loadingStates={loadingStates}
+            entryFee={entryFee}
+            setEntryFee={setEntryFee}
+            playerWallet={playerWallet}
         />
     );
 };

@@ -11,6 +11,9 @@ interface MultiplayerPageProps {
   lobbies: LobbyGame[];
   loadingStates: LoadingStates;
   onRefreshLobbies: () => void;
+  entryFee: number;
+  setEntryFee: (fee: number) => void;
+  playerWallet: number;
 }
 
 export const MultiplayerPage = ({ 
@@ -22,7 +25,10 @@ export const MultiplayerPage = ({
   onJoinLobby,
   lobbies,
   loadingStates,
-  onRefreshLobbies
+  onRefreshLobbies,
+  entryFee,
+  setEntryFee,
+  playerWallet
 }: MultiplayerPageProps) => {
   return (
     <div className="page-container">
@@ -32,6 +38,7 @@ export const MultiplayerPage = ({
           Back
         </button>
         <h2>Multiplayer Lobby</h2>
+        <div className="wallet-badge">Wallet: K{playerWallet.toLocaleString()}</div>
       </div>
 
       <div className="multiplayer-content">
@@ -50,6 +57,40 @@ export const MultiplayerPage = ({
               <option value={6}>6 Players</option>
             </select>
           </label>
+
+          <div className="entry-fee-selection">
+            <label>
+              Entry Fee (K5 - K5000):
+              <div className="fee-input-container">
+                <span className="currency-prefix">K</span>
+                <input
+                  type="number"
+                  min="5"
+                  max="5000"
+                  value={entryFee}
+                  onChange={(e) => {
+                    const val = parseInt(e.target.value);
+                    if (!isNaN(val)) setEntryFee(Math.min(5000, Math.max(0, val)));
+                    else if (e.target.value === '') setEntryFee(0);
+                  }}
+                  className="fee-number-input"
+                />
+              </div>
+              <div className="fee-presets">
+                {[100, 500, 1000, 2500, 5000].map(fee => (
+                  <button 
+                    key={fee} 
+                    type="button"
+                    className={entryFee === fee ? "active" : ""}
+                    onClick={() => setEntryFee(fee)}
+                  >
+                    K{fee}
+                  </button>
+                ))}
+              </div>
+            </label>
+          </div>
+
           <button
             onClick={onCreateLobby}
             disabled={loadingStates.starting || !playerName.trim()}

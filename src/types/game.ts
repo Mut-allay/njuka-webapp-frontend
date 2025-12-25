@@ -13,6 +13,7 @@ export type Player = {
   name: string;
   hand: CardType[];
   is_cpu: boolean;
+  wallet?: number;
 };
 
 export type GameState = {
@@ -24,6 +25,8 @@ export type GameState = {
   mode: string;
   id: string;
   max_players: number;
+  entry_fee?: number;
+  pot_amount?: number;
   winner?: string;
   winner_hand?: CardType[];
   game_over?: boolean;
@@ -37,6 +40,7 @@ export type LobbyGame = {
   created_at: string;
   started?: boolean;
   game_id?: string;
+  entry_fee?: number;
 };
 
 export type LoadingStates = {

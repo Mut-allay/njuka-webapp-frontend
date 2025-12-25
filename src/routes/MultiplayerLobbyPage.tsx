@@ -13,6 +13,9 @@ export const MultiplayerLobbyPage = () => {
         joinLobby,
         refreshLobbies,
         gameId,
+        entryFee,
+        setEntryFee,
+        playerWallet,
     } = useGame();
 
     const [numPlayers, setNumPlayers] = useState(2);
@@ -33,7 +36,7 @@ export const MultiplayerLobbyPage = () => {
 
     const handleCreateLobby = async () => {
         try {
-            const newLobby = await createLobby(numPlayers);
+            const newLobby = await createLobby(numPlayers, entryFee);
             if (newLobby) {
                 navigate(`/lobby/${newLobby.id}`);
             }
@@ -66,6 +69,9 @@ export const MultiplayerLobbyPage = () => {
             lobbies={lobbies}
             loadingStates={loadingStates}
             onRefreshLobbies={refreshLobbies}
+            entryFee={entryFee}
+            setEntryFee={setEntryFee}
+            playerWallet={playerWallet}
         />
     );
 };
