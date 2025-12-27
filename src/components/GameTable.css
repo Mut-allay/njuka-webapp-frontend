@@ -719,9 +719,9 @@
 
 .tutorial-prompt {
   position: absolute;
-  top: 50%;
-  left: -90px;
-  transform: translateY(-50%);
+  top: 110%; /* Move below the deck */
+  left: 50%;
+  transform: translateX(-50%); /* Center horizontally relative to deck */
   background: rgba(248, 213, 107, 0.9);
   color: #2a3439;
   padding: 5px 10px;
@@ -729,6 +729,7 @@
   font-size: 0.8em;
   white-space: nowrap;
   animation: pulse 2s infinite;
+  z-index: 10;
 }
 
 @keyframes pulse {
@@ -852,7 +853,10 @@
 
   .tutorial-prompt {
     font-size: 0.7em;
-    left: -95px; /* ⬇️ UPDATED: Shifted further to the left */
+    left: 50%; /* Center relative to deck */
+    top: 110%; /* Below deck */
+    transform: translateX(-50%);
+    width: max-content;
   }
 
   .card {
@@ -923,7 +927,7 @@
     font-size: 0.7em;
     width: 30px;
     height: 18px;
-    right: -40px;
+    right: -40px; /* Keep on the right side on mobile */
   }
 
   /* Mobile-first animation timing overrides */

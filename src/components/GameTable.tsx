@@ -449,6 +449,14 @@ export const GameTable: React.FC<GameTableProps> = ({
       )}
 
       <div className="table-center">
+        <div className="discard-area" role="region" aria-label="Discard pile">
+          {state.pot?.length > 0 ? (
+            <Card {...state.pot[state.pot.length - 1]} className="discard-top" />
+          ) : (
+            <div className="discard-empty" aria-label="Empty discard pile">Empty</div>
+          )}
+        </div>
+
         <div
           className={`deck-area ${showDeckHighlight ? "deck-highlight" : ""} ${isShuffling ? "deck-shuffling" : ""}`}
           onClick={canDraw ? handleDraw : undefined}
@@ -474,14 +482,6 @@ export const GameTable: React.FC<GameTableProps> = ({
               cursor: canDraw ? "pointer" : "default",
             }}
           />
-        </div>
-
-        <div className="discard-area" role="region" aria-label="Discard pile">
-          {state.pot?.length > 0 ? (
-            <Card {...state.pot[state.pot.length - 1]} className="discard-top" />
-          ) : (
-            <div className="discard-empty" aria-label="Empty discard pile">Empty</div>
-          )}
         </div>
 
         <div className="game-pot-display">
