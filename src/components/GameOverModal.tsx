@@ -29,6 +29,8 @@ export interface GameOverModalProps {
   winner: string
   winnerHand?: Array<{ value: string; suit: string }>
   onNewGame: () => void
+  potAmount?: number
+  playerName?: string
 }
 
 export const GameOverModal: React.FC<GameOverModalProps> = ({
@@ -36,7 +38,9 @@ export const GameOverModal: React.FC<GameOverModalProps> = ({
   onClose,
   winner,
   winnerHand,
-  onNewGame
+  onNewGame,
+  potAmount,
+  playerName
 }) => {
   const handleNewGame = () => {
     onNewGame()
@@ -58,6 +62,15 @@ export const GameOverModal: React.FC<GameOverModalProps> = ({
         <div className="winner-announcement">
           <div className="winner-icon" aria-hidden="true">🏆</div>
           <h3>Winner: <strong>{winner}</strong></h3>
+          {potAmount !== undefined && potAmount > 0 && (
+            <div className="win-amount">
+              {winner === playerName ? (
+                <>You Won: <strong>K{potAmount.toLocaleString()}</strong></>
+              ) : (
+                <>{winner} Won: <strong>K{potAmount.toLocaleString()}</strong></>
+              )}
+            </div>
+          )}
         </div>
         
         {winnerHand && winnerHand.length > 0 && (

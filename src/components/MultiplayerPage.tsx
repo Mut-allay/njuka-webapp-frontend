@@ -123,6 +123,9 @@ export const MultiplayerPage = ({
                 <div key={lobby.id} className="lobby-item">
                   <div className="lobby-info">
                     <h4>Host: {lobby.host}</h4>
+                    <p className="entry-fee-display">
+                      Entry Fee: <strong>K{lobby.entry_fee?.toLocaleString() || 0}</strong>
+                    </p>
                     <p>Players: {lobby.players?.length || 0}/{lobby.max_players}</p>
                     <div className="player-list-preview">
                       {(lobby.players || []).map((player) => (

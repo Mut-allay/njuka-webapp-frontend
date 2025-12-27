@@ -334,6 +334,8 @@ export const GameRoomPage = ({ playSound }: GameRoomPageProps) => {
                 winner={gameState.winner || 'Unknown'}
                 winnerHand={gameState.winner_hand}
                 onNewGame={handleQuitGame}
+                potAmount={gameState.pot_amount}
+                playerName={playerName}
             />
             )}
 

@@ -249,7 +249,10 @@ async def join_lobby(lobby_id: str, request: JoinLobbyRequest):
         raise HTTPException(status_code=400, detail="Player already in lobby")
 
     wallet = get_player_wallet(player_name)
+    logger.info(f"Player {player_name} attempting to join lobby {lobby_id}. Wallet: K{wallet}, Fee: K{lobby.entry_fee}")
+    
     if wallet < lobby.entry_fee:
+        logger.warning(f"Join failed: Insufficient funds for {player_name}. Need K{lobby.entry_fee}, have K{wallet}")
         raise HTTPException(status_code=400, detail=f"Insufficient funds. Required: K{lobby.entry_fee}, Available: K{wallet}")
 
     player_wallets[player_name] -= lobby.entry_fee

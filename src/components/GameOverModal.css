@@ -92,6 +92,21 @@
   text-shadow: 0 0 10px rgba(248, 213, 107, 0.5);
 }
 
+.win-amount {
+  margin-top: 15px;
+  font-size: 1.5em;
+  color: #f8d56b;
+  font-weight: bold;
+  text-shadow: 0 0 15px rgba(248, 213, 107, 0.8), 0 0 25px rgba(248, 213, 107, 0.5);
+  animation: glow 2s ease-in-out infinite alternate;
+}
+
+.win-amount strong {
+  color: #ffd700;
+  text-shadow: 0 0 20px rgba(255, 215, 0, 0.9), 0 0 30px rgba(255, 215, 0, 0.6);
+  font-size: 1.2em;
+}
+
 .revealed-hand-section {
   margin-top: 25px;
   padding: 20px;
@@ -246,6 +261,10 @@
     transform: scale(1.05);
   }
   
+  .win-amount {
+    font-size: 1.3em;
+  }
+  
   .game-over-actions {
     flex-direction: column;
     padding: 15px 20px;
@@ -284,6 +303,10 @@
   .winning-card {
     animation: none;
     box-shadow: 0 0 15px rgba(248, 213, 107, 0.5);
+  }
+  
+  .win-amount {
+    animation: none;
   }
   
   .new-game-button,
