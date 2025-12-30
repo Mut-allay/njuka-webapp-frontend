@@ -5,7 +5,7 @@
   height: 65vh;
   max-width: 900px;
   max-height: 600px;
-  margin: 20px auto;
+  margin: 80px auto; /* Increased top margin for more space above the table */
   background: radial-gradient(ellipse at center, #0d4a24 0%, #0d4a24 100%);
   border-radius: 50% / 40%; /* Horizontal oval shape */
   border: 15px solid #5d4037;
@@ -822,6 +822,7 @@
     height: 60vh;
     border-radius: 50% / 30%;
     position: relative;
+    margin: 40px auto; /* Adjusted top margin for mobile to center better */
   }
 
   .player-seat {

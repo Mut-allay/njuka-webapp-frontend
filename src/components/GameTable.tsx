@@ -131,6 +131,11 @@ export const GameTable: React.FC<GameTableProps> = ({
     return () => clearTimeout(timer)
   }, [])
 
+  // Scroll to top on component mount to ensure title is visible after routing
+  useEffect(() => {
+    window.scrollTo(0, 0);
+  }, []);
+
   // Detect Opponent Draws
   const prevHandLengths = useRef<Record<string, number>>({})
   const prevYourHandLength = useRef(yourPlayer?.hand.length || 0)
