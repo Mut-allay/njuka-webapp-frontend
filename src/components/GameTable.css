@@ -933,8 +933,9 @@
   .discard-area {
     transform: scale(1);
   }
-  /* Keep deck smaller on mobile */
-  .deck-area .card {
+  /* Keep discard smaller on mobile instead */
+  .discard-area .card,
+  .discard-empty {
     transform: scale(0.85);
   }
   .deck-count {
