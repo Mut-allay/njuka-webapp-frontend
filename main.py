@@ -1,18 +1,24 @@
 import sys
 import os
+import importlib.util
 
-# Add the backend directory to sys.path so we can import main
-# absolute path to 'backend/njuka-webapp-backend'
-backend_path = os.path.abspath(os.path.join(os.path.dirname(__file__), 'backend', 'njuka-webapp-backend'))
-sys.path.append(backend_path)
+# Paths
+current_dir = os.path.dirname(os.path.abspath(__file__))
+backend_dir = os.path.join(current_dir, 'backend', 'njuka-webapp-backend')
+backend_main_path = os.path.join(backend_dir, 'main.py')
+
+# Add backend directory to sys.path so it can find its own dependencies if any (though it seems self-contained)
+sys.path.append(backend_dir)
+
+# Use importlib to load the module with a specific name to avoid collision with this 'main.py'
+spec = importlib.util.spec_from_file_location("backend_app_module", backend_main_path)
+backend_module = importlib.util.module_from_spec(spec)
+sys.modules["backend_app_module"] = backend_module
+spec.loader.exec_module(backend_module)
+
+# Expose the app object
+app = backend_module.app
 
 if __name__ == "__main__":
-    print(f"Added {backend_path} to sys.path")
-
-try:
-    from main import app
-except ImportError as e:
-    print(f"Error importing app: {e}")
-    # Fallback/Debug info
-    print("sys.path:", sys.path)
-    raise e
+    import uvicorn
+    uvicorn.run(app, host="0.0.0.0", port=8000)
