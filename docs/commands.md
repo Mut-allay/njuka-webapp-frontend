@@ -15,6 +15,8 @@ git fetch origin # Download latest branches from remote
 git pull origin <branch> # Pull latest changes from remote branch
 git push -u origin <branch> # Push branch to remote and set upstream
 git push -u origin <branch> --force # Force push to remote (overwrite)
+git reset --hard origin/branch-name
+git clean -fd
 
 🔄 MERGING & INTEGRATING BRANCHES
 This workflow is for merging changes from one branch (e.g., dev) into your current feature branch (e.g., Backend/Direct-Messaging).
