@@ -29,13 +29,22 @@
 
 .table-center {
   position: absolute;
-  top: 45%;
+  top: 50%;
   left: 50%;
   transform: translate(-50%, -50%);
   display: flex;
-  gap: 60px;
+  flex-direction: column;
+  gap: 20px;
   z-index: 2;
   align-items: center;
+}
+
+.cards-center-row {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  justify-content: center;
+  gap: 40px;
 }
 
 /* ===== PLAYER SEATS & NAME ===== */
@@ -848,7 +857,11 @@
   .table-center {
     flex-direction: column;
     gap: 20px;
-    top: 42%;
+    top: 50%;
+  }
+
+  .cards-center-row {
+    gap: 20px;
   }
 
   .tutorial-prompt {

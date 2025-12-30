@@ -449,39 +449,41 @@ export const GameTable: React.FC<GameTableProps> = ({
       )}
 
       <div className="table-center">
-        <div className="discard-area" role="region" aria-label="Discard pile">
-          {state.pot?.length > 0 ? (
-            <Card {...state.pot[state.pot.length - 1]} className="discard-top" />
-          ) : (
-            <div className="discard-empty" aria-label="Empty discard pile">Empty</div>
-          )}
-        </div>
+        <div className="cards-center-row">
+          <div className="discard-area" role="region" aria-label="Discard pile">
+            {state.pot?.length > 0 ? (
+              <Card {...state.pot[state.pot.length - 1]} className="discard-top" />
+            ) : (
+              <div className="discard-empty" aria-label="Empty discard pile">Empty</div>
+            )}
+          </div>
 
-        <div
-          className={`deck-area ${showDeckHighlight ? "deck-highlight" : ""} ${isShuffling ? "deck-shuffling" : ""}`}
-          onClick={canDraw ? handleDraw : undefined}
-          role="button"
-          tabIndex={canDraw ? 0 : -1}
-          aria-label={`Deck with ${state.deck?.length ?? 0} cards remaining${canDraw ? ", click to draw a card" : ""}`}
-          onKeyDown={(e) => {
-            if (canDraw && (e.key === 'Enter' || e.key === ' ')) {
-              e.preventDefault()
-              handleDraw()
-            }
-          }}
-        >
-          <div className="deck-count" aria-hidden="true">{state.deck?.length ?? 0}</div>
-          {shouldShowPrompt() && <div className="tutorial-prompt" role="status" aria-live="polite">Pick a card</div>}
-          <Card
-            facedown
-            value=""
-            suit=""
-            // ⬇️ REMOVED: No longer need the drawing class on the deck itself
-            className={`${isShuffling ? "card-shuffling" : ""}`}
-            style={{
-              cursor: canDraw ? "pointer" : "default",
+          <div
+            className={`deck-area ${showDeckHighlight ? "deck-highlight" : ""} ${isShuffling ? "deck-shuffling" : ""}`}
+            onClick={canDraw ? handleDraw : undefined}
+            role="button"
+            tabIndex={canDraw ? 0 : -1}
+            aria-label={`Deck with ${state.deck?.length ?? 0} cards remaining${canDraw ? ", click to draw a card" : ""}`}
+            onKeyDown={(e) => {
+              if (canDraw && (e.key === 'Enter' || e.key === ' ')) {
+                e.preventDefault()
+                handleDraw()
+              }
             }}
-          />
+          >
+            <div className="deck-count" aria-hidden="true">{state.deck?.length ?? 0}</div>
+            {shouldShowPrompt() && <div className="tutorial-prompt" role="status" aria-live="polite">Pick a card</div>}
+            <Card
+              facedown
+              value=""
+              suit=""
+              // ⬇️ REMOVED: No longer need the drawing class on the deck itself
+              className={`${isShuffling ? "card-shuffling" : ""}`}
+              style={{
+                cursor: canDraw ? "pointer" : "default",
+              }}
+            />
+          </div>
         </div>
 
         <div className="game-pot-display">
