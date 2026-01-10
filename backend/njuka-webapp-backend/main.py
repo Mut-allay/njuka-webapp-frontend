@@ -277,7 +277,9 @@ async def list_lobbies():
 
 @app.post("/new_game")
 async def create_cpu_game(player_name: str = "Player", cpu_count: int = 1, entry_fee: int = 0, max_players: int = 4):
-    game = new_game_state("cpu", [player_name], max_players=max_players, entry_fee=entry_fee)
+    # In CPU mode, max_players should be human(1) + cpu_count
+    actual_max_players = cpu_count + 1
+    game = new_game_state("cpu", [player_name], max_players=actual_max_players, entry_fee=entry_fee)
     active_games[game.id] = game
     return game.dict()
 
