@@ -108,9 +108,22 @@
 
 .winning-hand {
   display: flex;
+  flex-direction: row;
   justify-content: center;
-  gap: 10px;
-  flex-wrap: wrap;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: nowrap;
+  overflow-x: auto;
+  padding: 15px 10px;
+  width: 100%;
+  -webkit-overflow-scrolling: touch;
+}
+
+.winning-hand .simple-card {
+  flex: 0 0 auto;
+  transform: scale(1.1);
+  box-shadow: 0 0 15px rgba(248, 213, 107, 0.5);
+  animation: glow 2s ease-in-out infinite alternate;
 }
 
 .winning-card {
