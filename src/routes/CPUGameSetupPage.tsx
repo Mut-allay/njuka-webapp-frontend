@@ -5,7 +5,7 @@ import { useGame } from '../contexts/GameContext';
 
 export const CPUGameSetupPage = () => {
     const navigate = useNavigate();
-    const { startCPUGame, loadingStates, gameId } = useGame();
+    const { startCPUGame, loadingStates, gameId, playerWallet } = useGame();
     const [numCPU, setNumCPU] = useState(1);
     const [entryFee, setEntryFee] = useState(100);
 
@@ -38,6 +38,7 @@ export const CPUGameSetupPage = () => {
             entryFee={entryFee}
             setEntryFee={setEntryFee}
             loadingStates={loadingStates}
+            playerWallet={playerWallet}
         />
     );
 };

@@ -35,6 +35,10 @@ interface GameContextType {
     quitGame: () => void;
     refreshLobbies: () => Promise<void>;
 
+    // Wallet state
+    playerWallet: number | null;
+    fetchWallet: (name: string) => Promise<void>;
+
     // State setters
     setGameState: (state: GameState | null) => void;
     setGameId: (id: string | null) => void;
@@ -74,12 +78,32 @@ export const GameProvider = ({ children, playerName, setPlayerName }: GameProvid
         cpuMoving: false,
     });
 
+    const [playerWallet, setPlayerWallet] = useState<number | null>(null);
+
     // WebSocket states
     const [lobbyWS, setLobbyWS] = useState<WebSocket | null>(null);
     const [gameWS, setGameWS] = useState<WebSocket | null>(null);
 
     // Initialize game service (use useMemo to avoid recreating on every render)
     const gameService = useMemo(() => new GameService(), []);
+
+    const fetchWallet = useCallback(async (name: string) => {
+        try {
+            const data = await gameService.getWallet(name);
+            setPlayerWallet(data.wallet);
+        } catch (error) {
+            console.error('Failed to fetch wallet:', error);
+        }
+    }, [gameService]);
+
+    // Initial wallet fetch and fetch on name change
+    useEffect(() => {
+        if (playerName && playerName.trim()) {
+            fetchWallet(playerName);
+        } else {
+            setPlayerWallet(null);
+        }
+    }, [playerName, fetchWallet]);
 
     // WebSocket connection for lobby room updates
     const lobbyIdForWS = lobby?.id;
@@ -374,6 +398,8 @@ export const GameProvider = ({ children, playerName, setPlayerName }: GameProvid
         discardCard,
         quitGame,
         refreshLobbies,
+        playerWallet,
+        fetchWallet,
         gameService,
     };
 

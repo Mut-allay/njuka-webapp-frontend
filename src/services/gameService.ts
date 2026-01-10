@@ -145,4 +145,12 @@ export class GameService {
       'cancelLobby'
     );
   }
+
+  async getWallet(playerName: string): Promise<{ wallet: number }> {
+    return this.fetchWithErrorHandling(
+      `${API}/wallet/${encodeURIComponent(playerName)}`,
+      { method: 'GET' },
+      'getWallet'
+    );
+  }
 }

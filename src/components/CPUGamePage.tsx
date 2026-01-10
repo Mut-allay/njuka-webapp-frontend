@@ -9,6 +9,7 @@ interface CPUGamePageProps {
   entryFee: number;
   setEntryFee: (fee: number) => void;
   loadingStates: LoadingStates;
+  playerWallet: number | null;
 }
 
 export const CPUGamePage = ({ 
@@ -18,16 +19,25 @@ export const CPUGamePage = ({
   setNumCPU, 
   entryFee,
   setEntryFee,
-  loadingStates 
+  loadingStates,
+  playerWallet 
 }: CPUGamePageProps) => {
   return (
     <div className="page-container">
       <div className="page-header">
-        <button onClick={onBack} className="back-button">
-          <ArrowLeft size={20} />
-          Back
-        </button>
-        <h2>Play vs CPU</h2>
+        <div className="header-top">
+          <button onClick={onBack} className="back-button">
+            <ArrowLeft size={20} />
+            Back
+          </button>
+          <h2>Play vs CPU</h2>
+          {playerWallet !== null && (
+            <div className="global-wallet-pill">
+              <span className="wallet-label">WALLET:</span>
+              <span className="wallet-amount">K{playerWallet.toLocaleString()}</span>
+            </div>
+          )}
+        </div>
       </div>
 
       <div className="cpu-game-content">

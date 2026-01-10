@@ -455,46 +455,48 @@ export const GameTable: React.FC<GameTableProps> = ({
       )}
 
       <div className="table-center">
-        <div className="pot-display-top">
-           <div className="gold-pot">
+        <div className="center-cards-area">
+          <div
+            className={`deck-area ${showDeckHighlight ? "deck-highlight" : ""} ${isShuffling ? "deck-shuffling" : ""}`}
+            onClick={canDraw ? handleDraw : undefined}
+            role="button"
+            tabIndex={canDraw ? 0 : -1}
+            aria-label={`Deck with ${state.deck?.length ?? 0} cards remaining${canDraw ? ", click to draw a card" : ""}`}
+            onKeyDown={(e) => {
+              if (canDraw && (e.key === 'Enter' || e.key === ' ')) {
+                e.preventDefault()
+                handleDraw()
+              }
+            }}
+          >
+            <div className="deck-count" aria-hidden="true">{state.deck?.length ?? 0}</div>
+            {shouldShowPrompt() && <div className="tutorial-prompt" role="status" aria-live="polite">Pick a card</div>}
+            <Card
+              facedown
+              value=""
+              suit=""
+              className={`${isShuffling ? "card-shuffling" : ""}`}
+              style={{
+                cursor: canDraw ? "pointer" : "default",
+              }}
+            />
+          </div>
+
+          <div className="discard-area" role="region" aria-label="Discard pile">
+            {state.pot?.length > 0 ? (
+              <Card {...state.pot[state.pot.length - 1]} className="discard-top" />
+            ) : (
+              <div className="discard-empty" aria-label="Empty discard pile">Empty</div>
+            )}
+          </div>
+        </div>
+
+        <div className="pot-display-below">
+           <div className="pot-container">
              <span className="pot-label">POT</span>
              <span className="pot-value">K{state.pot_amount.toLocaleString()}</span>
+             <span className="pot-entry">Entry: K{state.entry_fee.toLocaleString()}</span>
            </div>
-        </div>
-
-        <div
-          className={`deck-area ${showDeckHighlight ? "deck-highlight" : ""} ${isShuffling ? "deck-shuffling" : ""}`}
-          onClick={canDraw ? handleDraw : undefined}
-          role="button"
-          tabIndex={canDraw ? 0 : -1}
-          aria-label={`Deck with ${state.deck?.length ?? 0} cards remaining${canDraw ? ", click to draw a card" : ""}`}
-          onKeyDown={(e) => {
-            if (canDraw && (e.key === 'Enter' || e.key === ' ')) {
-              e.preventDefault()
-              handleDraw()
-            }
-          }}
-        >
-          <div className="deck-count" aria-hidden="true">{state.deck?.length ?? 0}</div>
-          {shouldShowPrompt() && <div className="tutorial-prompt" role="status" aria-live="polite">Pick a card</div>}
-          <Card
-            facedown
-            value=""
-            suit=""
-            // ⬇️ REMOVED: No longer need the drawing class on the deck itself
-            className={`${isShuffling ? "card-shuffling" : ""}`}
-            style={{
-              cursor: canDraw ? "pointer" : "default",
-            }}
-          />
-        </div>
-
-        <div className="discard-area" role="region" aria-label="Discard pile">
-          {state.pot?.length > 0 ? (
-            <Card {...state.pot[state.pot.length - 1]} className="discard-top" />
-          ) : (
-            <div className="discard-empty" aria-label="Empty discard pile">Empty</div>
-          )}
         </div>
       </div>
 

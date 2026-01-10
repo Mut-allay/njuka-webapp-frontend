@@ -5,7 +5,7 @@ import { useGame } from '../contexts/GameContext';
 
 export const HomePage = () => {
     const navigate = useNavigate();
-    const { playerName, setPlayerName } = useGame();
+    const { playerName, setPlayerName, playerWallet } = useGame();
 
     const handleSelectMode = (mode: 'multiplayer' | 'cpu') => {
         if (mode === 'multiplayer') {
@@ -19,5 +19,6 @@ export const HomePage = () => {
         onSelectMode={handleSelectMode} 
         playerName={playerName} 
         setPlayerName={setPlayerName}
+        playerWallet={playerWallet}
     />;
 };

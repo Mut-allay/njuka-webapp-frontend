@@ -13,6 +13,7 @@ export const MultiplayerLobbyPage = () => {
         joinLobby,
         refreshLobbies,
         gameId,
+        playerWallet,
     } = useGame();
 
     const [numPlayers, setNumPlayers] = useState(2);
@@ -69,6 +70,7 @@ export const MultiplayerLobbyPage = () => {
             lobbies={lobbies}
             loadingStates={loadingStates}
             onRefreshLobbies={refreshLobbies}
+            playerWallet={playerWallet}
         />
     );
 };

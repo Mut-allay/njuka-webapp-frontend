@@ -4,13 +4,22 @@ interface HomePageProps {
   onSelectMode: (mode: 'multiplayer' | 'cpu') => void;
   playerName: string;
   setPlayerName: (name: string) => void;
+  playerWallet: number | null;
 }
 
-export const HomePage = ({ onSelectMode, playerName, setPlayerName }: HomePageProps) => {
+export const HomePage = ({ onSelectMode, playerName, setPlayerName, playerWallet }: HomePageProps) => {
   return (
     <div className="page-container">
       <div className="welcome-section">
-        <h2>Welcome to Njuka King!</h2>
+        <div className="header-top">
+          <h2>Welcome to Njuka King!</h2>
+          {playerWallet !== null && (
+            <div className="global-wallet-pill">
+              <span className="wallet-label">WALLET:</span>
+              <span className="wallet-amount">K{playerWallet.toLocaleString()}</span>
+            </div>
+          )}
+        </div>
         <p>Choose your game mode to start playing</p>
       </div>
       

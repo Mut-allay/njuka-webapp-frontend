@@ -13,6 +13,7 @@ interface MultiplayerPageProps {
   lobbies: LobbyGame[];
   loadingStates: LoadingStates;
   onRefreshLobbies: () => void;
+  playerWallet: number | null;
 }
 
 export const MultiplayerPage = ({ 
@@ -26,16 +27,25 @@ export const MultiplayerPage = ({
   onJoinLobby,
   lobbies,
   loadingStates,
-  onRefreshLobbies
+  onRefreshLobbies,
+  playerWallet
 }: MultiplayerPageProps) => {
   return (
     <div className="page-container">
       <div className="page-header">
-        <button onClick={onBack} className="back-button">
-          <ArrowLeft size={20} />
-          Back
-        </button>
-        <h2>Multiplayer Lobby</h2>
+        <div className="header-top">
+          <button onClick={onBack} className="back-button">
+            <ArrowLeft size={20} />
+            Back
+          </button>
+          <h2>Multiplayer Lobby</h2>
+          {playerWallet !== null && (
+            <div className="global-wallet-pill">
+              <span className="wallet-label">WALLET:</span>
+              <span className="wallet-amount">K{playerWallet.toLocaleString()}</span>
+            </div>
+          )}
+        </div>
       </div>
 
       <div className="multiplayer-content">

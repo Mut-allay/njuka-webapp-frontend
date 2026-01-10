@@ -3211,3 +3211,47 @@ button:disabled {
     padding-bottom: max(15px, env(safe-area-inset-bottom));
   }
 }
+
+/* Global Wallet Display */
+.global-wallet-pill {
+  display: flex;
+  align-items: center;
+  background: rgba(255, 255, 255, 0.1);
+  padding: 5px 15px;
+  border-radius: 20px;
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  backdrop-filter: blur(4px);
+  gap: 8px;
+  margin-left: 20px;
+}
+
+.wallet-label {
+  color: #f8d56b;
+  font-size: 0.7em;
+  font-weight: 800;
+  letter-spacing: 1px;
+}
+
+.wallet-amount {
+  color: #ffffff;
+  font-weight: bold;
+  font-size: 1.1em;
+}
+
+.header-top {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin-bottom: 5px;
+}
+
+@media (max-width: 600px) {
+  .header-top {
+    flex-direction: column;
+  }
+  .global-wallet-pill {
+    margin-left: 0;
+  }
+}
