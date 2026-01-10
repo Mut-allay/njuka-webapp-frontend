@@ -6,6 +6,8 @@ interface CPUGamePageProps {
   onStartGame: () => void;
   numCPU: number;
   setNumCPU: (num: number) => void;
+  entryFee: number;
+  setEntryFee: (fee: number) => void;
   loadingStates: LoadingStates;
 }
 
@@ -14,6 +16,8 @@ export const CPUGamePage = ({
   onStartGame, 
   numCPU, 
   setNumCPU, 
+  entryFee,
+  setEntryFee,
   loadingStates 
 }: CPUGamePageProps) => {
   return (
@@ -28,8 +32,7 @@ export const CPUGamePage = ({
 
       <div className="cpu-game-content">
         <div className="cpu-options">
-          <h3>Choose Your Opponents</h3>
-          <p>Select how many CPU players you want to face</p>
+          <h3>Game Setup</h3>
           
           <div className="cpu-selection">
             <label>Number of CPU Players:</label>
@@ -41,6 +44,21 @@ export const CPUGamePage = ({
                   className={`cpu-count-btn ${numCPU === num ? 'selected' : ''}`}
                 >
                   {num} CPU
+                </button>
+              ))}
+            </div>
+          </div>
+
+          <div className="cpu-selection">
+            <label>Entry Fee:</label>
+            <div className="fee-buttons">
+              {[100, 500, 1000, 5000].map(fee => (
+                <button
+                  key={fee}
+                  onClick={() => setEntryFee(fee)}
+                  className={`fee-btn ${entryFee === fee ? 'selected' : ''}`}
+                >
+                  K{fee.toLocaleString()}
                 </button>
               ))}
             </div>

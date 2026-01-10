@@ -6,6 +6,8 @@ interface MultiplayerPageProps {
   playerName: string;
   numPlayers: number;
   setNumPlayers: (num: number) => void;
+  entryFee: number;
+  setEntryFee: (fee: number) => void;
   onCreateLobby: () => void;
   onJoinLobby: (lobbyId: string) => void;
   lobbies: LobbyGame[];
@@ -18,6 +20,8 @@ export const MultiplayerPage = ({
   playerName, 
   numPlayers, 
   setNumPlayers,
+  entryFee,
+  setEntryFee,
   onCreateLobby,
   onJoinLobby,
   lobbies,
@@ -48,6 +52,18 @@ export const MultiplayerPage = ({
               <option value={4}>4 Players</option>
               <option value={5}>5 Players</option>
               <option value={6}>6 Players</option>
+            </select>
+          </label>
+          <label>
+            Entry Fee:
+            <select 
+              value={entryFee} 
+              onChange={(e) => setEntryFee(Number(e.target.value))}
+            >
+              <option value={100}>K100</option>
+              <option value={500}>K500</option>
+              <option value={1000}>K1,000</option>
+              <option value={5000}>K5,000</option>
             </select>
           </label>
           <button

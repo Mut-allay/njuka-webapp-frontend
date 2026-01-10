@@ -7,6 +7,7 @@ export const CPUGameSetupPage = () => {
     const navigate = useNavigate();
     const { startCPUGame, loadingStates, gameId } = useGame();
     const [numCPU, setNumCPU] = useState(1);
+    const [entryFee, setEntryFee] = useState(100);
 
     // Navigate to game when game is created
     useEffect(() => {
@@ -17,7 +18,7 @@ export const CPUGameSetupPage = () => {
 
     const handleStartGame = async () => {
         try {
-            await startCPUGame(numCPU);
+            await startCPUGame(numCPU, entryFee);
             // Navigation happens via useEffect above
         } catch (error) {
             console.error('Failed to start CPU game:', error);
@@ -34,6 +35,8 @@ export const CPUGameSetupPage = () => {
             onStartGame={handleStartGame}
             numCPU={numCPU}
             setNumCPU={setNumCPU}
+            entryFee={entryFee}
+            setEntryFee={setEntryFee}
             loadingStates={loadingStates}
         />
     );

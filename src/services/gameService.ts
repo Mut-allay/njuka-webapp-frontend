@@ -48,13 +48,13 @@ export class GameService {
     }
   }
 
-  async createLobby(host: string, maxPlayers: number): Promise<LobbyGame> {
+  async createLobby(host: string, maxPlayers: number, entryFee: number = 0): Promise<LobbyGame> {
     return this.fetchWithErrorHandling(
       `${API}/lobby/create`,
       {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ host, max_players: maxPlayers }),
+        body: JSON.stringify({ host, max_players: maxPlayers, entry_fee: entryFee }),
       },
       'createLobby'
     );
@@ -114,10 +114,11 @@ export class GameService {
     mode: string,
     playerName: string,
     cpuCount: number = 1,
-    maxPlayers: number = 4
+    maxPlayers: number = 4,
+    entryFee: number = 0
   ): Promise<GameState> {
     return this.fetchWithErrorHandling(
-      `${API}/new_game?mode=${mode}&player_name=${encodeURIComponent(playerName)}&cpu_count=${cpuCount}&max_players=${maxPlayers}`,
+      `${API}/new_game?mode=${mode}&player_name=${encodeURIComponent(playerName)}&cpu_count=${cpuCount}&max_players=${maxPlayers}&entry_fee=${entryFee}`,
       {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },

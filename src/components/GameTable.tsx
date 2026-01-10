@@ -12,6 +12,7 @@ type Player = {
   name: string
   hand: CardType[]
   is_cpu: boolean
+  wallet: number
 }
 
 type GameState = {
@@ -23,6 +24,8 @@ type GameState = {
   mode: string
   id: string
   max_players: number
+  pot_amount: number
+  entry_fee: number
   winner?: string
   winner_hand?: CardType[]
   game_over?: boolean
@@ -359,10 +362,13 @@ export const GameTable: React.FC<GameTableProps> = ({
           role="region"
           aria-label={`Player ${seatPlayers.top.name}${seatPlayers.top.is_cpu ? " (CPU)" : ""}${state.current_player === state.players.findIndex(p => p.name === seatPlayers.top?.name) ? ", current turn" : ""}`}
         >
-          <h3>
-            {seatPlayers.top.name}
-            {seatPlayers.top.is_cpu && " (CPU)"}
-          </h3>
+          <div className="player-header">
+            <h3>
+              {seatPlayers.top.name}
+              {seatPlayers.top.is_cpu && " (CPU)"}
+            </h3>
+            <span className="player-wallet">K{seatPlayers.top.wallet?.toLocaleString() ?? '10,000'}</span>
+          </div>
           <div className="hand horizontal" aria-label={`${seatPlayers.top.name}'s hand with ${seatPlayers.top.hand.length} cards`}>
             {seatPlayers.top.hand.map((card, i) => {
               const isDrawingCard = animatingDraw?.playerName === seatPlayers.top?.name && i === seatPlayers.top.hand.length - 1;
@@ -389,10 +395,13 @@ export const GameTable: React.FC<GameTableProps> = ({
           role="region"
           aria-label={`Player ${seatPlayers.left.name}${seatPlayers.left.is_cpu ? " (CPU)" : ""}${state.current_player === state.players.findIndex(p => p.name === seatPlayers.left?.name) ? ", current turn" : ""}`}
         >
-          <h3>
-            {seatPlayers.left.name}
-            {seatPlayers.left.is_cpu && " (CPU)"}
-          </h3>
+          <div className="player-header">
+            <h3>
+              {seatPlayers.left.name}
+              {seatPlayers.left.is_cpu && " (CPU)"}
+            </h3>
+            <span className="player-wallet">K{seatPlayers.left.wallet?.toLocaleString() ?? '10,000'}</span>
+          </div>
           <div className="hand horizontal" aria-label={`${seatPlayers.left.name}'s hand with ${seatPlayers.left.hand.length} cards`}>
             {seatPlayers.left.hand.map((card, i) => {
               const isDrawingCard = animatingDraw?.playerName === seatPlayers.left?.name && i === seatPlayers.left.hand.length - 1;
@@ -419,10 +428,13 @@ export const GameTable: React.FC<GameTableProps> = ({
           role="region"
           aria-label={`Player ${seatPlayers.right.name}${seatPlayers.right.is_cpu ? " (CPU)" : ""}${state.current_player === state.players.findIndex(p => p.name === seatPlayers.right?.name) ? ", current turn" : ""}`}
         >
-          <h3>
-            {seatPlayers.right.name}
-            {seatPlayers.right.is_cpu && " (CPU)"}
-          </h3>
+          <div className="player-header">
+            <h3>
+              {seatPlayers.right.name}
+              {seatPlayers.right.is_cpu && " (CPU)"}
+            </h3>
+            <span className="player-wallet">K{seatPlayers.right.wallet?.toLocaleString() ?? '10,000'}</span>
+          </div>
           <div className="hand horizontal" aria-label={`${seatPlayers.right.name}'s hand with ${seatPlayers.right.hand.length} cards`}>
             {seatPlayers.right.hand.map((card, i) => {
               const isDrawingCard = animatingDraw?.playerName === seatPlayers.right?.name && i === seatPlayers.right.hand.length - 1;
@@ -443,6 +455,13 @@ export const GameTable: React.FC<GameTableProps> = ({
       )}
 
       <div className="table-center">
+        <div className="pot-display-top">
+           <div className="gold-pot">
+             <span className="pot-label">POT</span>
+             <span className="pot-value">K{state.pot_amount.toLocaleString()}</span>
+           </div>
+        </div>
+
         <div
           className={`deck-area ${showDeckHighlight ? "deck-highlight" : ""} ${isShuffling ? "deck-shuffling" : ""}`}
           onClick={canDraw ? handleDraw : undefined}
@@ -485,7 +504,10 @@ export const GameTable: React.FC<GameTableProps> = ({
         role="region"
         aria-label={`Your hand${state.current_player === currentPlayerIndex ? ", current turn" : ""}`}
       >
-        <h4 className="player-name">{yourPlayer.name}</h4>
+        <div className="player-header">
+          <h4 className="player-name">{yourPlayer.name} (You)</h4>
+          <span className="player-wallet">K{yourPlayer.wallet?.toLocaleString() ?? '10,000'}</span>
+        </div>
         <div className="hand" aria-label={`Your hand with ${yourPlayer.hand?.length || 0} cards`}>
           {yourPlayer.hand?.map((card, i) => {
             const isDealing = dealingCards[i] || false

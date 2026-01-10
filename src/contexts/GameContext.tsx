@@ -27,9 +27,9 @@ interface GameContextType {
     gameWS: WebSocket | null;
 
     // Game actions
-    createLobby: (numPlayers: number) => Promise<LobbyGame>;
+    createLobby: (numPlayers: number, entryFee: number) => Promise<LobbyGame>;
     joinLobby: (lobbyId: string) => Promise<void>;
-    startCPUGame: (numCPU: number) => Promise<void>;
+    startCPUGame: (numCPU: number, entryFee: number) => Promise<void>;
     drawCard: () => Promise<void>;
     discardCard: (index: number) => Promise<void>;
     quitGame: () => void;
@@ -241,8 +241,8 @@ export const GameProvider = ({ children, playerName, setPlayerName }: GameProvid
         }
     }, [playerName, gameService]);
 
-    const startCPUGame = useCallback(async (numCPU: number) => {
-        console.log(`[GameContext] startCPUGame called for ${numCPU} CPUs`);
+    const startCPUGame = useCallback(async (numCPU: number, entryFee: number) => {
+        console.log(`[GameContext] startCPUGame called for ${numCPU} CPUs with fee ${entryFee}`);
         // ⬇️ FORCE RESET: Clear previous game state
         setGameState(null);
         setGameId(null);
@@ -251,7 +251,7 @@ export const GameProvider = ({ children, playerName, setPlayerName }: GameProvid
         setLoadingStates(prev => ({ ...prev, starting: true }));
         try {
             console.log("[GameContext] Requesting createNewGame...");
-            let game = await gameService.createNewGame("cpu", playerName, numCPU);
+            let game = await gameService.createNewGame("cpu", playerName, numCPU, numCPU + 1, entryFee);
             console.log("[GameContext] createNewGame response:", JSON.stringify(game));
             
             // ⬇️ WORKAROUND: If backend returns a finished game (sticky session), try to flush it

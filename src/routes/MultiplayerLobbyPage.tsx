@@ -16,6 +16,7 @@ export const MultiplayerLobbyPage = () => {
     } = useGame();
 
     const [numPlayers, setNumPlayers] = useState(2);
+    const [entryFee, setEntryFee] = useState(100);
 
     // Auto-refresh lobbies every 2 seconds
     useEffect(() => {
@@ -33,7 +34,7 @@ export const MultiplayerLobbyPage = () => {
 
     const handleCreateLobby = async () => {
         try {
-            const newLobby = await createLobby(numPlayers);
+            const newLobby = await createLobby(numPlayers, entryFee);
             if (newLobby) {
                 navigate(`/lobby/${newLobby.id}`);
             }
@@ -61,6 +62,8 @@ export const MultiplayerLobbyPage = () => {
             playerName={playerName}
             numPlayers={numPlayers}
             setNumPlayers={setNumPlayers}
+            entryFee={entryFee}
+            setEntryFee={setEntryFee}
             onCreateLobby={handleCreateLobby}
             onJoinLobby={handleJoinLobby}
             lobbies={lobbies}
