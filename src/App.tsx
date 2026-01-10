@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback, useMemo, Suspense, lazy } from 'react';
 import { BrowserRouter, Routes, Route } from 'react-router-dom';
-import { Howl } from 'howler';
+import { Howl, Howler } from 'howler';
 import './App.css';
 import { GameProvider } from './contexts/GameContext';
 import { EnhancedBottomMenu } from './components/EnhancedBottomMenu';
@@ -161,6 +161,10 @@ const useSoundManager = () => {
         const audioContext = new AudioContextClass();
         if (audioContext.state === 'suspended') {
           audioContext.resume();
+        }
+        // Also resume Howler's global context
+        if (Howler && Howler.ctx && Howler.ctx.state === 'suspended') {
+          Howler.ctx.resume();
         }
       } catch (error) {
         console.log('Failed to enable audio:', error);

@@ -33,6 +33,8 @@ class GameState(BaseModel):
     id: str
     mode: str
     max_players: int
+    pot_amount: int = 0
+    entry_fee: int = 0
     winner: str = ""
     winner_hand: List[Card] = []
     game_over: bool = False
@@ -46,6 +48,7 @@ class LobbyGame(BaseModel):
     started: bool = False
     last_updated: datetime
     game_id: Optional[str] = None
+    entry_fee: int = 0
 
     class Config:
         json_encoders = {datetime: lambda dt: dt.isoformat()}
@@ -149,17 +152,20 @@ manager = ConnectionManager()
 def create_deck() -> List[Card]:
     return [Card(value=v, suit=s) for s in suits for v in values]
 
-def new_game_state(mode: str, player_name: str, cpu_count: int = 1, max_players: int = 4) -> GameState:
+def new_game_state(mode: str, player_names: List[str], max_players: int = 4, entry_fee: int = 0) -> GameState:
     deck = create_deck()
     random.shuffle(deck)
     players = []
 
+    for name in player_names:
+        players.append(Player(name=name, hand=[]))
+
     if mode == "cpu":
-        players.append(Player(name=player_name, hand=[]))
-        for i in range(cpu_count):
+        cpu_to_add = max_players - len(players)
+        for i in range(cpu_to_add):
             players.append(Player(name=f"CPU {i+1}", hand=[], is_cpu=True))
-    else:  # multiplayer
-        players.append(Player(name=player_name, hand=[]))
+    
+    pot_amount = entry_fee * len(players)
 
     # Deal 3 cards to each player
     for _ in range(3):
@@ -177,7 +183,9 @@ def new_game_state(mode: str, player_name: str, cpu_count: int = 1, max_players:
         has_drawn=False,
         id=str(uuid.uuid4()),
         mode=mode,
-        max_players=max_players
+        max_players=max_players,
+        pot_amount=pot_amount,
+        entry_fee=entry_fee
     )
 
 # ====================== REQUEST MODELS ======================
@@ -216,38 +224,37 @@ async def join_lobby(lobby_id: str, request: JoinLobbyRequest):
     lobby = active_lobbies[lobby_id]
     player_name = request.player
 
+    # CRITICAL: Check idempotency BEFORE "Lobby is full" to handle retries on the last slot
+    if player_name in lobby.players:
+        logger.info(f"Player {player_name} already in lobby {lobby_id}. Returning current state (idempotent).")
+        game = active_games.get(lobby.game_id) if lobby.game_id else None
+        return JSONResponse(content={
+            "lobby": lobby.dict(),
+            "game": game.dict() if game else None
+        })
+
     if len(lobby.players) >= lobby.max_players:
         raise HTTPException(status_code=400, detail="Lobby is full")
 
-    if player_name in lobby.players:
-        raise HTTPException(status_code=400, detail="Player already in lobby")
-
-    # CRITICAL FIX: Create game when second player joins
-    if len(lobby.players) == 1:  # This is the second player → start the game!
-        game_state = new_game_state("multiplayer", lobby.host, max_players=lobby.max_players)
-        active_games[game_state.id] = game_state
-
-        # Add joining player to the game with 3 cards
-        game_state.players.append(Player(name=player_name, hand=[]))
-        for _ in range(3):
-            if game_state.deck:
-                game_state.players[-1].hand.append(game_state.deck.pop())
-
-        # THIS WAS THE MISSING LINE THAT BROKE EVERYTHING
-        lobby.game_id = game_state.id
-        lobby.started = True
-        logger.info(f"Game {game_state.id} created for lobby {lobby_id}")
-
-    # Now add player to lobby list
+    # Add player to lobby
     lobby.players.append(player_name)
     lobby.last_updated = datetime.now()
 
-    # Notify everyone (host will now see game_id and switch screen)
+    # START GAME ONLY WHEN FULL
+    if len(lobby.players) == lobby.max_players:
+        logger.info(f"Lobby {lobby_id} full ({len(lobby.players)}/{lobby.max_players}). Starting game.")
+        game_state = new_game_state("multiplayer", lobby.players, max_players=lobby.max_players, entry_fee=lobby.entry_fee)
+        active_games[game_state.id] = game_state
+        lobby.game_id = game_state.id
+        lobby.started = True
+        logger.info(f"Game {game_state.id} created for lobby {lobby_id}")
+    else:
+        logger.info(f"Player {player_name} joined lobby {lobby_id}. Waiting for more players ({len(lobby.players)}/{lobby.max_players})")
+
+    # Notify everyone
     await manager.broadcast_lobby_update(lobby_id, lobby)
 
-    # Return updated lobby + full game state
     game = active_games.get(lobby.game_id) if lobby.game_id else None
-
     return JSONResponse(content={
         "lobby": lobby.dict(),
         "game": game.dict() if game else None
@@ -269,8 +276,8 @@ async def list_lobbies():
     return list(active_lobbies.values())
 
 @app.post("/new_game")
-async def create_cpu_game(player_name: str = "Player", cpu_count: int = 1):
-    game = new_game_state("cpu", player_name, cpu_count=cpu_count)
+async def create_cpu_game(player_name: str = "Player", cpu_count: int = 1, entry_fee: int = 0, max_players: int = 4):
+    game = new_game_state("cpu", [player_name], max_players=max_players, entry_fee=entry_fee)
     active_games[game.id] = game
     return game.dict()
 
