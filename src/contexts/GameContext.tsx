@@ -22,14 +22,20 @@ interface GameContextType {
     error: string | null;
     setError: (error: string | null) => void;
 
+    // Betting state
+    entryFee: number;
+    setEntryFee: (fee: number) => void;
+    playerWallet: number;
+    refreshWallet: () => Promise<void>;
+
     // WebSocket connections
     lobbyWS: WebSocket | null;
     gameWS: WebSocket | null;
 
     // Game actions
-    createLobby: (numPlayers: number) => Promise<LobbyGame>;
+    createLobby: (numPlayers: number, entryFee: number) => Promise<LobbyGame>;
     joinLobby: (lobbyId: string) => Promise<void>;
-    startCPUGame: (numCPU: number) => Promise<void>;
+    startCPUGame: (numCPU: number, entryFee: number) => Promise<void>;
     drawCard: () => Promise<void>;
     discardCard: (index: number) => Promise<void>;
     quitGame: () => void;
@@ -66,6 +72,8 @@ export const GameProvider = ({ children, playerName, setPlayerName }: GameProvid
     const [lobby, setLobby] = useState<LobbyGame | null>(null);
     const [lobbies, setLobbies] = useState<LobbyGame[]>([]);
     const [error, setError] = useState<string | null>(null);
+    const [entryFee, setEntryFee] = useState(100);
+    const [playerWallet, setPlayerWallet] = useState(10000);
     const [loadingStates, setLoadingStates] = useState<LoadingStates>({
         starting: false,
         joining: false,
@@ -74,12 +82,27 @@ export const GameProvider = ({ children, playerName, setPlayerName }: GameProvid
         cpuMoving: false,
     });
 
+    // Initialize game service (use useMemo to avoid recreating on every render)
+    const gameService = useMemo(() => new GameService(), []);
+
+    const refreshWallet = useCallback(async () => {
+        if (!playerName.trim()) return;
+        try {
+            const balance = await gameService.getWallet(playerName);
+            setPlayerWallet(balance);
+        } catch (error) {
+            console.error('Failed to refresh wallet:', error);
+        }
+    }, [playerName, gameService]);
+
+    // Refresh wallet when name changes
+    useEffect(() => {
+        refreshWallet();
+    }, [playerName, refreshWallet]);
+
     // WebSocket states
     const [lobbyWS, setLobbyWS] = useState<WebSocket | null>(null);
     const [gameWS, setGameWS] = useState<WebSocket | null>(null);
-
-    // Initialize game service (use useMemo to avoid recreating on every render)
-    const gameService = useMemo(() => new GameService(), []);
 
     // WebSocket connection for lobby room updates
     const lobbyIdForWS = lobby?.id;
@@ -134,6 +157,9 @@ export const GameProvider = ({ children, playerName, setPlayerName }: GameProvid
                     if (message.data.id) {
                         setGameId(message.data.id);
                     }
+                    if (message.data.game_over) {
+                        refreshWallet();
+                    }
                 }
             };
             ws.onclose = () => {
@@ -150,7 +176,7 @@ export const GameProvider = ({ children, playerName, setPlayerName }: GameProvid
                 setGameWS(null);
             };
         }
-    }, [gameStateIdForWS, gameState?.mode, playerName]);
+    }, [gameStateIdForWS, gameState?.mode, playerName, refreshWallet]);
 
     // Combined polling fallback for both Lobby and Game states
     useEffect(() => {
@@ -180,6 +206,9 @@ export const GameProvider = ({ children, playerName, setPlayerName }: GameProvid
                     if (isCPUGame || isMultiplayerWithoutWS) {
                         const game = await gameService.getGame(gameId);
                         setGameState(game);
+                        if (game.game_over) {
+                            refreshWallet();
+                        }
                     }
                 }
             } catch (error: any) {
@@ -188,10 +217,10 @@ export const GameProvider = ({ children, playerName, setPlayerName }: GameProvid
         }, 3000); // Poll every 3 seconds for better reliability
 
         return () => clearInterval(interval);
-    }, [lobby, gameId, gameWS, gameState, gameService]);
+    }, [lobby, gameId, gameWS, gameState, gameService, refreshWallet]);
 
     // Game actions
-    const createLobby = useCallback(async (numPlayers: number) => {
+    const createLobby = useCallback(async (numPlayers: number, fee: number) => {
         // ⬇️ FORCE RESET: Clear previous game state
         setGameState(null);
         setGameId(null);
@@ -201,7 +230,7 @@ export const GameProvider = ({ children, playerName, setPlayerName }: GameProvid
         setError(null);
         try {
             // Create lobby first
-            const newLobby = await gameService.createLobby(playerName, numPlayers);
+            const newLobby = await gameService.createLobby(playerName, numPlayers, fee);
             setLobby(newLobby);
 
             // WE DO NOT START THE GAME HERE
@@ -209,6 +238,7 @@ export const GameProvider = ({ children, playerName, setPlayerName }: GameProvid
             // We just wait in the lobby.
             setGameId(null);
             setGameState(null);
+            refreshWallet(); // Refresh after deduction
             return newLobby;
         } catch (error: any) {
             setError(error.message || "Failed to create game");
@@ -216,7 +246,7 @@ export const GameProvider = ({ children, playerName, setPlayerName }: GameProvid
         } finally {
             setLoadingStates(prev => ({ ...prev, starting: false }));
         }
-    }, [playerName, gameService]);
+    }, [playerName, gameService, refreshWallet]);
 
     const joinLobby = useCallback(async (lobbyId: string) => {
         setLoadingStates(prev => ({ ...prev, joining: true }));
@@ -225,6 +255,7 @@ export const GameProvider = ({ children, playerName, setPlayerName }: GameProvid
             // Join the lobby
             const response = await gameService.joinLobby(lobbyId, playerName);
             setLobby(response.lobby);
+            refreshWallet(); // Refresh after deduction
 
             // If the backend returned a game (meaning we are the 2nd player triggering start), use it
             if (response.game) {
@@ -241,17 +272,17 @@ export const GameProvider = ({ children, playerName, setPlayerName }: GameProvid
         }
     }, [playerName, gameService]);
 
-    const startCPUGame = useCallback(async (numCPU: number) => {
-        console.log(`[GameContext] startCPUGame called for ${numCPU} CPUs`);
+    const startCPUGame = useCallback(async (numCPU: number, fee: number) => {
+        console.log(`[GameContext] startCPUGame called for ${numCPU} CPUs with fee ${fee}`);
         // ⬇️ FORCE RESET: Clear previous game state
         setGameState(null);
         setGameId(null);
         setLobby(null);
-
+ 
         setLoadingStates(prev => ({ ...prev, starting: true }));
         try {
             console.log("[GameContext] Requesting createNewGame...");
-            let game = await gameService.createNewGame("cpu", playerName, numCPU);
+            let game = await gameService.createNewGame("cpu", playerName, numCPU, 4, fee);
             console.log("[GameContext] createNewGame response:", JSON.stringify(game));
             
             // ⬇️ WORKAROUND: If backend returns a finished game (sticky session), try to flush it
@@ -270,7 +301,7 @@ export const GameProvider = ({ children, playerName, setPlayerName }: GameProvid
                     
                     // Retry creating the game
                     console.log("[GameContext] Retrying new game creation...");
-                    game = await gameService.createNewGame("cpu", playerName, numCPU);
+                    game = await gameService.createNewGame("cpu", playerName, numCPU, 4, fee);
                     console.log("[GameContext] Retry response:", JSON.stringify(game));
                     
                     const isRetryFinished = game.game_over === true || !!game.winner;
@@ -375,6 +406,10 @@ export const GameProvider = ({ children, playerName, setPlayerName }: GameProvid
         quitGame,
         refreshLobbies,
         gameService,
+        entryFee,
+        setEntryFee,
+        playerWallet,
+        refreshWallet,
     };
 
     return <GameContext.Provider value={value}>{children}</GameContext.Provider>;

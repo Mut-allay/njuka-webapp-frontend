@@ -4,9 +4,10 @@ interface HomePageProps {
   onSelectMode: (mode: 'multiplayer' | 'cpu') => void;
   playerName: string;
   setPlayerName: (name: string) => void;
+  playerWallet: number;
 }
 
-export const HomePage = ({ onSelectMode, playerName, setPlayerName }: HomePageProps) => {
+export const HomePage = ({ onSelectMode, playerName, setPlayerName, playerWallet }: HomePageProps) => {
   return (
     <div className="page-container">
       <div className="welcome-section">
@@ -31,6 +32,13 @@ export const HomePage = ({ onSelectMode, playerName, setPlayerName }: HomePagePr
             required
           />
         </label>
+
+        {playerName.trim() && (
+          <div className="player-wallet-status">
+            Current Balance: <strong>K{playerWallet.toLocaleString()}</strong>
+          </div>
+        )}
+
         
         <div className="game-mode-buttons">
           <button

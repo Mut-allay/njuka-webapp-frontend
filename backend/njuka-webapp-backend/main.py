@@ -23,6 +23,7 @@ class Player(BaseModel):
     name: str
     hand: List[Card]
     is_cpu: bool = False
+    wallet: int = 10000
 
 class GameState(BaseModel):
     deck: List[Card]
@@ -33,6 +34,8 @@ class GameState(BaseModel):
     id: str
     mode: str
     max_players: int
+    entry_fee: int = 0
+    pot_amount: int = 0
     winner: str = ""
     winner_hand: List[Card] = []
     game_over: bool = False
@@ -46,6 +49,7 @@ class LobbyGame(BaseModel):
     started: bool = False
     last_updated: datetime
     game_id: Optional[str] = None
+    entry_fee: int = 0
 
     class Config:
         json_encoders = {datetime: lambda dt: dt.isoformat()}
@@ -80,6 +84,12 @@ async def global_exception_handler(request, exc):
 
 active_games: Dict[str, GameState] = {}
 active_lobbies: Dict[str, LobbyGame] = {}
+player_wallets: Dict[str, int] = {}
+
+def get_player_wallet(name: str) -> int:
+    if name not in player_wallets:
+        player_wallets[name] = 10000
+    return player_wallets[name]
 
 class ConnectionManager:
     def __init__(self):
@@ -149,17 +159,24 @@ manager = ConnectionManager()
 def create_deck() -> List[Card]:
     return [Card(value=v, suit=s) for s in suits for v in values]
 
-def new_game_state(mode: str, player_name: str, cpu_count: int = 1, max_players: int = 4) -> GameState:
+def new_game_state(mode: str, player_name: str, cpu_count: int = 1, max_players: int = 4, entry_fee: int = 0, deduct_fee: bool = True) -> GameState:
     deck = create_deck()
     random.shuffle(deck)
     players = []
 
+    wallet = get_player_wallet(player_name)
+    if wallet < entry_fee:
+        raise HTTPException(status_code=400, detail=f"Insufficient funds. Required: K{entry_fee}, Available: K{wallet}")
+
+    if deduct_fee:
+        player_wallets[player_name] -= entry_fee
+    players.append(Player(name=player_name, hand=[], wallet=player_wallets[player_name]))
+
     if mode == "cpu":
-        players.append(Player(name=player_name, hand=[]))
         for i in range(cpu_count):
-            players.append(Player(name=f"CPU {i+1}", hand=[], is_cpu=True))
-    else:  # multiplayer
-        players.append(Player(name=player_name, hand=[]))
+            players.append(Player(name=f"CPU {i+1}", hand=[], is_cpu=True, wallet=10000))
+    
+    pot_amount = entry_fee * len(players)
 
     # Deal 3 cards to each player
     for _ in range(3):
@@ -177,13 +194,16 @@ def new_game_state(mode: str, player_name: str, cpu_count: int = 1, max_players:
         has_drawn=False,
         id=str(uuid.uuid4()),
         mode=mode,
-        max_players=max_players
+        max_players=max_players,
+        entry_fee=entry_fee,
+        pot_amount=pot_amount
     )
 
 # ====================== REQUEST MODELS ======================
 class CreateLobbyRequest(BaseModel):
     host: str
     max_players: int = 4
+    entry_fee: int = 100
 
 class JoinLobbyRequest(BaseModel):
     player: str
@@ -195,6 +215,10 @@ async def create_lobby(request: CreateLobbyRequest):
     if not (2 <= request.max_players <= 8):
         raise HTTPException(status_code=400, detail="Max players must be 2-8")
 
+    wallet = get_player_wallet(request.host)
+    if wallet < request.entry_fee:
+        raise HTTPException(status_code=400, detail=f"Insufficient funds. Required: K{request.entry_fee}, Available: K{wallet}")
+
     lobby_id = str(uuid.uuid4())
     lobby = LobbyGame(
         id=lobby_id,
@@ -202,10 +226,12 @@ async def create_lobby(request: CreateLobbyRequest):
         players=[request.host],
         max_players=request.max_players,
         created_at=datetime.now(),
-        last_updated=datetime.now()
+        last_updated=datetime.now(),
+        entry_fee=request.entry_fee
     )
+    player_wallets[request.host] -= request.entry_fee
     active_lobbies[lobby_id] = lobby
-    logger.info(f"Lobby created: {lobby_id} by {request.host}")
+    logger.info(f"Lobby created: {lobby_id} by {request.host} with fee K{request.entry_fee}")
     return lobby.dict()
 
 @app.post("/lobby/{lobby_id}/join")
@@ -222,13 +248,27 @@ async def join_lobby(lobby_id: str, request: JoinLobbyRequest):
     if player_name in lobby.players:
         raise HTTPException(status_code=400, detail="Player already in lobby")
 
+    wallet = get_player_wallet(player_name)
+    logger.info(f"Player {player_name} attempting to join lobby {lobby_id}. Wallet: K{wallet}, Fee: K{lobby.entry_fee}")
+    
+    if wallet < lobby.entry_fee:
+        logger.warning(f"Join failed: Insufficient funds for {player_name}. Need K{lobby.entry_fee}, have K{wallet}")
+        raise HTTPException(status_code=400, detail=f"Insufficient funds. Required: K{lobby.entry_fee}, Available: K{wallet}")
+
+    player_wallets[player_name] -= lobby.entry_fee
+
     # CRITICAL FIX: Create game when second player joins
     if len(lobby.players) == 1:  # This is the second player → start the game!
-        game_state = new_game_state("multiplayer", lobby.host, max_players=lobby.max_players)
+        # Host fee was already deducted in create_lobby, so pass deduct_fee=False
+        game_state = new_game_state("multiplayer", lobby.host, max_players=lobby.max_players, entry_fee=lobby.entry_fee, deduct_fee=False)
         active_games[game_state.id] = game_state
+        # Note: new_game_state already deducted host fee and added host to players
+        # But wait, new_game_state for multiplayer needs adjustment to not double-deduct host fee 
+        # and to handle players list correctly.
 
         # Add joining player to the game with 3 cards
-        game_state.players.append(Player(name=player_name, hand=[]))
+        game_state.players.append(Player(name=player_name, hand=[], wallet=player_wallets[player_name]))
+        game_state.pot_amount += lobby.entry_fee
         for _ in range(3):
             if game_state.deck:
                 game_state.players[-1].hand.append(game_state.deck.pop())
@@ -269,8 +309,8 @@ async def list_lobbies():
     return list(active_lobbies.values())
 
 @app.post("/new_game")
-async def create_cpu_game(player_name: str = "Player", cpu_count: int = 1):
-    game = new_game_state("cpu", player_name, cpu_count=cpu_count)
+async def create_cpu_game(player_name: str = "Player", cpu_count: int = 1, entry_fee: int = 0, mode: str = "cpu", max_players: int = 4):
+    game = new_game_state(mode, player_name, cpu_count=cpu_count, entry_fee=entry_fee, max_players=max_players)
     active_games[game.id] = game
     return game.dict()
 
@@ -299,6 +339,11 @@ async def draw_card(game_id: str):
         game.winner = winner
         game.winner_hand = hand
         game.game_over = True
+        # Credit pot to winner
+        player_wallets[winner] += game.pot_amount
+        for p in game.players:
+            if p.name == winner:
+                p.wallet = player_wallets[winner]
 
     await manager.broadcast_game_update(game_id, game)
     return game.dict()
@@ -325,6 +370,11 @@ async def discard_card(game_id: str, card_index: int = Query(...)):
         game.winner = winner
         game.winner_hand = hand
         game.game_over = True
+        # Credit pot to winner
+        player_wallets[winner] += game.pot_amount
+        for p in game.players:
+            if p.name == winner:
+                p.wallet = player_wallets[winner]
     else:
         game.current_player = (game.current_player + 1) % len(game.players)
 
@@ -335,9 +385,13 @@ async def discard_card(game_id: str, card_index: int = Query(...)):
 async def root():
     return {"message": "Njuka King backend is live & fixed! 🔥"}
 
-@app.get("/health")
-async def health():
+@app.get("/heartbeat")
+async def heartbeat():
     return {"status": "ok"}
+
+@app.get("/wallet/{player_name}")
+async def get_wallet(player_name: str):
+    return {"wallet": get_player_wallet(player_name)}
 
 # WebSocket Endpoints
 @app.websocket("/ws/game/{game_id}")

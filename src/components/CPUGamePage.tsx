@@ -7,6 +7,9 @@ interface CPUGamePageProps {
   numCPU: number;
   setNumCPU: (num: number) => void;
   loadingStates: LoadingStates;
+  entryFee: number;
+  setEntryFee: (fee: number) => void;
+  playerWallet: number;
 }
 
 export const CPUGamePage = ({ 
@@ -14,7 +17,10 @@ export const CPUGamePage = ({
   onStartGame, 
   numCPU, 
   setNumCPU, 
-  loadingStates 
+  loadingStates,
+  entryFee,
+  setEntryFee,
+  playerWallet
 }: CPUGamePageProps) => {
   return (
     <div className="page-container">
@@ -24,6 +30,7 @@ export const CPUGamePage = ({
           Back
         </button>
         <h2>Play vs CPU</h2>
+        <div className="wallet-badge">Wallet: K{playerWallet.toLocaleString()}</div>
       </div>
 
       <div className="cpu-game-content">
@@ -44,6 +51,39 @@ export const CPUGamePage = ({
                 </button>
               ))}
             </div>
+          </div>
+
+          <div className="entry-fee-selection no-margin-top">
+            <label>
+              Bet Amount (K5 - K5000):
+              <div className="fee-input-container">
+                <span className="currency-prefix">K</span>
+                <input
+                  type="number"
+                  min="5"
+                  max="5000"
+                  value={entryFee}
+                  onChange={(e) => {
+                    const val = parseInt(e.target.value);
+                    if (!isNaN(val)) setEntryFee(Math.min(5000, Math.max(0, val)));
+                    else if (e.target.value === '') setEntryFee(0);
+                  }}
+                  className="fee-number-input"
+                />
+              </div>
+              <div className="fee-presets">
+                {[100, 500, 1000, 2500, 5000].map(fee => (
+                  <button 
+                    key={fee} 
+                    type="button"
+                    className={entryFee === fee ? "active" : ""}
+                    onClick={() => setEntryFee(fee)}
+                  >
+                    K{fee}
+                  </button>
+                ))}
+              </div>
+            </label>
           </div>
 
           <div className="difficulty-info">

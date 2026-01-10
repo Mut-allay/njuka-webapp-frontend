@@ -1307,7 +1307,7 @@ button:disabled {
   left: 50%;
   transform: translate(-50%, -50%);
   display: flex;
-  gap: 60px;
+  gap: 40px; /* Reduced gap to accommodate Pot on the right */
   z-index: 2;
   align-items: center;
 }
@@ -2508,6 +2508,90 @@ button:disabled {
   background: rgba(255, 255, 255, 0.15);
 }
 
+.entry-fee-selection {
+  margin: 20px 0;
+  padding: 15px;
+  background: rgba(248, 213, 107, 0.05);
+  border-radius: 12px;
+  border: 1px solid rgba(248, 213, 107, 0.2);
+}
+
+.fee-slider {
+  margin: 15px 0 !important;
+  accent-color: #f8d56b;
+}
+
+.fee-input-container {
+  display: flex;
+  align-items: center;
+  background: rgba(0, 0, 0, 0.3);
+  border: 1px solid rgba(255, 215, 0, 0.3);
+  border-radius: 8px;
+  padding: 8px 12px;
+  margin: 10px 0;
+  transition: all 0.3s ease;
+}
+
+.fee-input-container:focus-within {
+  border-color: #ffd700;
+  box-shadow: 0 0 10px rgba(255, 215, 0, 0.2);
+}
+
+.currency-prefix {
+  color: #ffd700;
+  font-weight: bold;
+  font-size: 1.2rem;
+  margin-right: 8px;
+}
+
+.fee-number-input {
+  background: transparent;
+  border: none;
+  color: #fff;
+  font-size: 1.2rem;
+  font-weight: 600;
+  width: 100%;
+  outline: none;
+}
+
+/* Remove arrowsfrom number input */
+.fee-number-input::-webkit-outer-spin-button,
+.fee-number-input::-webkit-inner-spin-button {
+  -webkit-appearance: none;
+  margin: 0;
+}
+
+.fee-number-input[type=number] {
+  -moz-appearance: textfield;
+}
+
+.fee-presets {
+  display: flex;
+  justify-content: space-between;
+  gap: 8px;
+  margin-top: 10px;
+  flex-wrap: wrap;
+}
+
+.fee-presets button {
+  flex: 1;
+  min-width: 60px;
+  padding: 8px 5px;
+  font-size: 0.85em;
+  background: rgba(255, 255, 255, 0.1);
+  border: 1px solid rgba(248, 213, 107, 0.3);
+  color: #f8d56b;
+  border-radius: 6px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.fee-presets button.active {
+  background: #f8d56b;
+  color: #1a1a1a;
+  font-weight: bold;
+}
+
 .game-mode-buttons {
   display: grid;
   grid-template-columns: 1fr; /* Single column on mobile */
@@ -2888,11 +2972,11 @@ button:disabled {
 }
 
 .main-menu-bar {
-  background: rgba(0, 0, 0, 0.8);
+  background: rgba(20, 20, 20, 0.8);
   backdrop-filter: blur(10px);
   display: flex;
   justify-content: space-around;
-  padding: 14px 8px; /* Larger for mobile */
+  padding: 4px; /* Larger for mobile */
   border-top: 1px solid rgba(248, 213, 107, 0.3);
 }
 
@@ -3158,7 +3242,7 @@ button:disabled {
   }
 
   .main-menu-bar {
-    padding: 15px 10px;
+    padding: 0px;
   }
 
   .menu-button {
@@ -3209,5 +3293,76 @@ button:disabled {
     padding-left: max(15px, env(safe-area-inset-left));
     padding-right: max(15px, env(safe-area-inset-right));
     padding-bottom: max(15px, env(safe-area-inset-bottom));
+  }
+}
+
+/* Wallet and Pot Styles (GameTable) */
+.wallet-info {
+  font-family: 'Inter', sans-serif;
+  font-weight: 700;
+  color: #4CAF50;
+  background: rgba(76, 175, 80, 0.1);
+  padding: 2px 8px;
+  border-radius: 10px;
+  font-size: 0.8em;
+  border: 1px solid rgba(76, 175, 80, 0.2);
+  margin-top: 4px;
+  display: inline-block;
+}
+
+.player-info-row {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  margin-bottom: 5px;
+}
+
+.player-info-row .player-name {
+  margin: 0;
+}
+
+.game-pot-display {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  pointer-events: none;
+  z-index: 10;
+  background: radial-gradient(circle, rgba(248, 213, 107, 0.15) 0%, rgba(0, 0, 0, 0) 70%);
+  padding: 15px;
+  border-radius: 50%;
+  margin-left: -20px; /* Overlap slightly with discard if needed */
+}
+
+.pot-label {
+  font-size: 0.7em;
+  letter-spacing: 2px;
+  color: #f8d56b;
+  font-weight: bold;
+  opacity: 0.8;
+}
+
+.pot-amount {
+  font-size: 1.8em;
+  font-weight: 800;
+  color: #fff;
+  text-shadow: 0 0 10px rgba(248, 213, 107, 0.5);
+  margin: 2px 0;
+}
+
+.pot-fee {
+  font-size: 0.6em;
+  opacity: 0.6;
+  color: #f8d56b;
+}
+
+/* Mobile Adjustments for GameTable Wallet */
+@media (max-width: 768px) {
+  .pot-amount {
+    font-size: 1.4em;
+  }
+  .wallet-info {
+    font-size: 0.7em;
+    padding: 1px 6px;
   }
 }

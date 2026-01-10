@@ -12,6 +12,7 @@ type Player = {
   name: string
   hand: CardType[]
   is_cpu: boolean
+  wallet?: number
 }
 
 type GameState = {
@@ -23,6 +24,8 @@ type GameState = {
   mode: string
   id: string
   max_players: number
+  entry_fee?: number
+  pot_amount?: number
   winner?: string
   winner_hand?: CardType[]
   game_over?: boolean
@@ -363,6 +366,7 @@ export const GameTable: React.FC<GameTableProps> = ({
             {seatPlayers.top.name}
             {seatPlayers.top.is_cpu && " (CPU)"}
           </h3>
+          <div className="wallet-info">K{seatPlayers.top.wallet?.toLocaleString() || '10,000'}</div>
           <div className="hand horizontal" aria-label={`${seatPlayers.top.name}'s hand with ${seatPlayers.top.hand.length} cards`}>
             {seatPlayers.top.hand.map((card, i) => {
               const isDrawingCard = animatingDraw?.playerName === seatPlayers.top?.name && i === seatPlayers.top.hand.length - 1;
@@ -393,6 +397,7 @@ export const GameTable: React.FC<GameTableProps> = ({
             {seatPlayers.left.name}
             {seatPlayers.left.is_cpu && " (CPU)"}
           </h3>
+          <div className="wallet-info">K{seatPlayers.left.wallet?.toLocaleString() || '10,000'}</div>
           <div className="hand horizontal" aria-label={`${seatPlayers.left.name}'s hand with ${seatPlayers.left.hand.length} cards`}>
             {seatPlayers.left.hand.map((card, i) => {
               const isDrawingCard = animatingDraw?.playerName === seatPlayers.left?.name && i === seatPlayers.left.hand.length - 1;
@@ -423,6 +428,7 @@ export const GameTable: React.FC<GameTableProps> = ({
             {seatPlayers.right.name}
             {seatPlayers.right.is_cpu && " (CPU)"}
           </h3>
+          <div className="wallet-info">K{seatPlayers.right.wallet?.toLocaleString() || '10,000'}</div>
           <div className="hand horizontal" aria-label={`${seatPlayers.right.name}'s hand with ${seatPlayers.right.hand.length} cards`}>
             {seatPlayers.right.hand.map((card, i) => {
               const isDrawingCard = animatingDraw?.playerName === seatPlayers.right?.name && i === seatPlayers.right.hand.length - 1;
@@ -443,39 +449,47 @@ export const GameTable: React.FC<GameTableProps> = ({
       )}
 
       <div className="table-center">
-        <div
-          className={`deck-area ${showDeckHighlight ? "deck-highlight" : ""} ${isShuffling ? "deck-shuffling" : ""}`}
-          onClick={canDraw ? handleDraw : undefined}
-          role="button"
-          tabIndex={canDraw ? 0 : -1}
-          aria-label={`Deck with ${state.deck?.length ?? 0} cards remaining${canDraw ? ", click to draw a card" : ""}`}
-          onKeyDown={(e) => {
-            if (canDraw && (e.key === 'Enter' || e.key === ' ')) {
-              e.preventDefault()
-              handleDraw()
-            }
-          }}
-        >
-          <div className="deck-count" aria-hidden="true">{state.deck?.length ?? 0}</div>
-          {shouldShowPrompt() && <div className="tutorial-prompt" role="status" aria-live="polite">Pick a card</div>}
-          <Card
-            facedown
-            value=""
-            suit=""
-            // ⬇️ REMOVED: No longer need the drawing class on the deck itself
-            className={`${isShuffling ? "card-shuffling" : ""}`}
-            style={{
-              cursor: canDraw ? "pointer" : "default",
+        <div className="cards-center-row">
+          <div className="discard-area" role="region" aria-label="Discard pile">
+            {state.pot?.length > 0 ? (
+              <Card {...state.pot[state.pot.length - 1]} className="discard-top" />
+            ) : (
+              <div className="discard-empty" aria-label="Empty discard pile">Empty</div>
+            )}
+          </div>
+
+          <div
+            className={`deck-area ${showDeckHighlight ? "deck-highlight" : ""} ${isShuffling ? "deck-shuffling" : ""}`}
+            onClick={canDraw ? handleDraw : undefined}
+            role="button"
+            tabIndex={canDraw ? 0 : -1}
+            aria-label={`Deck with ${state.deck?.length ?? 0} cards remaining${canDraw ? ", click to draw a card" : ""}`}
+            onKeyDown={(e) => {
+              if (canDraw && (e.key === 'Enter' || e.key === ' ')) {
+                e.preventDefault()
+                handleDraw()
+              }
             }}
-          />
+          >
+            <div className="deck-count" aria-hidden="true">{state.deck?.length ?? 0}</div>
+            {shouldShowPrompt() && <div className="tutorial-prompt" role="status" aria-live="polite">Pick a card</div>}
+            <Card
+              facedown
+              value=""
+              suit=""
+              // ⬇️ REMOVED: No longer need the drawing class on the deck itself
+              className={`${isShuffling ? "card-shuffling" : ""}`}
+              style={{
+                cursor: canDraw ? "pointer" : "default",
+              }}
+            />
+          </div>
         </div>
 
-        <div className="discard-area" role="region" aria-label="Discard pile">
-          {state.pot?.length > 0 ? (
-            <Card {...state.pot[state.pot.length - 1]} className="discard-top" />
-          ) : (
-            <div className="discard-empty" aria-label="Empty discard pile">Empty</div>
-          )}
+        <div className="game-pot-display">
+          <div className="pot-label">POT</div>
+          <div className="pot-amount">K{state.pot_amount?.toLocaleString() || '0'}</div>
+          {state.entry_fee && <div className="pot-fee">Entry: K{state.entry_fee}</div>}
         </div>
       </div>
 
@@ -485,7 +499,10 @@ export const GameTable: React.FC<GameTableProps> = ({
         role="region"
         aria-label={`Your hand${state.current_player === currentPlayerIndex ? ", current turn" : ""}`}
       >
-        <h4 className="player-name">{yourPlayer.name}</h4>
+        <div className="player-info-row">
+          <h4 className="player-name">{yourPlayer.name}</h4>
+          <div className="wallet-info">K{yourPlayer.wallet?.toLocaleString() || '10,000'}</div>
+        </div>
         <div className="hand" aria-label={`Your hand with ${yourPlayer.hand?.length || 0} cards`}>
           {yourPlayer.hand?.map((card, i) => {
             const isDealing = dealingCards[i] || false
